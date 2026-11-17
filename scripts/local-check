@@ -1,0 +1,518 @@
+#!/usr/bin/env python3
+"""Fixed local synthetic fixtures only; no downloads, remote contexts or deletion.
+
+all keeps the required K3s failure visible; x86 feasibility is not ARM fit.
+"""
+from __future__ import annotations
+import argparse
+from contextlib import contextmanager
+import fcntl
+import json
+import os
+import platform
+import shutil
+import signal
+import subprocess
+import sys
+import time
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PROJECT = 'ton-sentinel-local'
+DOCKER = ['docker', '--context', 'default']
+SERVICES = {'app', 'postgres', 'kafka', 'storage'}
+APP_IMAGE = 'ton-sentinel@sha256:8b1759daf094bd768b25108ae78e3e3bbc96a3706d542ea092c6620c5e68e7b2'
+# Owner-extended 2026-11-11 to 7; extended 7 -> 10 on
+# 2026-11-11 for the two envelope workload levels plus one contingency attempt. Never auto-reset.
+MAX_RUNS = 50  # Local runs have no cloud cost; cap is only a runaway guard. Owner 2026-11-11: budget is not a constraint locally. Ledger history retained; never auto-reset.
+MIN_FREE_BYTES = 2**30
+MAX_RUN_GROWTH = 512 * 2**20
+# Workload levels materialize the full retained zero grid (<= 8.64M rows) plus WAL; still finite and
+# far inside the 20%/1 GiB free floors enforced by measure_storage.
+MAX_WORKLOAD_RUN_GROWTH = 4 * 2**30
+ENVELOPE = ROOT / 'deploy/workload/acceptance.json'  # tracked; measured runs write under .cache/
+WORKLOAD_EVIDENCE = ROOT / '.cache/fixture-evidence/workload'
+CGROUP_ROOT = Path('/sys/fs/cgroup/system.slice')
+K3D_SERVER = 'k3d-ton-sentinel-local-server-0'
+K3D_CLUSTER = 'ton-sentinel-local'
+MAX_RETAINED_WORKSPACE = 256 * 2**20
+
+
+PG_PASSWORD_ENV = 'TON_SENTINEL_PG_PASSWORD'
+
+
+def load_pg_password(environ, env_file=ROOT / '.env'):
+    """Compose runs with --env-file /dev/null; only the database password is taken from .env.
+
+    Without it, compose itself refuses: 'set TON_SENTINEL_PG_PASSWORD in .env'."""
+    if environ.get(PG_PASSWORD_ENV) or not env_file.is_file():
+        return
+    for line in env_file.read_text().splitlines():
+        key, sep, value = line.partition('=')
+        value = value.strip().strip('"').strip("'")
+        if sep and key.strip() == PG_PASSWORD_ENV and value:
+            environ[PG_PASSWORD_ENV] = value
+            return
+
+
+def evidence_directory():
+    """Retain the historical budget; never start a fresh ledger on relocation."""
+    legacy = ROOT / 'docs/research/implementation-evidence/task-02/fix-round-1'
+    directory = legacy if (legacy / 'run-admission.json').is_file() else ROOT / '.cache/fixture-evidence'
+    if not (directory / 'run-admission.json').is_file():
+        raise ValueError('BLOCKED: retained admission ledger required; owner review required before fixture execution')
+    return directory
+
+
+@contextmanager
+def admission(evidence, run_id, reserve=True):
+    """Serialize the entire lifecycle, persist bounded attempts including failures."""
+    with (evidence / 'run-admission.lock').open('a+') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ValueError('BLOCKED: concurrent fixture invocation') from None
+        try:
+            if reserve:
+                path = evidence / 'run-admission.json'
+                state = json.loads(path.read_text()) if path.exists() else {'policy': 'max two additional attempts; retain all data; owner review required to extend', 'attempts': []}
+                if not isinstance(state, dict) or not isinstance(state.get('attempts'), list):
+                    raise ValueError('BLOCKED: run budget ledger malformed')
+                if len(state['attempts']) >= MAX_RUNS:
+                    raise ValueError('BLOCKED: run budget exhausted; owner retention review required; no automatic deletion')
+                state['attempts'].append(run_id)
+                # In-place write under lock, fsync before any service side effect.
+                with path.open('w') as ledger:
+                    json.dump(state, ledger, indent=2); ledger.write('\n')
+                    ledger.flush(); os.fsync(ledger.fileno())
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+STORAGE_SCRIPT = """import os,json
+result={}
+for name,path in [('workspace','/workspace'),('postgres','/postgres'),('kafka','/kafka')]:
+ s=os.statvfs(path)
+ result[name]={'path':path,'device':os.stat(path).st_dev,'total_bytes':s.f_blocks*s.f_frsize,'free_bytes':s.f_bavail*s.f_frsize}
+print(json.dumps(result))
+"""
+
+
+def measure_storage(helper_id):
+    """statvfs the actual read-only volume mounts, never infer from workspace."""
+    try:
+        records = json.loads(command(DOCKER + ['exec', helper_id, 'python3', '-c', STORAGE_SCRIPT], timeout=15))
+        if not isinstance(records, dict) or set(records) != {'workspace', 'postgres', 'kafka'}:
+            raise ValueError('missing filesystem')
+        for record in records.values():
+            total, free = record['total_bytes'], record['free_bytes']
+            if (type(total) is not int or type(free) is not int or not 0 <= free <= total
+                    or total <= 0 or free < MIN_FREE_BYTES or free / total < .20):
+                raise ValueError('filesystem below 20 percent or 1 GiB free safety floor')
+        return records
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError('BLOCKED: storage measurement missing/invalid/unsafe: ' + str(exc)) from exc
+
+
+def storage_guard(records, baseline, growth=MAX_RUN_GROWTH):
+    if any(baseline[name]['free_bytes'] - rec['free_bytes'] > growth
+           for name, rec in records.items()):
+        raise ValueError(f'BLOCKED: storage run growth exceeded {growth // 2**20} MiB')
+    retained = sum(p.stat().st_size for root in [ROOT / '.cache/runtime', ROOT / '.cache/fixture-evidence',
+                                               ROOT / 'docs/research/implementation-evidence/task-02']
+                   for p in root.rglob('*') if p.is_file())
+    if retained > MAX_RETAINED_WORKSPACE:
+        raise ValueError('BLOCKED: storage retained workspace exceeds 256 MiB; owner review required')
+
+
+@contextmanager
+def storage_fixture(prefix, lifetime=1200):
+    # Require exact existing local volumes: --mount must never create a new volume.
+    volumes = []
+    for suffix in ['pgdata', 'kafkadata']:
+        name = PROJECT + '_' + suffix
+        volume = json.loads(command(DOCKER + ['volume', 'inspect', name]))[0]
+        if (volume['Name'] != name or volume['Driver'] != 'local' or volume.get('Options')
+                or volume['Labels'].get('com.docker.compose.project') != PROJECT
+                or volume['Labels'].get('com.docker.compose.volume') != suffix):
+            raise ValueError('BLOCKED: storage volume ownership/driver mismatch')
+        volumes.append(volume)
+    prefix.with_suffix('.storage-volumes.json').write_text(json.dumps(volumes, indent=2))
+    name = PROJECT + '-storage-' + prefix.name.lower()
+    helper_id = None
+    try:
+        helper_id = command(DOCKER + ['create', '--name', name, '--pull', 'never', '--network', 'none',
+            '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true',
+            '--user', '1000:1000', '--memory', '64m', '--cpus', '0.1',
+            '--label', 'com.docker.compose.project=' + PROJECT,
+            '--label', 'com.docker.compose.service=storage',
+            '--mount', 'type=volume,src=' + volumes[0]['Name'] + ',dst=/postgres,readonly',
+            '--mount', 'type=volume,src=' + volumes[1]['Name'] + ',dst=/kafka,readonly',
+            '--mount', 'type=bind,src=' + str(ROOT) + ',dst=/workspace,readonly',
+            '--entrypoint', 'python3', APP_IMAGE, '-c', f'import time; time.sleep({int(lifetime)})']).strip()
+        command(DOCKER + ['start', helper_id])
+        initial = measure_storage(helper_id)
+        storage_guard(initial, initial)
+        prefix.with_suffix('.storage-preflight.json').write_text(json.dumps(initial, indent=2))
+        yield helper_id, initial
+    finally:
+        # A create timeout may have created the exact named target without returning its ID.
+        if helper_id is None:
+            candidates = command(DOCKER + ['ps', '-a', '-q', '--no-trunc', '--filter', 'name=^/' + name + '$']).split()
+        else:
+            candidates = [helper_id]
+        stop_owned(candidates, Path(str(prefix) + '-storage'))
+
+
+def check_local_context(env, endpoint):
+    if (endpoint != 'unix:///var/run/docker.sock'
+            or env.get('DOCKER_HOST', 'unix:///var/run/docker.sock') != 'unix:///var/run/docker.sock'
+            or env.get('DOCKER_CONTEXT', 'default') != 'default'
+            or env.get('KUBECONFIG') or env.get('KUBERNETES_MASTER')
+            or env.get('DOCKER_TLS_VERIFY') or env.get('DOCKER_CERT_PATH')):
+        raise ValueError('BLOCKED: remote/ambiguous Docker or Kubernetes context refused before clients')
+
+
+def require_native_arm64(host_arch, image_arch):
+    if host_arch != 'aarch64' or image_arch != 'arm64':
+        raise ValueError('BLOCKED: native ARM64 host AND actual local ARM64 images required; emulation refused')
+
+
+def command(args, timeout=60):
+    return subprocess.run(args, cwd=ROOT, check=True, text=True, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, timeout=timeout).stdout
+
+
+def owned_containers(ids):
+    if not ids:
+        return []
+    containers = json.loads(command(DOCKER + ['inspect', *ids]))
+    if {c['Id'] for c in containers} != set(ids) or any(
+            c['Config']['Labels'].get('com.docker.compose.project') != PROJECT
+            or c['Config']['Labels'].get('com.docker.compose.service') not in SERVICES
+            for c in containers):
+        raise ValueError('BLOCKED: cleanup target ownership mismatch')
+    return containers
+
+
+def stop_owned(ids, prefix):
+    if not ids:
+        return
+    owned_containers(ids)
+    command(DOCKER + ['stop', '--time', '10', *ids], timeout=45)
+    final = owned_containers(ids)
+    prefix.with_suffix('.final-services.json').write_text(json.dumps(final, indent=2))
+    if any(c['State']['Running'] for c in final):
+        raise RuntimeError('BLOCKED: owned workload still running after cancellation')
+
+
+def reap(proc):
+    if proc.poll() is None:
+        proc.terminate()
+    try:
+        proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait(timeout=10)
+
+
+def failure_record(error):
+    output = getattr(error, 'output', None)
+    if isinstance(output, bytes):
+        output = output.decode(errors='replace')
+    return {'status': 'BLOCKED', 'error_type': type(error).__name__,
+            'message': str(error), 'partial_output': output}
+
+
+def foreign_pod_uids(pods):
+    """Pods of non-system namespaces on the shared K3s node (another stack, not K3s overhead)."""
+    return [item['metadata']['uid'] for item in pods.get('items', [])
+            if item['metadata'].get('namespace') != 'kube-system']
+
+
+def read_cgroup(path):
+    def pairs(name):
+        return {k: int(v) for k, v in (line.split() for line in (path / name).read_text().splitlines())}
+    memory, cpu, events = pairs('memory.stat'), pairs('cpu.stat'), pairs('memory.events')
+    current = int((path / 'memory.current').read_text())
+    peak_file = path / 'memory.peak'
+    return {'memory_current': current,
+            'memory_peak': int(peak_file.read_text()) if peak_file.exists() else current,
+            'anon': memory['anon'], 'file': memory['file'], 'kernel': memory.get('kernel', 0),
+            'usage_usec': cpu['usage_usec'], 'nr_throttled': cpu.get('nr_throttled', 0),
+            'throttled_usec': cpu.get('throttled_usec', 0), 'oom_kill': events.get('oom_kill', 0)}
+
+
+def container_cgroup(container_id):
+    path = CGROUP_ROOT / f'docker-{container_id}.scope'
+    if not path.is_dir():
+        raise ValueError('BLOCKED: container cgroup v2 scope not visible on host')
+    return path
+
+
+def k3s_context():
+    """Read-only: the local k3d node cgroup and the foreign pods sharing it."""
+    info = json.loads(command(DOCKER + ['inspect', K3D_SERVER]))[0]
+    if info['Config']['Labels'].get('k3d.cluster') != K3D_CLUSTER:
+        raise ValueError('BLOCKED: k3d server ownership mismatch')
+    pods = json.loads(command(DOCKER + ['exec', K3D_SERVER, 'kubectl', 'get', 'pods', '-A', '-o', 'json'], timeout=60))
+    scope = container_cgroup(info['Id'])
+    uids = foreign_pod_uids(pods)
+    paths = [p for uid in uids for p in scope.glob('kubepods/**/pod' + uid) if p.is_dir()]
+    return scope, paths, uids
+
+
+def host_kernel_bytes(meminfo):
+    return sum(meminfo[k] for k in ('SUnreclaim', 'KernelStack', 'PageTables'))
+
+
+def read_meminfo():
+    fields = {}
+    for line in Path('/proc/meminfo').read_text().splitlines():
+        key, value = line.split(':', 1)
+        parts = value.split()
+        if len(parts) == 2 and parts[1] == 'kB':
+            fields[key] = int(parts[0]) * 1024
+    return fields
+
+
+def host_sample(services, k3s_scope, foreign):
+    meminfo = read_meminfo()
+    node = read_cgroup(k3s_scope)
+    excluded_memory = excluded_usage = 0
+    for path in foreign:
+        if path.is_dir():  # a foreign pod that disappeared contributes nothing
+            excluded_memory += int((path / 'memory.current').read_text())
+            excluded_usage += {k: int(v) for k, v in (l.split() for l in (path / 'cpu.stat').read_text().splitlines())}['usage_usec']
+    return {'mono': time.monotonic(), 'utc': datetime.now(timezone.utc).isoformat(),
+            'containers': {name: read_cgroup(path) for name, path in services.items()},
+            'k3s': {'scope_memory_current': node['memory_current'], 'excluded_memory_current': excluded_memory,
+                    'scope_usage_usec': node['usage_usec'], 'excluded_usage_usec': excluded_usage,
+                    'oom_kill': node['oom_kill'], 'foreign_pod_cgroups': len(foreign)},
+            'host_kernel_bytes': host_kernel_bytes(meminfo),
+            'meminfo': {k: meminfo.get(k) for k in ('MemTotal', 'MemAvailable', 'Cached', 'SUnreclaim',
+                                                     'KernelStack', 'PageTables', 'SwapTotal', 'SwapFree')}}
+
+
+def workload_level(name):
+    """Validate the envelope and level BEFORE any attempt is reserved."""
+    sys.path[:0] = [str(ROOT), str(ROOT / 'src')]
+    from scripts.measure_feasibility import envelope_problems
+    from ton_sentinel import workload
+    envelope = json.loads(ENVELOPE.read_text()) if ENVELOPE.is_file() else {}
+    level = next((v for v in envelope.get('workload', {}).get('levels', []) if v.get('name') == name), None)
+    if level is None:
+        raise ValueError(f'BLOCKED: unknown workload level {name!r}')
+    problems = envelope_problems(envelope)
+    if problems:
+        raise ValueError('BLOCKED: envelope problems: ' + '; '.join(problems))
+    workload.phase_plan(level)
+    return envelope, level
+
+
+def measure_level(args, compose, containers, prefix, storage, procs):
+    from scripts.measure_feasibility import host_snapshot
+    from ton_sentinel import workload
+    envelope, level = args.envelope_data, args.level_data
+    plan = workload.phase_plan(level)
+    services = {c['Config']['Labels']['com.docker.compose.service']: container_cgroup(c['Id'])
+                for c in containers if c['Config']['Labels']['com.docker.compose.service'] in ('app', 'kafka', 'postgres')}
+    if set(services) != {'app', 'kafka', 'postgres'}:
+        raise ValueError('BLOCKED: workload services missing')
+    k3s_scope, foreign, uids = k3s_context()
+    snapshot = host_snapshot(ROOT, envelope['ram_budget_bytes'], MIN_FREE_BYTES,
+                             cpu_budget_cores=envelope['cpu_budget_cores'])
+    snapshot['k3s_foreign_pod_uids'] = uids
+    prefix.with_suffix('.host-snapshot.json').write_text(json.dumps(snapshot, indent=2))
+    capacity = snapshot['observations']['cpu']
+    if capacity is None:
+        raise ValueError('BLOCKED: host CPU capacity observation unavailable')
+    key = 'probe_' + uuid.uuid4().hex
+    runtime = ROOT / '.cache/runtime' / key
+    runtime.mkdir(parents=True)
+    WORKLOAD_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    name = f"{prefix.name}-{level['name']}"
+    config = {'schema': key, 'topic': key, 'checkpoint_root': f'/runtime/{key}',
+              'output': f'/evidence/workload/{name}-harness.json', 'level': level, 'seed': 20261111,
+              'trigger_seconds': 30, 'watermark_seconds': 60, 'max_offsets_per_trigger': 5000}
+    (runtime / 'config.json').write_text(json.dumps(config, indent=2))
+    argv = compose + ['exec', '-T', 'app', 'python3', '-B', '-m', 'ton_sentinel.workload',
+                      '--config', f'/runtime/{key}/config.json']
+    raw_path = WORKLOAD_EVIDENCE / f'{name}-host-samples.jsonl'
+    log_path = Path(str(prefix) + '-workload.log')
+    started = time.monotonic()
+    count = 0
+    with log_path.open('w') as log, raw_path.open('w') as raw:
+        log.write('$ ' + ' '.join(argv) + '\n'); log.flush()
+        proc = subprocess.Popen(argv, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+        procs.append(proc)
+        while True:
+            done = proc.poll() is not None
+            if time.monotonic() - started > plan['max_wall_seconds']:
+                raise TimeoutError('workload level exceeded its wall-clock bound')
+            sample = host_sample(services, k3s_scope, foreign)
+            if count % 6 == 0 or done:
+                records = measure_storage(storage[0])
+                storage_guard(records, storage[1], growth=MAX_WORKLOAD_RUN_GROWTH)
+                sample['storage'] = records
+            raw.write(json.dumps(sample) + '\n'); raw.flush()
+            count += 1
+            if done:
+                break
+            time.sleep(5)
+    code = proc.wait()
+    print(log_path)
+    print(raw_path)
+    if code != 0:
+        print(f'workload_exit={code}')
+        return code
+    harness = json.loads((WORKLOAD_EVIDENCE / f'{name}-harness.json').read_text())
+    samples = [json.loads(line) for line in raw_path.read_text().splitlines() if line]
+    provenance = ('scripts/local-check workload --level ' + level['name'] + ' (run ' + prefix.name + '): host cgroup v2 '
+                  'cpu.stat/memory.{current,peak,stat,events} of docker-<id>.scope every 5 s, '
+                  'statvfs of the real volumes via the read-only storage helper, /proc/meminfo, '
+                  'host_snapshot for CPU capacity; harness ton_sentinel.workload in the app container')
+    summary = workload.summarize_level(samples, harness, level=level, target_id=envelope['target_id'],
+                                       architecture=platform.machine(), capacity=capacity, provenance=provenance)
+    summary['host_samples'] = len(samples)
+    summary['harness_output'] = str((WORKLOAD_EVIDENCE / f'{name}-harness.json').relative_to(ROOT))
+    (WORKLOAD_EVIDENCE / f'{name}-resources.jsonl').write_text(json.dumps(summary) + '\n')
+    print(WORKLOAD_EVIDENCE / f'{name}-resources.jsonl')
+    print(f"workload_exit=0; elapsed_seconds={time.monotonic()-started:.3f}; coverage={len(summary['coverage'])}/9")
+    return 0
+
+
+def run_workload(args, compose, prefix, storage=None):
+    ids = []
+    proc = None
+    procs = []
+    error = None
+    cleanup_errors = []
+    try:
+        setup = command(compose + ['up', '-d', '--wait', '--wait-timeout', '180', '--pull', 'never'], timeout=210)
+        prefix.with_suffix('.startup.log').write_text(setup)
+        ids = command(compose + ['ps', '-a', '-q', '--no-trunc']).split()
+        containers = owned_containers(ids)
+        prefix.with_suffix('.services.json').write_text(json.dumps(containers, indent=2))
+        network = json.loads(command(DOCKER + ['network', 'inspect', PROJECT + '_fixture']))[0]
+        if network['Internal'] is not True:
+            raise ValueError('BLOCKED: fixture network is not internal')
+        for container in containers:
+            host = container['HostConfig']
+            if host.get('PortBindings') or host.get('Privileged') or host.get('NetworkMode') in ('host', 'bridge'):
+                raise ValueError('BLOCKED: exposed/privileged fixture service')
+        if args.mode == 'workload':
+            return measure_level(args, compose, containers, prefix, storage, procs)
+        tests = ['python3', '-B', '-m', 'pytest', '-p', 'no:cacheprovider', '-v']
+        if args.mode == 'feasibility':
+            tests += ['tests/integration/test_feasibility.py']
+        elif args.mode == 'unit':
+            tests += ['-m', 'not integration and not k3s']
+        log_path = Path(str(prefix) + '-tests.log')
+        samples_path = Path(str(prefix) + '-resources.jsonl')
+        started = time.monotonic()
+        with log_path.open('w') as log, samples_path.open('w') as samples:
+            argv = compose + ['exec', '-T', 'app', *tests]
+            log.write('$ ' + ' '.join(argv) + '\n'); log.flush()
+            proc = subprocess.Popen(argv, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+            while proc.poll() is None:
+                if time.monotonic() - started > 900:
+                    raise TimeoutError('bounded suite exceeded 900 seconds')
+                stat = command(DOCKER + ['stats', '--no-stream', '--format', '{{json .}}', *ids])
+                filesystems = measure_storage(storage[0])
+                storage_guard(filesystems, storage[1])
+                sample = {'timestamp': datetime.now(timezone.utc).isoformat(),
+                          'elapsed_seconds': time.monotonic() - started,
+                          'architecture': platform.machine(), 'synthetic': True,
+                          'scope': 'bounded x86 smoke, NOT full footprint or approved workload',
+                          'docker_stats': [json.loads(line) for line in stat.splitlines()],
+                          'host_meminfo': Path('/proc/meminfo').read_text(),
+                          'storage_filesystems': filesystems,
+                          'workspace_total_bytes': filesystems['workspace']['total_bytes'],
+                          'workspace_free_bytes': filesystems['workspace']['free_bytes']}
+                sample['app_cgroup'] = json.loads(command(compose + ['exec', '-T', 'app', 'python3', '-c', "import pathlib,json; p=pathlib.Path('/sys/fs/cgroup'); print(json.dumps({k:(p/k).read_text() for k in ['memory.current','memory.peak','memory.stat','memory.events','cpu.stat']}))"]))
+                samples.write(json.dumps(sample) + '\n'); samples.flush()
+                time.sleep(2)
+            code = proc.wait()
+            log.write(f'\nexit={code}\nelapsed_seconds={time.monotonic()-started:.3f}\n')
+        print(log_path)
+        print(samples_path)
+        print(f'tests_exit={code}; elapsed_seconds={time.monotonic()-started:.3f}')
+        return code
+    except BaseException as exc:
+        error = exc
+        prefix.with_suffix('.error.json').write_text(json.dumps(failure_record(exc), indent=2))
+        raise
+    finally:
+        # Even a partially completed up can have created/started services.
+        # Never let a stop failure prevent local exec-client reaping.
+        try:
+            if not ids:
+                ids = command(compose + ['ps', '-a', '-q', '--no-trunc']).split()
+            stop_owned(ids, prefix)
+        except BaseException as exc:
+            cleanup_errors.append(failure_record(exc))
+        finally:
+            for client in ([proc] if proc is not None else []) + procs:
+                try:
+                    reap(client)
+                except BaseException as exc:
+                    cleanup_errors.append(failure_record(exc))
+        if cleanup_errors:
+            prefix.with_suffix('.cleanup-errors.json').write_text(json.dumps(cleanup_errors, indent=2))
+            if error is None:
+                raise RuntimeError('BLOCKED: cleanup verification failed; see cleanup-errors.json')
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('mode', choices=['feasibility', 'all', 'unit', 'stop', 'workload'])
+    parser.add_argument('--arm64', action='store_true')
+    parser.add_argument('--level', help='workload mode: envelope level name')
+    args = parser.parse_args()
+    evidence = evidence_directory()
+    load_pg_password(os.environ)
+    check_local_context(os.environ, 'unix:///var/run/docker.sock')
+    if args.arm64 and platform.machine() != 'aarch64':
+        raise ValueError('BLOCKED: --arm64 requires native aarch64, never x86/emulation')
+    endpoint = command(['docker', 'context', 'inspect', 'default', '--format', '{{.Endpoints.docker.Host}}']).strip()
+    check_local_context(os.environ, endpoint)
+    compose = DOCKER + ['compose', '--env-file', '/dev/null', '-p', PROJECT, '-f', str(ROOT / 'deploy/compose.yaml')]
+    if args.arm64:
+        config = json.loads(command(compose + ['config', '--format', 'json']))
+        for service in config['services'].values():
+            architecture = command(DOCKER + ['image', 'inspect', service['image'], '--format', '{{.Architecture}}']).strip()
+            require_native_arm64(platform.machine(), architecture)
+    lifetime = 1200
+    if args.mode == 'workload':
+        args.envelope_data, args.level_data = workload_level(args.level)
+        sys.path[:0] = [str(ROOT / 'src')]
+        from ton_sentinel import workload
+        lifetime = workload.phase_plan(args.level_data)['max_wall_seconds'] + 600
+    prefix = evidence / datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
+    with admission(evidence, prefix.name, reserve=args.mode != 'stop'):
+        existing_ids = command(compose + ['ps', '-a', '-q', '--no-trunc']).split()
+        if args.mode == 'stop':
+            stop_owned(existing_ids, prefix)
+            return 0
+        if any(c['State']['Running'] for c in owned_containers(existing_ids)):
+            raise ValueError('BLOCKED: fixture already running; refusing to adopt another workload')
+        for name in ['home', 'tmp', 'task01-tests']:
+            (ROOT / '.cache/runtime' / name).mkdir(parents=True, exist_ok=True)
+        fixture = storage_fixture(prefix, lifetime) if args.mode == 'workload' else storage_fixture(prefix)
+        with fixture as storage:
+            return run_workload(args, compose, prefix, storage)
+
+
+if __name__ == '__main__':
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt(f'signal {signum}')
+    signal.signal(signal.SIGTERM, interrupted)
+    try:
+        raise SystemExit(main())
+    except (Exception, KeyboardInterrupt) as error:
+        print(json.dumps(failure_record(error)), file=sys.stderr)
+        raise SystemExit(2)

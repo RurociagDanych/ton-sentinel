@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "provenance": "This manifest inventories only hand-authored synthetic fixtures. No deployed fingerprints, observed TON actions, live-source validation, or external evidence is included.",
+  "sources": [],
+  "fixtures": [
+    {"path": "tests/fixtures/truth/actions.json", "kind": "synthetic-actions"},
+    {"path": "tests/fixtures/truth/decisions.json", "kind": "synthetic-policy-decisions"},
+    {"path": "tests/fixtures/truth/coverage.json", "kind": "synthetic-coverage-states"},
+    {"path": "tests/fixtures/truth/expected.json", "kind": "hand-authored-synthetic-expected-state"}
+  ]
+}

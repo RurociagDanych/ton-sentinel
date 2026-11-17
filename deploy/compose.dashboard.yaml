@@ -1,0 +1,40 @@
+# Dashboard local access route. Loopback only; public exposure is NOT configured here.
+# Usage: docker compose -f deploy/compose.yaml -f deploy/compose.dashboard.yaml up -d api
+# Create the reader DSN file first (gitignored, mode 0600) - see
+# the dashboard route notes. The file is never committed.
+services:
+  api:
+    image: ton-sentinel@sha256:92fddf750cd564e58286c995b7910d4b1ebf1764cd52359a55aab94ceeaa0134
+    user: '1000:1000'
+    entrypoint: [python3, -m, ton_sentinel.cli]
+    command: [--host, 0.0.0.0, --port, '8080', --dsn-file, /run/secrets/api_dsn]
+    working_dir: /workspace
+    environment:
+      PYTHONPATH: /opt/probe/deps:/workspace/src
+      PYTHONDONTWRITEBYTECODE: '1'
+      HOME: /tmp
+      # Telemetry probes: Kafka end offsets over the
+      # internal PLAINTEXT listener (no group, no commits, no credentials) and statvfs of the
+      # database volume, mounted read-only (PGDATA itself is 0700 postgres, unreadable to uid 1000).
+      TON_SENTINEL_TELEMETRY_KAFKA_BOOTSTRAP: kafka:9092
+      TON_SENTINEL_TELEMETRY_DB_VOLUME: /telemetry/database-volume
+    volumes: ['pgdata:/telemetry/database-volume:ro']
+    secrets: [api_dsn]
+    ports: ['127.0.0.1:8080:8080']
+    networks: [fixture, edge]
+    depends_on:
+      postgres: {condition: service_healthy}
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    cpus: 0.25
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    logging: {driver: json-file, options: {max-size: 5m, max-file: '2'}}
+networks:
+  edge:
+    internal: false
+    enable_ipv6: false
+secrets:
+  api_dsn:
+    file: ../.cache/secrets/api_dsn

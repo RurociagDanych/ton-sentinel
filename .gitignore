@@ -1,0 +1,21 @@
+# Internal project briefs, research, specifications, and working notes.
+/docs/
+.env
+.env.*
+!.env.example
+**/.venv/
+**/venv/
+**/.cache/
+**/__pycache__/
+**/.pytest_cache/
+**/*.egg-info/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+!*.example.tfvars
+!*.example.tfvars.json
+crash.log
+crash.*.log
+deploy/compose.evidence.override.yaml

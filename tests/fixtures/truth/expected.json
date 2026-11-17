@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "description": "Independent hand-authored expected economic rows in actions.json order. Null scaled values mean unavailable, not zero. No price or unlike-unit sum is asserted.",
+  "expected": [
+    {
+      "eligible": true, "reasons": [], "endpoints": ["TON", "jetton:A"],
+      "contributions": [
+        {"token":"TON","role":"input","input_raw":"1000000000","output_raw":null,"input_scaled":"1.000000000","output_scaled":null,"unit":"raw:TON","count_eligible":true,"trader":"BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=","trader_eligible":true,"window_start":0,"window_end":300},
+        {"token":"jetton:A","role":"output","input_raw":null,"output_raw":"250","input_scaled":null,"output_scaled":"2.50","unit":"raw:jetton:A","count_eligible":true,"trader":"BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=","trader_eligible":true,"window_start":0,"window_end":300}
+      ]
+    },
+    {
+      "eligible": true, "reasons": [], "endpoints": ["jetton:A", "TON"],
+      "contributions": [
+        {"token":"jetton:A","role":"input","input_raw":"250","output_raw":null,"input_scaled":"2.50","output_scaled":null,"unit":"raw:jetton:A","count_eligible":true,"trader":null,"trader_eligible":false,"window_start":300,"window_end":600},
+        {"token":"TON","role":"output","input_raw":null,"output_raw":"1000000000","input_scaled":null,"output_scaled":"1.000000000","unit":"raw:TON","count_eligible":true,"trader":null,"trader_eligible":false,"window_start":300,"window_end":600}
+      ]
+    },
+    {
+      "eligible": true, "reasons": [], "endpoints": ["jetton:A", "jetton:B"],
+      "contributions": [
+        {"token":"jetton:A","role":"input","input_raw":"250","output_raw":null,"input_scaled":"2.50","output_scaled":null,"unit":"raw:jetton:A","count_eligible":true,"trader":null,"trader_eligible":false,"window_start":600,"window_end":900},
+        {"token":"jetton:B","role":"output","input_raw":null,"output_raw":"17","input_scaled":null,"output_scaled":null,"unit":"raw:jetton:B","count_eligible":true,"trader":null,"trader_eligible":false,"window_start":600,"window_end":900}
+      ]
+    },
+    {
+      "eligible": true, "reasons": [], "endpoints": ["jetton:A", "jetton:A"],
+      "contributions": [
+        {"token":"jetton:A","role":"both","input_raw":"250","output_raw":"200","input_scaled":"2.50","output_scaled":"2.00","unit":"raw:jetton:A","count_eligible":true,"trader":null,"trader_eligible":false,"window_start":600,"window_end":900}
+      ]
+    },
+    {
+      "eligible": false,
+      "reasons": ["unsupported_protocol", "status_not_success", "eligibility_not_explicit", "route_not_proven"],
+      "endpoints": ["TON", "jetton:A"], "contributions": []
+    }
+  ],
+  "baseline_grid": {
+    "description": "Hand-authored baseline-grid oracle. Window index i means window_start = 300*i on testnet for token jetton:A; the scored window is i=60, so its exact trailing grid is i=0..59 (the 7-day lookback is clipped at time 0). Setup facts are fixture inputs; expected states are written by hand from spec section 8.1 and must never be derived from product code. Coverage here is synthetic bounded observation: it can license a zero, never a certified claim.",
+    "network": "testnet",
+    "token": "jetton:A",
+    "direction": "both",
+    "scored_index": 60,
+    "admission_index": 10,
+    "entries": [
+      {
+        "first": 0,
+        "last": 4,
+        "setup": {},
+        "expected": "pre_universe"
+      },
+      {
+        "first": 5,
+        "last": 5,
+        "setup": {
+          "qualified": true
+        },
+        "expected": "pre_universe"
+      },
+      {
+        "first": 6,
+        "last": 9,
+        "setup": {},
+        "expected": "pre_universe"
+      },
+      {
+        "first": 10,
+        "last": 10,
+        "setup": {
+          "qualified": true,
+          "promoted_row": {
+            "swaps": 2,
+            "known_traders": 2,
+            "unknown_count": 0
+          }
+        },
+        "expected": "observed"
+      },
+      {
+        "first": 11,
+        "last": 30,
+        "setup": {
+          "qualified": true
+        },
+        "expected": "zero"
+      },
+      {
+        "first": 31,
+        "last": 31,
+        "setup": {
+          "qualified": true,
+          "promoted_other_token": "jetton:Z"
+        },
+        "expected": "zero"
+      },
+      {
+        "first": 32,
+        "last": 32,
+        "setup": {},
+        "expected": "missing"
+      },
+      {
+        "first": 33,
+        "last": 33,
+        "setup": {
+          "promoted_row": {
+            "swaps": 4,
+            "known_traders": 1,
+            "unknown_count": 3
+          }
+        },
+        "expected": "partial"
+      },
+      {
+        "first": 34,
+        "last": 34,
+        "setup": {
+          "qualified": true,
+          "promoted_row": {
+            "swaps": 3,
+            "known_traders": 3,
+            "unknown_count": 0
+          },
+          "pending_target": true
+        },
+        "expected": "provisional"
+      },
+      {
+        "first": 35,
+        "last": 35,
+        "setup": {
+          "qualified": true,
+          "promoted_row": {
+            "swaps": 5,
+            "known_traders": 5,
+            "unknown_count": 0
+          },
+          "direct_write_after_promotion": {
+            "swaps": 6,
+            "known_traders": 6,
+            "unknown_count": 0
+          }
+        },
+        "expected": "provisional"
+      },
+      {
+        "first": 36,
+        "last": 36,
+        "setup": {
+          "qualified": true,
+          "canonical_action": [
+            "TON",
+            "jetton:A"
+          ]
+        },
+        "expected": "provisional"
+      },
+      {
+        "first": 37,
+        "last": 37,
+        "setup": {
+          "qualified": true,
+          "canonical_action": [
+            "TON",
+            "jetton:B"
+          ]
+        },
+        "expected": "zero"
+      },
+      {
+        "first": 38,
+        "last": 59,
+        "setup": {},
+        "expected": "missing"
+      },
+      {
+        "first": 60,
+        "last": 60,
+        "setup": {
+          "qualified": true,
+          "promoted_row": {
+            "swaps": 12,
+            "known_traders": 10,
+            "unknown_count": 2
+          }
+        },
+        "expected": "observed"
+      }
+    ],
+    "expected_input": {
+      "status": "pending",
+      "eligible_count": 23,
+      "cells": 60,
+      "certification": "synthetic_bounded_observed"
+    }
+  }
+}

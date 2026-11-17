@@ -1,0 +1,243 @@
+{
+ "uid": "ts-storage",
+ "title": "TON Sentinel / Storage and activity",
+ "tags": [
+  "ton-sentinel"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": false,
+ "time": {
+  "from": "now-6h",
+  "to": "now"
+ },
+ "refresh": "30s",
+ "timezone": "utc",
+ "panels": [
+  {
+   "id": 1,
+   "type": "stat",
+   "title": "Database size",
+   "description": "Total database size. Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_database_size_bytes",
+     "legendFormat": "db"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "bytes"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 2,
+   "type": "timeseries",
+   "title": "Table sizes [partial]",
+   "description": "Size of reader-visible tables. Data source: Prometheus (prom-local) <- api /metrics. PARTIAL DATA: only READER_TABLES (5 tables); not the whole schema.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 0,
+    "w": 16,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_table_size_bytes",
+     "legendFormat": "{{table}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "bytes"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "Serving rows and windows",
+   "description": "Served feature rows and windows. Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 7,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_serving_feature_rows",
+     "legendFormat": "feature rows"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_serving_windows",
+     "legendFormat": "windows"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   }
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "Served rows by status [partial]",
+   "description": "Served rows grouped by status and coverage. Data source: Prometheus (prom-local) <- api /metrics. PARTIAL DATA: omitted when more than 50 groups.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 7,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_served_rows",
+     "legendFormat": "{{status}} / {{coverage_status}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   }
+  },
+  {
+   "id": 5,
+   "type": "timeseries",
+   "title": "Last activity timestamps [partial]",
+   "description": "Last activity time (epoch seconds x 1000 for the dateTime unit). Data source: Prometheus (prom-local) <- api /metrics. PARTIAL DATA: canonical_actions not in reader grant; none-recorded has no series.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_last_activity_timestamp_seconds * 1000",
+     "legendFormat": "{{activity}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "dateTimeAsIso"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 6,
+   "type": "timeseries",
+   "title": "Process and build",
+   "description": "Process start time (epoch seconds x 1000 for the dateTime unit); build info is a constant 1 (unit none). Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 14,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_process_start_time_seconds * 1000",
+     "legendFormat": "start"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_build_info",
+     "legendFormat": "build"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "dateTimeAsIso"
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "B"
+      },
+      "properties": [
+       {
+        "id": "unit",
+        "value": "none"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

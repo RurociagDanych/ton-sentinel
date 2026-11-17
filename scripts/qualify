@@ -1,0 +1,353 @@
+#!/usr/bin/env python3
+"""Local static checks; ARM/source qualification remains refusal-only.
+
+An authorization-bound ARM/source probe is not implemented. No opt-in bool or purported
+JSON approval can bypass the current G2/G5 hold. Static fixtures never attest.
+"""
+import argparse
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+from dataclasses import asdict, dataclass
+from decimal import Decimal
+import re
+import stat
+
+
+
+@dataclass(frozen=True)
+class GateResult:
+    status: str
+    reasons: tuple = ()
+    services: tuple = ()
+    synthetic: bool = False
+    availability: str = 'unknown'
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+# Schema v1: every named gate and every check is mandatory, never caller-optional.
+GATE_CHECKS = {
+    'arm64': ('native_aarch64', 'host_and_pod_measurements'),
+    'source': ('approved_route', 'both_dexes_all_tokens_both_directions',
+               'independent_trace_truth', 'unresolved_traces', 'budgets_honored'),
+    'acceptance': ('frozen_two_level_envelope', 'both_detectors_eligible'),
+    'authorization': ('exact_target', 'independent_g2_g5_review', 'within_budgets'),
+    'deployment': ('actual_k3s_readback', 'immutable_build', 'disabled_services'),
+    'load': ('steady_state', 'corrections_zero_grid_baseline', 'retained_footprint_projection',
+             'rss_cpu_state_checkpoint_spill', 'pg_wal_broker_disk_io', 'query_source_budgets'),
+    'retention': ('measured_full_retention', 'deletion_overshoot'),
+    'maintenance': ('serialized_repair_retention_vacuum', 'workspace_growth'),
+    'catchup': ('exceeds_incoming', 'within_objective'),
+    'recovery': ('pod_restart', 'broker_restart', 'pg_restart', 'authorized_vm_reboot',
+                 'promised_rows_preserved'),
+    'security': ('allowed_and_denied_vantages', 'ipv6', 'tls_auth_rbac_netpol',
+                 'sanitized_secret_scan'),
+    'detectors': ('volume_supported', 'volume_eligible', 'wallet_supported', 'wallet_eligible'),
+}
+MAX_REPORT_BYTES = 1024 * 1024
+IDENTITY_FIELDS = ('target', 'build', 'config', 'workload')
+
+
+def qualify(report: dict, required_gates: dict, requested_identity: dict = None) -> GateResult:
+    """Aggregate supplied evidence only; never execute probes or grant authorization.
+
+    Schema v1 requires synthetic=false, current identity (target/build/config/workload
+    nonempty immutable identifiers), two distinct agreed workload_levels, and gates.
+    Each gate has matching identity, PASS status, synthetic=false, evidence_class=actual,
+    nonempty evidence_refs and explicit true GATE_CHECKS. References are supplied
+    provenance, not paths to open or authenticated proof. No measurements are inferred.
+    requested_identity is the independently supplied evaluation target; all four
+    dimensions are mandatory and are compared before any evidence is aggregated.
+    required_gates may restate mandatory names as true; it cannot weaken policy.
+    Load requires measurements for both levels; catchup requires rates and timing.
+    PASS attests only to consistency/completeness of supplied evidence, not its truth.
+    """
+    reasons, rows = [], []
+    failed = False
+    synthetic = isinstance(report, dict) and report.get('synthetic') is True
+
+    def issue(reason, fail=False):
+        nonlocal failed
+        reasons.append(reason)
+        failed |= fail
+
+    def require(condition, message):
+        if not condition:
+            raise ValueError(message)
+
+    def text(value):
+        return isinstance(value, str) and bool(value.strip()) and len(value) <= 4096
+
+    def amount(value):
+        require(isinstance(value, str) and re.fullmatch(
+            r'-?(?:0|[1-9][0-9]{0,99})(?:\.[0-9]{1,30})?', value),
+            'bounded finite decimal string required')
+        return Decimal(value)
+
+    if not isinstance(requested_identity, dict):
+        return GateResult('BLOCKED', tuple(
+            'requested identity missing: ' + field for field in IDENTITY_FIELDS),
+            availability='supplied_evidence_only_not_authorization')
+    invalid_expectations = tuple(
+        'requested identity missing or invalid: ' + field
+        for field in IDENTITY_FIELDS if not text(requested_identity.get(field)))
+    if set(requested_identity) != set(IDENTITY_FIELDS):
+        invalid_expectations += ('requested identity must contain only target/build/config/workload',)
+    if invalid_expectations:
+        return GateResult('BLOCKED', invalid_expectations,
+                          availability='supplied_evidence_only_not_authorization')
+
+    try:
+        require(isinstance(required_gates, dict) and all(
+            name in GATE_CHECKS and value is True for name, value in required_gates.items()),
+            'required_gates cannot disable or extend mandatory policy')
+        require(isinstance(report, dict), 'report object required')
+        require(type(report['schema_version']) is int and report['schema_version'] == 1,
+                'schema_version must be 1')
+        require(report['synthetic'] is False, 'synthetic report is not actual evidence')
+        identity = report['identity']
+        require(isinstance(identity, dict) and set(identity) == {'target', 'build', 'config', 'workload'}
+                and all(text(value) for value in identity.values()), 'explicit current identities required')
+        levels = report['workload_levels']
+        require(isinstance(levels, list) and len(levels) == 2 and all(text(x) for x in levels)
+                and len(set(levels)) == 2, 'two distinct agreed workload levels required')
+        gates = report['gates']
+        require(isinstance(gates, dict) and not set(gates) - set(GATE_CHECKS), 'unknown gates')
+    except (KeyError, TypeError, ValueError):
+        return GateResult('BLOCKED', ('report: missing or invalid schema, identities, workload or mandatory policy',),
+                          synthetic=synthetic)
+
+    mismatches = tuple(
+        'requested identity mismatch: ' + field
+        for field in IDENTITY_FIELDS if identity[field] != requested_identity[field])
+    if mismatches:
+        return GateResult('BLOCKED', mismatches,
+                          tuple({'gate': name, 'status': 'BLOCKED'} for name in GATE_CHECKS),
+                          synthetic=synthetic,
+                          availability='supplied_evidence_only_not_authorization')
+
+    for name, checks in GATE_CHECKS.items():
+        start = len(reasons)
+        gate_failed = False
+        try:
+            gate = gates[name]
+            require(isinstance(gate, dict), 'gate object required')
+            # Identity binding is judged independently so one stale gate cannot hide
+            # other defects (or vice versa) and every rejected dimension is reported.
+            bound = gate.get('identity')
+            if not isinstance(bound, dict) or set(bound) != set(IDENTITY_FIELDS):
+                issue(name + ': missing or invalid evidence (evidence identity missing or incomplete)')
+            else:
+                stale = [field for field in IDENTITY_FIELDS if bound[field] != identity[field]]
+                if stale:
+                    issue(name + ': missing or invalid evidence (evidence identity mismatch: '
+                          + ', '.join(stale) + ')')
+            synthetic |= gate.get('synthetic') is True
+            status = gate['status']
+            require(status in ('PASS', 'BLOCKED', 'FAIL'), 'invalid status')
+            if status != 'PASS':
+                gate_failed = status == 'FAIL'
+                issue(name + ': supplied verdict ' + status, status == 'FAIL')
+            require(gate['synthetic'] is False and gate['evidence_class'] == 'actual',
+                    'synthetic/fixture/local evidence is not actual')
+            refs = gate['evidence_refs']
+            require(isinstance(refs, list) and refs and all(text(ref) for ref in refs),
+                    'actual evidence references required')
+            supplied = gate['checks']
+            require(isinstance(supplied, dict), 'explicit checks required')
+            for check in checks:
+                require(supplied.get(check) is True, 'missing/unsupported/failed check: ' + check)
+            if name == 'load':
+                measured = gate['levels']
+                require(isinstance(measured, list) and len(measured) == 2
+                        and {row['id'] for row in measured} == set(levels),
+                        'measurements must cover both agreed levels')
+                for row in measured:
+                    for key in ('oom_count', 'eviction_count'):
+                        require(type(row[key]) is int and row[key] >= 0, 'invalid ' + key)
+                        if row[key]:
+                            gate_failed = True
+                            issue('load/' + row['id'] + ': ' + key, True)
+                    require(amount(row['rss_bytes']) > 0, 'positive measured RSS required')
+                    for key in ('cpu_free_fraction', 'memory_free_fraction', 'disk_free_fraction'):
+                        free = amount(row[key])
+                        require(free <= 1, 'invalid free fraction')
+                        if free < Decimal('0.2') if key == 'disk_free_fraction' else free <= 0:
+                            gate_failed = True
+                            issue('load/' + row['id'] + ': insufficient ' + key, True)
+            if name == 'catchup':
+                values = {key: amount(gate['measurements'][key]) for key in (
+                    'incoming_per_second', 'processed_per_second', 'elapsed_seconds', 'objective_seconds')}
+                require(all(value > 0 for value in values.values()), 'positive catchup measurements required')
+                if (values['processed_per_second'] <= values['incoming_per_second']
+                        or values['elapsed_seconds'] > values['objective_seconds']):
+                    gate_failed = True
+                    issue('catchup: measured rate or objective failed', True)
+        except (KeyError, TypeError, ValueError) as error:
+            issue(name + ': missing or invalid evidence (' + str(error) + ')')
+        rows.append({'gate': name, 'status': 'FAIL' if gate_failed else
+                     'PASS' if len(reasons) == start else 'BLOCKED'})
+    verdict = 'FAIL' if failed else 'BLOCKED' if reasons else 'PASS'
+    return GateResult(verdict, tuple(reasons), tuple(rows), synthetic=synthetic,
+                      availability='supplied_evidence_only_not_authorization')
+
+
+def decision_artifact(result, requested_identity=None):
+    """Deterministic, reviewable offline decision derived only from an evaluator result.
+
+    decision: locally_verified (evaluator PASS), incomplete (only missing/invalid gate
+    evidence), blocked (measured failure, identity mismatch or unusable report/request).
+    It never claims ARM64/live/security/load/K3s qualification and carries no clock/host data.
+    """
+    reasons = list(result.reasons)
+    rejected = []
+    for reason in reasons:
+        match = re.fullmatch(r'requested identity mismatch: (\w+)', reason)
+        if match:
+            rejected.append({'scope': 'requested', 'dimension': match.group(1)})
+        match = re.fullmatch(r'(\w+): missing or invalid evidence \(evidence identity mismatch: ([a-z, ]+)\)', reason)
+        if match:
+            rejected.extend({'scope': match.group(1), 'dimension': dimension}
+                            for dimension in match.group(2).split(', '))
+    gate_rows = [{'gate': row['gate'], 'status': row['status']} for row in result.services]
+    missing = sorted(m.group(1) for m in (
+        re.fullmatch(r"(\w+): missing or invalid evidence \('\1'\)", reason) for reason in reasons) if m)
+    gate_level = all(re.match(r'\w+: (missing or invalid evidence|supplied verdict BLOCKED)', reason)
+                     for reason in reasons)
+    if result.status == 'PASS':
+        decision = 'locally_verified'
+    elif result.status == 'BLOCKED' and gate_rows and gate_level and not rejected:
+        decision = 'incomplete'
+    else:
+        decision = 'blocked'
+    return {
+        'schema': 'ton-sentinel/offline-qualification-decision/v1',
+        'decision': decision,
+        'evaluator_status': result.status,
+        'requested_identity': dict(requested_identity) if isinstance(requested_identity, dict) else None,
+        'rejected_dimensions': rejected,
+        'missing_gates': missing,
+        'gates': gate_rows,
+        'reasons': reasons,
+        'scope': 'supplied_evidence_aggregation_only',
+        'claims': {'actual_qualification': False, 'arm64': False, 'live_source': False,
+                   'security': False, 'load': False, 'k3s_pvc': False},
+        'limitations': ['Consistency of supplied evidence only; this is not ARM64, live-source, '
+                        'security, load or K3s/PVC qualification and grants no authorization.'],
+    }
+
+
+def report_result(path, requested_identity=None):
+    """Read at most 1 MiB from a regular local JSON file; never open evidence refs."""
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate JSON key')
+            result[key] = value
+        return result
+
+    def reject_constant(value):
+        raise ValueError('nonfinite JSON constant')
+
+    try:
+        if path is None:
+            raise ValueError('inputs required')
+        # Nonblocking open avoids hanging on FIFO/device inputs before fstat.
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        with os.fdopen(fd, 'rb') as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                raise ValueError('regular local file required')
+            raw = stream.read(MAX_REPORT_BYTES + 1)
+        if len(raw) > MAX_REPORT_BYTES:
+            raise ValueError('report too large')
+        data = json.loads(raw, object_pairs_hook=unique_object, parse_constant=reject_constant)
+        if not isinstance(data, dict):
+            raise ValueError('object required')
+        return qualify(data, data.get('required_gates', {}), requested_identity)
+    except (OSError, ValueError, TypeError, RecursionError, UnicodeError):
+        return GateResult('BLOCKED', ('input report missing, malformed, oversized or unreadable',))
+
+
+def static_checks():
+    """Use only preinstalled local tools; fail fast, never plan/apply/install."""
+    env = {key: value for key, value in os.environ.items()
+           if not key.startswith('TF_CLI_ARGS') and key not in {
+               'TF_DATA_DIR', 'TF_PLUGIN_CACHE_DIR', 'TF_REATTACH_PROVIDERS',
+               'TF_WORKSPACE'}}
+    env['CHECKPOINT_DISABLE'] = '1'
+    env['TON_SENTINEL_STATIC_ONLY'] = '1'
+    # Scope selection to this child environment, not global pytest configuration.
+    # Replace inherited options so a service-only selection cannot override it.
+    env['PYTEST_ADDOPTS'] = '-m "not integration and not k3s"'
+    helm = shutil.which(os.environ.get('TON_SENTINEL_HELM', 'helm'))
+    if not helm:
+        print('BLOCKED: preinstalled Helm required via TON_SENTINEL_HELM or PATH', file=sys.stderr)
+        return 127
+    env['TON_SENTINEL_HELM'] = helm
+    commands = [
+        [helm, 'lint', 'deploy/helm/ton-sentinel', '--strict'],
+        [helm, 'template', 'sentinel', 'deploy/helm/ton-sentinel'],
+        [sys.executable, '-m', 'pytest', '-q', 'tests/unit/test_deployment_policy.py'],
+        # Offline tests across all directories; PYTEST_ADDOPTS above deselects service markers.
+        [sys.executable, '-m', 'pytest', '-q'],
+    ]
+    for command in commands:
+        print('+ ' + ' '.join(command), flush=True)
+        try:
+            result = subprocess.run(command, cwd=ROOT, env=env, check=False)
+        except OSError as error:
+            print(f'BLOCKED: local qualification tool unavailable: {error}', file=sys.stderr)
+            return 127
+        if result.returncode:
+            return result.returncode
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('mode', choices=('static', 'arm64', 'live-source', 'report'))
+    parser.add_argument('--authorization', help='Reserved exact authorization artifact; NOT read while hold is active')
+    parser.add_argument('--decision-out', type=Path,
+                        help='Write the canonical offline decision JSON here (report mode only; never overwrites)')
+    parser.add_argument('--inputs', type=Path, help='Bounded local schema-v1 report JSON (report mode only)')
+    for field in IDENTITY_FIELDS:
+        parser.add_argument('--' + field, help='Expected evaluation ' + field + ' identity (required for report mode)')
+    args = parser.parse_args()
+    if args.mode == 'static':
+        if any(getattr(args, field) is not None for field in IDENTITY_FIELDS):
+            parser.error('identity expectations are valid only with report mode')
+        raise SystemExit(static_checks())
+    if args.decision_out is not None and args.mode != 'report':
+        parser.error('--decision-out is valid only with report mode')
+    if args.mode != 'report' and any(getattr(args, field) is not None
+                                     for field in IDENTITY_FIELDS):
+        parser.error('identity expectations are valid only with report mode')
+    if args.mode == 'report':
+        requested = ({field: getattr(args, field) for field in IDENTITY_FIELDS}
+                     if all(getattr(args, field) is not None for field in IDENTITY_FIELDS)
+                     else None)
+        result = report_result(args.inputs, requested)
+        payload = asdict(result)
+        payload['scope'] = 'supplied_evidence_aggregation_only'
+        payload['result_kind'] = 'consistency_only'
+        payload['claims_actual_qualification'] = False
+        decision = decision_artifact(result, requested)
+        payload['decision'] = decision
+        if args.decision_out is not None:
+            try:
+                with open(args.decision_out, 'x', encoding='utf-8') as stream:
+                    stream.write(json.dumps(decision, sort_keys=True, indent=2, allow_nan=False) + '\n')
+            except OSError as error:
+                parser.error('cannot write decision (existing file is never overwritten): ' + str(error))
+        print(json.dumps(payload, allow_nan=False))
+        raise SystemExit(0 if result.status == 'PASS' else 2)
+    parser.error('BLOCKED: authorization schema, exact targets, immutable artifacts, expiry, rate/time/resource/egress budgets and independent G2/G5 review are not implemented. No network/client initialized.')
+
+
+if __name__ == '__main__':
+    main()

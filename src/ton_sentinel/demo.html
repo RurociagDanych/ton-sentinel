@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TON Sentinel — operational status</title>
+  <style>
+    body { max-width: 58rem; margin: 2rem auto; padding: 0 1rem; font: 1rem/1.5 system-ui, sans-serif; color: #18212b; }
+    h1, h2 { line-height: 1.2; }
+    .summary { border: 1px solid #aab6c2; border-radius: .5rem; padding: 1rem; }
+    dt { font-weight: 650; margin-top: .6rem; }
+    dd { margin-left: 0; }
+    code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TON Sentinel operational demo</h1>
+    <p>This read-only page reports only the API's current status query and persisted row counts. It does not certify source, coverage, or production readiness.</p>
+    <section class="summary" aria-labelledby="summary-heading">
+      <h2 id="summary-heading">Current status</h2>
+      <dl>
+        <dt>Status</dt><dd><code>$status</code> (<code>$status_meaning</code>)</dd>
+        <dt>Process / database connectivity</dt><dd><code>$process</code> / <code>$database</code></dd>
+        <dt>Status database query</dt><dd><code>$status_query</code></dd>
+        <dt>Readiness</dt><dd><code>$readiness</code> — not measured</dd>
+        <dt>Source</dt><dd><code>$source</code> — unknown, not live-certified</dd>
+        <dt>Coverage</dt><dd><code>$coverage</code> — unknown, not certified</dd>
+        <dt>Backup</dt><dd><code>$backup</code></dd>
+        <dt>Interim limitation</dt><dd><code>$limitation_mode</code>; stateful streaming <code>$limitation_stateful</code> — $limitation_meaning</dd>
+        <dt>Observed served-feature rows</dt><dd><code>$feature_rows</code></dd>
+        <dt>Observed distinct windows</dt><dd><code>$windows</code></dd>
+        <dt>Observed serving freshness</dt><dd><code>$freshness_status</code> (<code>$freshness_scope</code>)</dd>
+        <dt>Latest observed served window end (UTC epoch seconds)</dt><dd><code>$latest_window_end</code></dd>
+        <dt>Latest observed serving write (UTC)</dt><dd><code>$latest_serving_write_at</code></dd>
+        <dt>Source or pipeline lag</dt><dd><code>$serving_lag</code> — not measured</dd>
+        <dt>Freshness limits</dt><dd>$freshness_limitations</dd>
+      </dl>
+    </section>
+    <section aria-labelledby="gates-heading">
+      <h2 id="gates-heading">Gates</h2>
+      <p>A gate counts only with verifiable evidence; this service holds none, so every gate stays not_qualified.</p>
+      <dl>
+        <dt>Stateful streaming gate</dt><dd><code>$gate_stateful</code> (evidence: <code>$gate_stateful_evidence</code>)</dd>
+        <dt>Live source gate</dt><dd><code>$gate_live</code> (evidence: <code>$gate_live_evidence</code>) — $gate_live_meaning</dd>
+      </dl>
+    </section>
+    <section aria-labelledby="served-heading">
+      <h2 id="served-heading">Served data and evidence labels</h2>
+      <p>Served-row origin: <code>$served_origin</code>. $served_label</p>
+      <ul>$served_states</ul>
+      <dl>
+        <dt>Qualification records</dt><dd><code>$qual_status</code></dd>
+        <dt>Synthetic (fixture) bounded_observed</dt><dd><code>$qual_synthetic</code></dd>
+        <dt>Non-synthetic bounded_observed</dt><dd><code>$qual_not_synthetic</code></dd>
+        <dt>certified_recorded (unverified claims)</dt><dd><code>$qual_certified</code></dd>
+      </dl>
+      <p>$qual_label</p>
+    </section>
+    <section aria-labelledby="pending-heading">
+      <h2 id="pending-heading">Pending work (observed from PostgreSQL)</h2>
+      <dl>
+<dt>Pending outbox events</dt><dd><code>$pending_outbox</code> (oldest pending age seconds: <code>$pending_outbox_age</code>)</dd>
+<dt>Pending repair windows</dt><dd><code>$pending_repair</code></dd>
+      </dl>
+      <p>unavailable means the source could not be read; it is never shown as zero.</p>
+    </section>
+    <section aria-labelledby="limits-heading">
+      <h2 id="limits-heading">Not instrumented by this status view</h2>
+      <p>These domains are unsupported here; no value below implies a healthy or unhealthy system state.</p>
+      <ul>
+        <li>Spark checkpoint: <code>$domain_spark_checkpoint</code></li>
+        <li>Spark watermark: <code>$domain_spark_watermark</code></li>
+        <li>Spark state: <code>$domain_spark_state</code></li>
+        <li>Database storage: <code>$domain_database_storage</code></li>
+        <li>Disk: <code>$domain_disk</code></li>
+        <li>Maintenance: <code>$domain_maintenance</code></li>
+        <li>Rates: <code>$domain_rates</code></li>
+      </ul>
+    </section>
+    <p><code>/health</code> means $health_meaning; it is not a readiness or coverage check. This page uses no external assets or client-side scripts.</p>
+  </main>
+</body>
+</html>

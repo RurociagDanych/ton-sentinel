@@ -1,0 +1,1099 @@
+{
+ "final_action_responses": [
+  {
+   "actions": [
+    {
+     "action_id": "4gH4aU/8mSZM/9lJbC7t3UQdHUr4K9bEok6nF3gmdzA=",
+     "details": {
+      "asset_in": null,
+      "asset_out": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+      "dex": "dedust",
+      "dex_incoming_transfer": {
+       "amount": "43000000000",
+       "asset": null,
+       "destination": "0:DAE153A74D894BBC32748198CD626E4F5DF4A69AD2FA56CE80FC2644B5708D20",
+       "destination_jetton_wallet": null,
+       "source": "0:2046BC5BCB6E540A72C056C8563B53C4D4308736356EF64A02A1B33C4AE5B1AE",
+       "source_jetton_wallet": null
+      },
+      "dex_outgoing_transfer": {
+       "amount": "49146416",
+       "asset": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+       "destination": "0:2046BC5BCB6E540A72C056C8563B53C4D4308736356EF64A02A1B33C4AE5B1AE",
+       "destination_jetton_wallet": "0:5EB393A08E57CFE46F6391DC9C7AE5F2ABFA2C5BE667CBC249E7BC6F51F0163D",
+       "source": "0:18AA8E2EED51747DAE033C079B93883D941CAD8F65459F2EE9CD7474B6B8ED5D",
+       "source_jetton_wallet": "0:88DAC67CCEADB9CAE6FAAC7118F05C0FA95DF36C2A92E686AC39D96310D0A387"
+      },
+      "peer_swaps": [],
+      "sender": "0:2046BC5BCB6E540A72C056C8563B53C4D4308736356EF64A02A1B33C4AE5B1AE"
+     },
+     "end_lt": "116364771000014",
+     "end_utime": 1794561260,
+     "finality": "finalized",
+     "start_lt": "116364771000002",
+     "start_utime": 1794561260,
+     "success": true,
+     "trace_end_lt": "116364771000014",
+     "trace_end_utime": 1794561260,
+     "trace_external_hash": "fHX32/kUwHehynw/J50Jvt8be5OQi62zkUWoSIfc4VQ=",
+     "trace_id": "0cAR0BaLciXQ68NZJaG9L8ltAEU++vUz1dOT5WLcZwI=",
+     "trace_mc_seqno_end": 105149457,
+     "transactions": [
+      "Pw2ShYT8c41+KLqhpYTF8kp/1kO6+v55TzbLQ4lp698=",
+      "8bNbuY+eK05B4pLG1ZVST/FmC+yRNe51wMcybZXvMHk=",
+      "rzYy+W+aLZfEffp8bEC5xY+4l6Ob1DCBL/de22Ha37I=",
+      "saA3DkYRcJuoerf3MiVAkyoehVN0tRuLCeNE61VTIn8=",
+      "0cAR0BaLciXQ68NZJaG9L8ltAEU++vUz1dOT5WLcZwI=",
+      "yPMKDnw4pGwHJJ3ZxVyoAp31rL40t29aon9Dg1kUD9s=",
+      "yXZaMIMh+fnr5mZfCCTTADy6zv2taiyR2paKy2IU6vQ="
+     ],
+     "type": "jetton_swap"
+    }
+   ],
+   "metadata": {
+    "0:01212FEE2A2CD4947BF9AC18585E9BFB958697D65B5BE97D698D17BD33B371DE": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:F3151B1057BEDC445CA1DD826572A45C829C70F148BD73321AC9A92EF68A2915"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:09FEC7835970AF2A1EF339B8F30723B8AAEC83CC071A663460B264E7C8CBA65D": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "description": "Liquidity pool token for pGRAM and LOOT on STON.fi DEX",
+       "extra": {
+        "decimals": 9
+       },
+       "name": "LP Token for GRAM-LOOT",
+       "symbol": "GRAM-LOOT LP",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:0C330122ECD7ADE4B941D020960B21CD0174D8F52FF54779D9736FB13288BA0D": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:5175CC80B16FB9745107E206B30BBA221050A206557854617B3987BDB12BAB60"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:11675845E2FF7910BB07EE908F30DEFDFD47AA28E3A03A3B7CC6B916F4784833": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "72279690397441",
+        "jetton": "0:671963027F7F85659AB55B821671688601CDCF1EE674FC7FBBB1A776A18D34A3",
+        "owner": "0:1061B9DBD4418AD166FC9A4DEF116E2F6C74F2BFB70E71F2653D643CEFFEBFA9"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:124CA0789E6561A6DC8D5F5D5BB94002BCC2AC25507007467CE53A555AE108CF": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:F49C94328273EB9A3DA2EBDB14FA47C857931755B2B33ABE4D1D5150686A539B"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:14D345BAB29B5E647515E948A38069145CB4F564FE84E4D703098894B068ED2F": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "decimals": "9"
+       },
+       "name": "CROWN",
+       "symbol": "CROWN",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:1F2507902E97DF2AB2027DD51DA0BFD275BFD407A51A649705FED9C32C39CD69": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:DB457DB533B12046F61BD6172BC55EBA10137EF7502122EF329799B8EE82FA24"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:259C3ABA7F425F7FD9AA25C07C76B02A8892E74D15862BCF06B81CEB84186191": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "1482948128861",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:D4704A5BE6AB4AD01C109B7BAD45489FBD098F272959A260E6DA2334AEE99372"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:391A9BA43D9D7E46AFB06052A06B5A66A3B855DBD8E8FDF0AFC5B5D356D2ABB9": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "9217634033082",
+        "jetton": "0:14D345BAB29B5E647515E948A38069145CB4F564FE84E4D703098894B068ED2F",
+        "owner": "0:39D9FE45B26F30EE4305CD29C594AA7703B4AD34DD6FBDD3F246AE3934A3CB6D"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:5EB393A08E57CFE46F6391DC9C7AE5F2ABFA2C5BE667CBC249E7BC6F51F0163D": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "49146416",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:2046BC5BCB6E540A72C056C8563B53C4D4308736356EF64A02A1B33C4AE5B1AE"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:630F8E9A136FDE9F225FDE9825390B25AAC6596F77AC57F30A63E714DADE77B4": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "417867729911032",
+        "jetton": "0:14D345BAB29B5E647515E948A38069145CB4F564FE84E4D703098894B068ED2F",
+        "owner": "0:63142ACC160DC56989EE05CD171A8FE166A111A60E5AB30A93A782B1A987C04F"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:671963027F7F85659AB55B821671688601CDCF1EE674FC7FBBB1A776A18D34A3": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "description": "Proxy contract v2 for GRAM",
+       "extra": {
+        "decimals": "9"
+       },
+       "name": "Proxy GRAM",
+       "symbol": "pGRAM",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:69A89B4DC9AB03813C1B7A5AE4504EA40DE2FD7999372356AAE87D1D6AE9B033": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "25680441181214508",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:1061B9DBD4418AD166FC9A4DEF116E2F6C74F2BFB70E71F2653D643CEFFEBFA9"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:7213DACA0CD1B7183ADDDB71AED02CF164F551AD00AC958906D70EEC99848BA9": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "decimals": "9"
+       },
+       "symbol": "LP",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:88DAC67CCEADB9CAE6FAAC7118F05C0FA95DF36C2A92E686AC39D96310D0A387": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "640480756653",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:18AA8E2EED51747DAE033C079B93883D941CAD8F65459F2EE9CD7474B6B8ED5D"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "type": "jetton_masters",
+       "valid": false
+      }
+     ]
+    },
+    "0:95FD29CD1A5841A53F3199D20E4053215F0ECA05C8A9A40CD215ECBF23F80356": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "38609966",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:AD8440B942ACF71779283F3E307BD37E361A59A48BB0A5CADC90D9C2534DDD88"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:A6D7E0A94D0B0C5B8BA122D439BC98CC9BF4278BAD7DF8516BE11750FCE312E9": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "14305896700",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:E225D97A4F137353A1D78E266F7C5BCC87BDA417BC91392CAA8937CBD70EF932"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:AAE9DF409045FC388A2C85B9CB6759D3A3B8C76213A91BF6B54B35C23D05A2A7": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "16470743546",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:F0E5E2EBC4B9E4166C3641F49AC8972343890FD8A756E3649CDE04A208A85ACB"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:AD81B12B28B87D543AAB5716AE95703A40B69612733814B29D23C116C7E08031": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:FDF741C7ECEEF36A144C1112D84C3C303ECA7D7417D185D062093AB28277D8BA"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:AF4E92C5EDC6313A97553918B67FBC08994EA5253B846E2CFA74117596E5B3FF": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:C3811A5E1E47C6601AE60407F64B1AF2E3655C1B2638DC8A1C09F208B45A298E"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "description": "Tether Token for Tether USD",
+       "extra": {
+        "decimals": "6"
+       },
+       "name": "Tether USD",
+       "symbol": "USD\u20ae",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:B13ED3E91AA1337C1C31DE898D38EFA04FCC04F617E625EA936DA2D812D5A825": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "781149493",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:0A654278B018C523E9DAC8290915CEABF3351EE0E86E089BAF63DF950EFD062C"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:CD3E83E66C1EFA66292C1C56BCC36F142BE7F39E41D26FAC15F7F2E9AB99699D": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "193907835254790275",
+        "jetton": "0:EFFB2AF8D7F099DAEAE0DA07DE8157DAE383C33E320AF45F8C8A510328350886",
+        "owner": "0:6BEBCC2448012BBA42E151F5D140448CF7BE8E22A2233D8DA3A1423BDC244AAC"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:EAABE1DEEE7BF2CC67A5D15D05543A6D5633885A4B15E8A40B70F0B34AA89B15": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "948928",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:72689E01309363134F67097ABEA135B45D055EEE10C8134D61C9E3B11AD459BF"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:EFFB2AF8D7F099DAEAE0DA07DE8157DAE383C33E320AF45F8C8A510328350886": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "decimals": "9"
+       },
+       "name": "ANON",
+       "symbol": "ANON",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:FF5FFDD78875A9DD2D1ECDC06497651960EC94E91CD015E7BD9B02E8B0C32D77": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "3158651569074",
+        "jetton": "0:EFFB2AF8D7F099DAEAE0DA07DE8157DAE383C33E320AF45F8C8A510328350886",
+        "owner": "0:3129322BA7D1D4DE042A43E968FE6A75BD2672C44362362C211694FACA99BA75"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    }
+   },
+   "url": "/api/v3/actions"
+  },
+  {
+   "actions": [
+    {
+     "action_id": "GRkt61HZL26JX315DOvLmZYnH5cIkXGfcgkRen1hhE4=",
+     "details": {
+      "asset_in": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+      "asset_out": null,
+      "dex": "stonfi_v2",
+      "dex_incoming_transfer": {
+       "amount": "1026779178226",
+       "asset": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+       "destination": "0:1061B9DBD4418AD166FC9A4DEF116E2F6C74F2BFB70E71F2653D643CEFFEBFA9",
+       "destination_jetton_wallet": "0:69A89B4DC9AB03813C1B7A5AE4504EA40DE2FD7999372356AAE87D1D6AE9B033",
+       "source": "0:C3811A5E1E47C6601AE60407F64B1AF2E3655C1B2638DC8A1C09F208B45A298E",
+       "source_jetton_wallet": "0:AF4E92C5EDC6313A97553918B67FBC08994EA5253B846E2CFA74117596E5B3FF"
+      },
+      "dex_outgoing_transfer": {
+       "amount": "190141285",
+       "asset": null,
+       "destination": "0:C3811A5E1E47C6601AE60407F64B1AF2E3655C1B2638DC8A1C09F208B45A298E",
+       "destination_jetton_wallet": null,
+       "source": "0:1061B9DBD4418AD166FC9A4DEF116E2F6C74F2BFB70E71F2653D643CEFFEBFA9",
+       "source_jetton_wallet": null
+      },
+      "peer_swaps": [],
+      "sender": "0:C3811A5E1E47C6601AE60407F64B1AF2E3655C1B2638DC8A1C09F208B45A298E"
+     },
+     "end_lt": "116364806000017",
+     "end_utime": 1794561274,
+     "finality": "finalized",
+     "start_lt": "116364806000002",
+     "start_utime": 1794561274,
+     "success": true,
+     "trace_end_lt": "116364806000017",
+     "trace_end_utime": 1794561274,
+     "trace_external_hash": "NWG7fwo0Rzl0l3sUDFKYu2f42GPwXJrNlDnpDuPX9X8=",
+     "trace_id": "2DVIJOKpf9ov9+BrB5pXxbxNn+QSf6mB6Zr2MUvwDNM=",
+     "trace_mc_seqno_end": 105149492,
+     "transactions": [
+      "zLElrOjB0210Vw0SgGYEyGhTBUZ5nTvZpVMS1Rjxk/0=",
+      "7V37NrRhN2wedLZbM2GqFVyXr2SW73YSvVyNL4aTk6Q=",
+      "2DVIJOKpf9ov9+BrB5pXxbxNn+QSf6mB6Zr2MUvwDNM=",
+      "c+gXQPu10U6NjwLlfFPjFB23LRXXL+OzTE07ja/OKjs=",
+      "VzBe3TiJMDcPty0RsOlGPxqbvUKw1W95j8eEmEyu95Q=",
+      "nTiQZmw25lTT/F1TkCr/RKxvJF52bj5s7O72t+8wWRw=",
+      "58zlnIDyVc++cOBtE85cuCCDl1w+61WeeOHxBjoBAas=",
+      "0k+zrCbGURb0j9RF9kSiIerhHcmPPdweyKLkv0M/GVs=",
+      "x+pApbcINaprVN9JB4S4z0TdJLXNqmg53Huw+QL2QgY="
+     ],
+     "type": "jetton_swap"
+    }
+   ],
+   "metadata": {
+    "0:01212FEE2A2CD4947BF9AC18585E9BFB958697D65B5BE97D698D17BD33B371DE": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:F3151B1057BEDC445CA1DD826572A45C829C70F148BD73321AC9A92EF68A2915"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:09FEC7835970AF2A1EF339B8F30723B8AAEC83CC071A663460B264E7C8CBA65D": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "description": "Liquidity pool token for pGRAM and LOOT on STON.fi DEX",
+       "extra": {
+        "decimals": 9
+       },
+       "name": "LP Token for GRAM-LOOT",
+       "symbol": "GRAM-LOOT LP",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:0C330122ECD7ADE4B941D020960B21CD0174D8F52FF54779D9736FB13288BA0D": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:5175CC80B16FB9745107E206B30BBA221050A206557854617B3987BDB12BAB60"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:11675845E2FF7910BB07EE908F30DEFDFD47AA28E3A03A3B7CC6B916F4784833": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "72279690397441",
+        "jetton": "0:671963027F7F85659AB55B821671688601CDCF1EE674FC7FBBB1A776A18D34A3",
+        "owner": "0:1061B9DBD4418AD166FC9A4DEF116E2F6C74F2BFB70E71F2653D643CEFFEBFA9"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:124CA0789E6561A6DC8D5F5D5BB94002BCC2AC25507007467CE53A555AE108CF": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:F49C94328273EB9A3DA2EBDB14FA47C857931755B2B33ABE4D1D5150686A539B"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:14D345BAB29B5E647515E948A38069145CB4F564FE84E4D703098894B068ED2F": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "decimals": "9"
+       },
+       "name": "CROWN",
+       "symbol": "CROWN",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:1F2507902E97DF2AB2027DD51DA0BFD275BFD407A51A649705FED9C32C39CD69": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:DB457DB533B12046F61BD6172BC55EBA10137EF7502122EF329799B8EE82FA24"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:259C3ABA7F425F7FD9AA25C07C76B02A8892E74D15862BCF06B81CEB84186191": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "1482948128861",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:D4704A5BE6AB4AD01C109B7BAD45489FBD098F272959A260E6DA2334AEE99372"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:391A9BA43D9D7E46AFB06052A06B5A66A3B855DBD8E8FDF0AFC5B5D356D2ABB9": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "9217634033082",
+        "jetton": "0:14D345BAB29B5E647515E948A38069145CB4F564FE84E4D703098894B068ED2F",
+        "owner": "0:39D9FE45B26F30EE4305CD29C594AA7703B4AD34DD6FBDD3F246AE3934A3CB6D"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:5EB393A08E57CFE46F6391DC9C7AE5F2ABFA2C5BE667CBC249E7BC6F51F0163D": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "49146416",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:2046BC5BCB6E540A72C056C8563B53C4D4308736356EF64A02A1B33C4AE5B1AE"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:630F8E9A136FDE9F225FDE9825390B25AAC6596F77AC57F30A63E714DADE77B4": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "417867729911032",
+        "jetton": "0:14D345BAB29B5E647515E948A38069145CB4F564FE84E4D703098894B068ED2F",
+        "owner": "0:63142ACC160DC56989EE05CD171A8FE166A111A60E5AB30A93A782B1A987C04F"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:671963027F7F85659AB55B821671688601CDCF1EE674FC7FBBB1A776A18D34A3": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "description": "Proxy contract v2 for GRAM",
+       "extra": {
+        "decimals": "9"
+       },
+       "name": "Proxy GRAM",
+       "symbol": "pGRAM",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:69A89B4DC9AB03813C1B7A5AE4504EA40DE2FD7999372356AAE87D1D6AE9B033": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "25680441181214508",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:1061B9DBD4418AD166FC9A4DEF116E2F6C74F2BFB70E71F2653D643CEFFEBFA9"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:7213DACA0CD1B7183ADDDB71AED02CF164F551AD00AC958906D70EEC99848BA9": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "decimals": "9"
+       },
+       "symbol": "LP",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:88DAC67CCEADB9CAE6FAAC7118F05C0FA95DF36C2A92E686AC39D96310D0A387": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "640480756653",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:18AA8E2EED51747DAE033C079B93883D941CAD8F65459F2EE9CD7474B6B8ED5D"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "type": "jetton_masters",
+       "valid": false
+      }
+     ]
+    },
+    "0:95FD29CD1A5841A53F3199D20E4053215F0ECA05C8A9A40CD215ECBF23F80356": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "38609966",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:AD8440B942ACF71779283F3E307BD37E361A59A48BB0A5CADC90D9C2534DDD88"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:A6D7E0A94D0B0C5B8BA122D439BC98CC9BF4278BAD7DF8516BE11750FCE312E9": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "14305896700",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:E225D97A4F137353A1D78E266F7C5BCC87BDA417BC91392CAA8937CBD70EF932"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:AAE9DF409045FC388A2C85B9CB6759D3A3B8C76213A91BF6B54B35C23D05A2A7": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "16470743546",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:F0E5E2EBC4B9E4166C3641F49AC8972343890FD8A756E3649CDE04A208A85ACB"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:AD81B12B28B87D543AAB5716AE95703A40B69612733814B29D23C116C7E08031": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:FDF741C7ECEEF36A144C1112D84C3C303ECA7D7417D185D062093AB28277D8BA"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:AF4E92C5EDC6313A97553918B67FBC08994EA5253B846E2CFA74117596E5B3FF": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:C3811A5E1E47C6601AE60407F64B1AF2E3655C1B2638DC8A1C09F208B45A298E"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "description": "Tether Token for Tether USD",
+       "extra": {
+        "decimals": "6"
+       },
+       "name": "Tether USD",
+       "symbol": "USD\u20ae",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:B13ED3E91AA1337C1C31DE898D38EFA04FCC04F617E625EA936DA2D812D5A825": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "781149493",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:0A654278B018C523E9DAC8290915CEABF3351EE0E86E089BAF63DF950EFD062C"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:CD3E83E66C1EFA66292C1C56BCC36F142BE7F39E41D26FAC15F7F2E9AB99699D": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "193907835254790275",
+        "jetton": "0:EFFB2AF8D7F099DAEAE0DA07DE8157DAE383C33E320AF45F8C8A510328350886",
+        "owner": "0:6BEBCC2448012BBA42E151F5D140448CF7BE8E22A2233D8DA3A1423BDC244AAC"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:EAABE1DEEE7BF2CC67A5D15D05543A6D5633885A4B15E8A40B70F0B34AA89B15": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "948928",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:72689E01309363134F67097ABEA135B45D055EEE10C8134D61C9E3B11AD459BF"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:EFFB2AF8D7F099DAEAE0DA07DE8157DAE383C33E320AF45F8C8A510328350886": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "decimals": "9"
+       },
+       "name": "ANON",
+       "symbol": "ANON",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    },
+    "0:FF5FFDD78875A9DD2D1ECDC06497651960EC94E91CD015E7BD9B02E8B0C32D77": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "3158651569074",
+        "jetton": "0:EFFB2AF8D7F099DAEAE0DA07DE8157DAE383C33E320AF45F8C8A510328350886",
+        "owner": "0:3129322BA7D1D4DE042A43E968FE6A75BD2672C44362362C211694FACA99BA75"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    }
+   },
+   "url": "/api/v3/actions"
+  }
+ ],
+ "native_aliases": [
+  "0:671963027F7F85659AB55B821671688601CDCF1EE674FC7FBBB1A776A18D34A3",
+  "0:8CDC1D7640AD5EE326527FC1AD0514F468B30DC84B0173F0E155F451B4E11F7C"
+ ],
+ "network": "mainnet",
+ "note": "Pending fixture: recorded confirmed (non-final) jetton_swap actions and their recorded finalized versions; no live call; URL-bearing metadata strings (token images, uris, descriptions with links) stripped for publication",
+ "pending_action_responses": [
+  {
+   "actions": [
+    {
+     "accounts": [
+      "0:18AA8E2EED51747DAE033C079B93883D941CAD8F65459F2EE9CD7474B6B8ED5D",
+      "0:2046BC5BCB6E540A72C056C8563B53C4D4308736356EF64A02A1B33C4AE5B1AE",
+      "0:3E5FFCA8DDFCF36C36C9FF46F31562AAB51B9914845AD6C26CBDE649D58A5588",
+      "0:5EB393A08E57CFE46F6391DC9C7AE5F2ABFA2C5BE667CBC249E7BC6F51F0163D",
+      "0:88DAC67CCEADB9CAE6FAAC7118F05C0FA95DF36C2A92E686AC39D96310D0A387",
+      "0:DAE153A74D894BBC32748198CD626E4F5DF4A69AD2FA56CE80FC2644B5708D20"
+     ],
+     "action_id": "4gH4aU/8mSZM/9lJbC7t3UQdHUr4K9bEok6nF3gmdzA=",
+     "details": {
+      "asset_in": null,
+      "asset_out": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+      "dex": "dedust",
+      "dex_incoming_transfer": {
+       "amount": "43000000000",
+       "asset": null,
+       "destination": "0:DAE153A74D894BBC32748198CD626E4F5DF4A69AD2FA56CE80FC2644B5708D20",
+       "destination_jetton_wallet": null,
+       "source": "0:2046BC5BCB6E540A72C056C8563B53C4D4308736356EF64A02A1B33C4AE5B1AE",
+       "source_jetton_wallet": null
+      },
+      "dex_outgoing_transfer": {
+       "amount": "49146416",
+       "asset": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+       "destination": "0:2046BC5BCB6E540A72C056C8563B53C4D4308736356EF64A02A1B33C4AE5B1AE",
+       "destination_jetton_wallet": "0:5EB393A08E57CFE46F6391DC9C7AE5F2ABFA2C5BE667CBC249E7BC6F51F0163D",
+       "source": "0:18AA8E2EED51747DAE033C079B93883D941CAD8F65459F2EE9CD7474B6B8ED5D",
+       "source_jetton_wallet": "0:88DAC67CCEADB9CAE6FAAC7118F05C0FA95DF36C2A92E686AC39D96310D0A387"
+      },
+      "peer_swaps": [],
+      "sender": "0:2046BC5BCB6E540A72C056C8563B53C4D4308736356EF64A02A1B33C4AE5B1AE"
+     },
+     "end_lt": "116364771000014",
+     "end_utime": 1794561260,
+     "finality": "confirmed",
+     "start_lt": "116364771000002",
+     "start_utime": 1794561260,
+     "success": true,
+     "trace_end_lt": "116364771000014",
+     "trace_end_utime": 1794561260,
+     "trace_external_hash": "fHX32/kUwHehynw/J50Jvt8be5OQi62zkUWoSIfc4VQ=",
+     "trace_id": "0cAR0BaLciXQ68NZJaG9L8ltAEU++vUz1dOT5WLcZwI=",
+     "trace_mc_seqno_end": 105149456,
+     "transactions": [
+      "0cAR0BaLciXQ68NZJaG9L8ltAEU++vUz1dOT5WLcZwI=",
+      "8bNbuY+eK05B4pLG1ZVST/FmC+yRNe51wMcybZXvMHk=",
+      "Pw2ShYT8c41+KLqhpYTF8kp/1kO6+v55TzbLQ4lp698=",
+      "rzYy+W+aLZfEffp8bEC5xY+4l6Ob1DCBL/de22Ha37I=",
+      "saA3DkYRcJuoerf3MiVAkyoehVN0tRuLCeNE61VTIn8=",
+      "yPMKDnw4pGwHJJ3ZxVyoAp31rL40t29aon9Dg1kUD9s=",
+      "yXZaMIMh+fnr5mZfCCTTADy6zv2taiyR2paKy2IU6vQ="
+     ],
+     "type": "jetton_swap"
+    }
+   ],
+   "metadata": {
+    "0:5EB393A08E57CFE46F6391DC9C7AE5F2ABFA2C5BE667CBC249E7BC6F51F0163D": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "0",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:2046BC5BCB6E540A72C056C8563B53C4D4308736356EF64A02A1B33C4AE5B1AE"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:88DAC67CCEADB9CAE6FAAC7118F05C0FA95DF36C2A92E686AC39D96310D0A387": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "640919932330",
+        "jetton": "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE",
+        "owner": "0:18AA8E2EED51747DAE033C079B93883D941CAD8F65459F2EE9CD7474B6B8ED5D"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "description": "Tether Token for Tether USD",
+       "extra": {
+        "decimals": "6"
+       },
+       "is_nsfw": false,
+       "is_scam": false,
+       "name": "Tether USD",
+       "symbol": "USD\u20ae",
+       "type": "jetton_masters",
+       "valid": true
+      }
+     ]
+    }
+   },
+   "url": "/api/v3/pendingActions"
+  },
+  {
+   "actions": [
+    {
+     "accounts": [
+      "0:09FEC7835970AF2A1EF339B8F30723B8AAEC83CC071A663460B264E7C8CBA65D",
+      "0:1061B9DBD4418AD166FC9A4DEF116E2F6C74F2BFB70E71F2653D643CEFFEBFA9",
+      "0:11675845E2FF7910BB07EE908F30DEFDFD47AA28E3A03A3B7CC6B916F4784833",
+      "0:69A89B4DC9AB03813C1B7A5AE4504EA40DE2FD7999372356AAE87D1D6AE9B033",
+      "0:AF4E92C5EDC6313A97553918B67FBC08994EA5253B846E2CFA74117596E5B3FF",
+      "0:C3811A5E1E47C6601AE60407F64B1AF2E3655C1B2638DC8A1C09F208B45A298E"
+     ],
+     "action_id": "GRkt61HZL26JX315DOvLmZYnH5cIkXGfcgkRen1hhE4=",
+     "details": {
+      "asset_in": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+      "asset_out": null,
+      "dex": "stonfi_v2",
+      "dex_incoming_transfer": {
+       "amount": "1026779178226",
+       "asset": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+       "destination": "0:1061B9DBD4418AD166FC9A4DEF116E2F6C74F2BFB70E71F2653D643CEFFEBFA9",
+       "destination_jetton_wallet": "0:69A89B4DC9AB03813C1B7A5AE4504EA40DE2FD7999372356AAE87D1D6AE9B033",
+       "source": "0:C3811A5E1E47C6601AE60407F64B1AF2E3655C1B2638DC8A1C09F208B45A298E",
+       "source_jetton_wallet": "0:AF4E92C5EDC6313A97553918B67FBC08994EA5253B846E2CFA74117596E5B3FF"
+      },
+      "dex_outgoing_transfer": {
+       "amount": "190141285",
+       "asset": null,
+       "destination": "0:C3811A5E1E47C6601AE60407F64B1AF2E3655C1B2638DC8A1C09F208B45A298E",
+       "destination_jetton_wallet": null,
+       "source": "0:1061B9DBD4418AD166FC9A4DEF116E2F6C74F2BFB70E71F2653D643CEFFEBFA9",
+       "source_jetton_wallet": null
+      },
+      "peer_swaps": [],
+      "sender": "0:C3811A5E1E47C6601AE60407F64B1AF2E3655C1B2638DC8A1C09F208B45A298E"
+     },
+     "end_lt": "116364806000017",
+     "end_utime": 1794561274,
+     "finality": "confirmed",
+     "start_lt": "116364806000002",
+     "start_utime": 1794561274,
+     "success": true,
+     "trace_end_lt": "116364806000017",
+     "trace_end_utime": 1794561274,
+     "trace_external_hash": "NWG7fwo0Rzl0l3sUDFKYu2f42GPwXJrNlDnpDuPX9X8=",
+     "trace_id": "2DVIJOKpf9ov9+BrB5pXxbxNn+QSf6mB6Zr2MUvwDNM=",
+     "trace_mc_seqno_end": 105149491,
+     "transactions": [
+      "0k+zrCbGURb0j9RF9kSiIerhHcmPPdweyKLkv0M/GVs=",
+      "2DVIJOKpf9ov9+BrB5pXxbxNn+QSf6mB6Zr2MUvwDNM=",
+      "58zlnIDyVc++cOBtE85cuCCDl1w+61WeeOHxBjoBAas=",
+      "7V37NrRhN2wedLZbM2GqFVyXr2SW73YSvVyNL4aTk6Q=",
+      "VzBe3TiJMDcPty0RsOlGPxqbvUKw1W95j8eEmEyu95Q=",
+      "c+gXQPu10U6NjwLlfFPjFB23LRXXL+OzTE07ja/OKjs=",
+      "nTiQZmw25lTT/F1TkCr/RKxvJF52bj5s7O72t+8wWRw=",
+      "x+pApbcINaprVN9JB4S4z0TdJLXNqmg53Huw+QL2QgY=",
+      "zLElrOjB0210Vw0SgGYEyGhTBUZ5nTvZpVMS1Rjxk/0="
+     ],
+     "type": "jetton_swap"
+    }
+   ],
+   "metadata": {
+    "0:09FEC7835970AF2A1EF339B8F30723B8AAEC83CC071A663460B264E7C8CBA65D": {
+     "is_indexed": false,
+     "token_info": [
+      {
+       "type": "jetton_masters"
+      }
+     ]
+    },
+    "0:69A89B4DC9AB03813C1B7A5AE4504EA40DE2FD7999372356AAE87D1D6AE9B033": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "25598720924574141",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:1061B9DBD4418AD166FC9A4DEF116E2F6C74F2BFB70E71F2653D643CEFFEBFA9"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    },
+    "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8": {
+     "is_indexed": false,
+     "token_info": [
+      {
+       "type": "jetton_masters"
+      }
+     ]
+    },
+    "0:AF4E92C5EDC6313A97553918B67FBC08994EA5253B846E2CFA74117596E5B3FF": {
+     "is_indexed": true,
+     "token_info": [
+      {
+       "extra": {
+        "balance": "1026779178226",
+        "jetton": "0:8CE031330D514BABB91A4A87505FEF3EBBF685F4CF430DED4478F5ACB8CA33A8",
+        "owner": "0:C3811A5E1E47C6601AE60407F64B1AF2E3655C1B2638DC8A1C09F208B45A298E"
+       },
+       "type": "jetton_wallets",
+       "valid": true
+      }
+     ]
+    }
+   },
+   "url": "/api/v3/pendingActions"
+  }
+ ],
+ "sources": {
+  "final": "425-r3-tc3-actions-pending-final-b00.json",
+  "pending": [
+   "212-r3-pending-public-dedust-native-vault.json",
+   "220-r3-pending-public-stonfi-v2-router.json"
+  ]
+ },
+ "trace_responses": [],
+ "window": [
+  1794561260,
+  1794561275
+ ]
+}

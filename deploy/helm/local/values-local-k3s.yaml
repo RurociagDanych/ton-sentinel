@@ -1,0 +1,22 @@
+# LOCAL-ONLY override for the k3d K3s test cluster (amd64 host). NOT for production/target.
+#   helm install sl deploy/helm/ton-sentinel -n sl-ton-sentinel -f deploy/helm/local/values-local-k3s.yaml
+# Then create secret `sl-secret` (generated locally, never committed): see tests/integration/test_local_k3s.py.
+# app/spark Deployments run bounded local probe entrypoints (ton_sentinel.k3s_probe, source via test-created ConfigMap);
+# the maintenance CronJob stays suspended (/bin/false placeholder).
+enabled: true
+replicas: 1
+local:
+  enabled: true
+  nodeArch: amd64
+  storageClass: local-path
+admission:
+  g2EvidenceId: local-k3d-no-g2
+  allocatableMiB: 15283
+  osReserveMiB: 2048
+  nodeName: k3d-ton-sentinel-local-server-0
+existingSecret: sl-secret
+images:  # linux/amd64 manifest digests of locally present images, ctr-imported + tagged name@digest by the test
+  app: ton-sentinel@sha256:8b1759daf094bd768b25108ae78e3e3bbc96a3706d542ea092c6620c5e68e7b2
+  kafka: apache/kafka@sha256:8f325fc00143fed78eabe00b033a86747078bb06edc21345d06651f77ae44f30
+  postgres: postgres@sha256:e923a22ac074261dd73970c57edf659475bf0497cb9456f17d98ed7cdd3ca913
+  spark: spark@sha256:60b99fa37465eac7749f2bad2ab90eb4b52dc04584a8b1b163f10926c82a7045

@@ -1,0 +1,223 @@
+{
+ "uid": "ts-api",
+ "title": "TON Sentinel / API",
+ "tags": [
+  "ton-sentinel"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": false,
+ "time": {
+  "from": "now-6h",
+  "to": "now"
+ },
+ "refresh": "30s",
+ "timezone": "utc",
+ "panels": [
+  {
+   "id": 1,
+   "type": "timeseries",
+   "title": "Request rate per route",
+   "description": "Requests/s by route. Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "sum by (route) (rate(ton_sentinel_http_requests_total[5m]))",
+     "legendFormat": "{{route}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 2,
+   "type": "timeseries",
+   "title": "Latency p95 per route [partial]",
+   "description": "p95 from histogram. Data source: Prometheus (prom-local) <- api /metrics. PARTIAL DATA: histogram routes limited to /health, /status, /metrics, /v1/features, other.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "histogram_quantile(0.95, sum by (le, route) (rate(ton_sentinel_http_request_duration_seconds_bucket[5m])))",
+     "legendFormat": "{{route}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "Error rate per route (4xx/5xx) [partial]",
+   "description": "Requests/s with 4xx or 5xx status class. Data source: Prometheus (prom-local) <- api /metrics. PARTIAL DATA: 3xx counted under 2xx; other /v1/* routes fold into 'other'.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 7,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "sum by (route, status_class) (rate(ton_sentinel_http_requests_total{status_class!=\"2xx\"}[5m]))",
+     "legendFormat": "{{route}} {{status_class}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "Errors by error code [partial]",
+   "description": "Error responses by code from the response body. Data source: Prometheus (prom-local) <- api /metrics. PARTIAL DATA: no series until an error response is served.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 7,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "sum by (error) (rate(ton_sentinel_http_errors_total[5m]))",
+     "legendFormat": "{{error}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 5,
+   "type": "timeseries",
+   "title": "Source up",
+   "description": "Collector read success per source. Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_source_up",
+     "legendFormat": "{{source}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   }
+  },
+  {
+   "id": 6,
+   "type": "timeseries",
+   "title": "Collector age and DB probe",
+   "description": "Seconds since last collect; DB probe duration. Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 14,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_collector_age_seconds",
+     "legendFormat": "collector age"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_db_probe_duration_seconds",
+     "legendFormat": "db probe"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   }
+  }
+ ]
+}

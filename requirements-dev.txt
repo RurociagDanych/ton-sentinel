@@ -1,0 +1,7 @@
+# Host development and test dependencies (unit suite and scripts/qualify static).
+# The container image installs only the hash-locked runtime set in requirements.lock.
+psycopg[binary]==3.3.8
+kafka-python==3.0.13
+pytest==9.2.0
+PyYAML==6.0.3
+pyspark==4.0.5

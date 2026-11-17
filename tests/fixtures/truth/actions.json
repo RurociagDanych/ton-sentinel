@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "description": "Manually authored offline examples; asset names, versions, hashes and amounts are synthetic, not deployed TON evidence.",
+  "actions": [
+    {
+      "schema_version": 1, "kind": "synthetic_swap", "synthetic": true,
+      "network": "testnet", "trace_id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "action_id": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
+      "protocol": "STON.fi", "protocol_version": "synthetic-v1",
+      "action_end": 299, "status": "success", "eligible": true, "route_proven": true,
+      "route": ["TON", "jetton:A"],
+      "input": {"asset": "TON", "raw_amount": "1000000000", "decimals": 9, "decimal_provenance": "synthetic:declared"},
+      "output": {"asset": "jetton:A", "raw_amount": "250", "decimals": 2, "decimal_provenance": "synthetic:declared"},
+      "trader": "BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=", "trader_method": "synthetic:explicit", "trader_unambiguous": true,
+      "metadata": {"name": "synthetic buy"}
+    },
+    {
+      "schema_version": 1, "kind": "synthetic_swap", "synthetic": true,
+      "network": "testnet", "trace_id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "action_id": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=",
+      "protocol": "DeDust", "protocol_version": "synthetic-v1",
+      "action_end": 300, "status": "success", "eligible": true, "route_proven": true,
+      "route": ["jetton:A", "TON"],
+      "input": {"asset": "jetton:A", "raw_amount": "250", "decimals": 2, "decimal_provenance": "synthetic:declared"},
+      "output": {"asset": "TON", "raw_amount": "1000000000", "decimals": 9, "decimal_provenance": "synthetic:declared"}
+    },
+    {
+      "schema_version": 1, "kind": "synthetic_swap", "synthetic": true,
+      "network": "testnet", "trace_id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "action_id": "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=",
+      "protocol": "STON.fi", "protocol_version": "synthetic-v1",
+      "action_end": 600, "status": "success", "eligible": true, "route_proven": true,
+      "route": ["jetton:A", "jetton:intermediate", "TON", "jetton:B"],
+      "input": {"asset": "jetton:A", "raw_amount": "250", "decimals": 2, "decimal_provenance": "synthetic:declared"},
+      "output": {"asset": "jetton:B", "raw_amount": "17"},
+      "trader": "BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=", "trader_method": "synthetic:ambiguous", "trader_unambiguous": false
+    },
+    {
+      "schema_version": 1, "kind": "synthetic_swap", "synthetic": true,
+      "network": "testnet", "trace_id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "action_id": "BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=",
+      "protocol": "DeDust", "protocol_version": "synthetic-v1",
+      "action_end": 601, "status": "success", "eligible": true, "route_proven": true,
+      "route": ["jetton:A", "TON", "jetton:A"],
+      "input": {"asset": "jetton:A", "raw_amount": "250", "decimals": 2, "decimal_provenance": "synthetic:declared"},
+      "output": {"asset": "jetton:A", "raw_amount": "200", "decimals": 2, "decimal_provenance": "synthetic:declared"}
+    },
+    {
+      "schema_version": 1, "kind": "synthetic_swap", "synthetic": true,
+      "network": "testnet", "trace_id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "action_id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "protocol": "unknown", "protocol_version": "synthetic-v1",
+      "action_end": 602, "status": "pending", "route_proven": false,
+      "route": ["TON", "jetton:A"],
+      "input": {"asset": "TON", "raw_amount": "0"},
+      "output": {"asset": "jetton:A", "raw_amount": "0"}
+    }
+  ]
+}

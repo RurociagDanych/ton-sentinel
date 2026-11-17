@@ -1,0 +1,100 @@
+# LOCAL synthetic feasibility only; no published ports or external runtime egress.
+name: ton-sentinel-local
+services:
+  postgres:
+    image: postgres@sha256:bd5dfa494a5a259704365813dbfa5fa6b3e69be7348d43b547f540c730478583
+    environment:
+      POSTGRES_DB: feasibility
+      POSTGRES_USER: probe
+      # From the git-ignored .env (see .env.example); pass it with `docker compose --env-file .env`.
+      POSTGRES_PASSWORD: '${TON_SENTINEL_PG_PASSWORD:?set TON_SENTINEL_PG_PASSWORD in .env}'
+      PGDATA: /var/lib/postgresql/18/docker
+    command: [postgres, -c, shared_buffers=64MB, -c, max_connections=20, -c, fsync=on, -c, synchronous_commit=on, -c, full_page_writes=on]
+    # docker-init is PID 1 and reaps orphans. Without it the postmaster is PID 1: a timed-out
+    # CMD-SHELL healthcheck leaves pg_isready orphaned, its exit 2 ("no response") is reaped as an
+    # "untracked child process" and the postmaster crash-restarts every backend (V1b evidence).
+    init: true
+    volumes: ['pgdata:/var/lib/postgresql']
+    networks: [fixture]
+    mem_limit: 512m
+    cpus: 0.5
+    security_opt: ['no-new-privileges:true']
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U probe -d feasibility']
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    logging: {driver: json-file, options: {max-size: 5m, max-file: '2'}}
+  kafka:
+    image: apache/kafka@sha256:852a0d49fc4e656b022e7f23785411802c9a088c78a7c5e39f33969de9c227a7
+    environment:
+      KAFKA_NODE_ID: '1'
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: '1'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: '0'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_LOG_RETENTION_HOURS: '24'
+      KAFKA_LOG_RETENTION_BYTES: '134217728'
+      KAFKA_LOG_SEGMENT_BYTES: '16777216'
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes: ['kafkadata:/var/lib/kafka/data']
+    networks: [fixture]
+    mem_limit: 1g
+    cpus: 0.5
+    security_opt: ['no-new-privileges:true']
+    healthcheck:
+      # TCP probe only: a Kafka CLI check starts a JVM per interval inside the 0.5 CPU quota,
+      # throttles the broker until it fences itself (tests/unit/test_compose_kafka_healthcheck.py).
+      test: [CMD, nc, -z, -w, '2', 127.0.0.1, '9092']
+      interval: 5s
+      timeout: 8s
+      retries: 40
+    logging: {driver: json-file, options: {max-size: 5m, max-file: '2'}}
+  app:
+    image: ton-sentinel@sha256:92fddf750cd564e58286c995b7910d4b1ebf1764cd52359a55aab94ceeaa0134
+    user: '1000:1000'
+    entrypoint: [/bin/bash, -c]
+    command: ['exec sleep infinity']
+    working_dir: /workspace
+    environment:
+      TON_SENTINEL_LOCAL_FIXTURE: '1'
+      TON_SENTINEL_PG_PASSWORD: '${TON_SENTINEL_PG_PASSWORD:?set TON_SENTINEL_PG_PASSWORD in .env}'
+      SPARK_LOCAL_IP: 127.0.0.1
+      PYSPARK_PYTHON: python3
+      PYSPARK_SUBMIT_ARGS: --driver-memory 1g pyspark-shell
+      HOME: /runtime/home
+      TMPDIR: /runtime/tmp
+      PYTHONDONTWRITEBYTECODE: '1'
+    volumes:
+      - ../src:/workspace/src:ro
+      - ../tests:/workspace/tests:ro
+      - ../scripts:/workspace/scripts:ro
+      - ../pyproject.toml:/workspace/pyproject.toml:ro
+      - ../.cache/fixture-evidence:/evidence
+      - ../.cache/runtime:/runtime
+    networks: [fixture]
+    depends_on:
+      postgres: {condition: service_healthy}
+      kafka: {condition: service_healthy}
+    mem_limit: 3g
+    cpus: 1.0
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    logging: {driver: json-file, options: {max-size: 5m, max-file: '2'}}
+networks:
+  fixture:
+    internal: true
+    enable_ipv6: false
+volumes:
+  pgdata:
+  kafkadata:

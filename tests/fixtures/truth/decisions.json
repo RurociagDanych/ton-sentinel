@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "provenance": "Hand-authored policy-decision fixture paired with actions.json synthetic examples; no deployed fingerprints or live claims.",
+  "decisions": [
+    {"candidate_id": "action-0", "decision": "accepted", "authority": "synthetic:test-policy:v1", "reason": "explicit synthetic acceptance"},
+    {"candidate_id": "action-1", "decision": "accepted", "authority": "synthetic:test-policy:v1", "reason": "explicit synthetic acceptance"},
+    {"candidate_id": "action-2", "decision": "accepted", "authority": "synthetic:test-policy:v1", "reason": "explicit synthetic acceptance; normalization remains ineligible if evidence is insufficient"},
+    {"candidate_id": "action-3", "decision": "accepted", "authority": "synthetic:test-policy:v1", "reason": "explicit synthetic acceptance"},
+    {"candidate_id": "action-4", "decision": "accepted", "authority": "synthetic:test-policy:v1", "reason": "explicit synthetic acceptance; normalization independently evaluates evidence"},
+    {"candidate_id": "conflicting-amount", "decision": "rejected", "authority": "synthetic:test-policy:v1", "reason": "conflicting observation rejected explicitly; arrival order is not authority"}
+  ]
+}

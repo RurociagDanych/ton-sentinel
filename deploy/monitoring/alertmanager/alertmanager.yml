@@ -1,0 +1,12 @@
+# Local-only routing: every alert goes to the in-network webhook sink (no external network, no credentials).
+route:
+  receiver: local-sink
+  group_by: [alertname]
+  group_wait: 5s
+  group_interval: 10s
+  repeat_interval: 4h
+receivers:
+  - name: local-sink
+    webhook_configs:
+      - url: http://alert-sink:9095/alert
+        send_resolved: true

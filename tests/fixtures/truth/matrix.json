@@ -1,0 +1,1659 @@
+{
+ "schema_version": 1,
+ "synthetic": true,
+ "derivation": "Hand-authored from the documented synthetic_swap v1 contract (normalize.py docstring, contracts.py reasons/window rules): window=action_end//300*300 half-open 300s; one contribution per distinct endpoint token; role both for cyclic; scaled=raw shifted by decimals; trader only if explicit and unambiguous; ineligible => no contributions. Expected literals were written in KINDS, not produced by product or oracle code; amounts synthetic.",
+ "cases": [
+  {
+   "name": "STON.fi/buy",
+   "protocol": "STON.fi",
+   "kind": "buy",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
+    "action_id": "ZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWU=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 1000,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=\",\"ZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWU=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=\",\"ZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWU=\"]",
+      "token": "TON",
+      "role": "input",
+      "window_start": 900,
+      "window_end": 1200,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=\",\"ZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWU=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:TON",
+      "input_raw": "1500000000",
+      "output_raw": null,
+      "input_scaled": "1.500000000",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=\",\"ZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWU=\"]",
+      "token": "jetton:X",
+      "role": "output",
+      "window_start": 900,
+      "window_end": 1200,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=\",\"ZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWU=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": null,
+      "output_raw": "300",
+      "input_scaled": null,
+      "output_scaled": "3.00"
+     }
+    ]
+   }
+  },
+  {
+   "name": "STON.fi/sell",
+   "protocol": "STON.fi",
+   "kind": "sell",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=",
+    "action_id": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 1300,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "jetton:X",
+     "TON"
+    ],
+    "input": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=\",\"ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=\",\"ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=\"]",
+      "token": "jetton:X",
+      "role": "input",
+      "window_start": 1200,
+      "window_end": 1500,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=\",\"ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": "300",
+      "output_raw": null,
+      "input_scaled": "3.00",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=\",\"ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=\"]",
+      "token": "TON",
+      "role": "output",
+      "window_start": 1200,
+      "window_end": 1500,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=\",\"ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:TON",
+      "input_raw": null,
+      "output_raw": "1500000000",
+      "input_scaled": null,
+      "output_scaled": "1.500000000"
+     }
+    ]
+   }
+  },
+  {
+   "name": "STON.fi/jetton_to_jetton",
+   "protocol": "STON.fi",
+   "kind": "jetton_to_jetton",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=",
+    "action_id": "Z2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2c=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 1600,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "jetton:X",
+     "jetton:Y"
+    ],
+    "input": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:Y",
+     "raw_amount": "45",
+     "decimals": 3,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:ambiguous",
+    "trader_unambiguous": false
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=\",\"Z2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2c=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=\",\"Z2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2c=\"]",
+      "token": "jetton:X",
+      "role": "input",
+      "window_start": 1500,
+      "window_end": 1800,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=\",\"Z2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2c=\"]",
+      "count_eligible": true,
+      "trader": null,
+      "trader_eligible": false,
+      "unit": "raw:jetton:X",
+      "input_raw": "300",
+      "output_raw": null,
+      "input_scaled": "3.00",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=\",\"Z2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2c=\"]",
+      "token": "jetton:Y",
+      "role": "output",
+      "window_start": 1500,
+      "window_end": 1800,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=\",\"Z2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2c=\"]",
+      "count_eligible": true,
+      "trader": null,
+      "trader_eligible": false,
+      "unit": "raw:jetton:Y",
+      "input_raw": null,
+      "output_raw": "45",
+      "input_scaled": null,
+      "output_scaled": "0.045"
+     }
+    ]
+   }
+  },
+  {
+   "name": "STON.fi/multihop",
+   "protocol": "STON.fi",
+   "kind": "multihop",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=",
+    "action_id": "aGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGg=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 1900,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "jetton:X",
+     "jetton:M",
+     "TON",
+     "jetton:Y"
+    ],
+    "input": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:Y",
+     "raw_amount": "45",
+     "decimals": 3,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=\",\"aGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGg=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=\",\"aGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGg=\"]",
+      "token": "jetton:X",
+      "role": "input",
+      "window_start": 1800,
+      "window_end": 2100,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=\",\"aGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGg=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": "300",
+      "output_raw": null,
+      "input_scaled": "3.00",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=\",\"aGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGg=\"]",
+      "token": "jetton:Y",
+      "role": "output",
+      "window_start": 1800,
+      "window_end": 2100,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=\",\"aGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGg=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:Y",
+      "input_raw": null,
+      "output_raw": "45",
+      "input_scaled": null,
+      "output_scaled": "0.045"
+     }
+    ]
+   }
+  },
+  {
+   "name": "STON.fi/failed",
+   "protocol": "STON.fi",
+   "kind": "failed",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "BQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU=",
+    "action_id": "aWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWk=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 2200,
+    "status": "failed",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": false,
+    "reasons": [
+     "status_not_success"
+    ],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"BQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU=\",\"aWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWk=\"]",
+    "contributions": []
+   }
+  },
+  {
+   "name": "STON.fi/pending",
+   "protocol": "STON.fi",
+   "kind": "pending",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "BgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgY=",
+    "action_id": "ampqampqampqampqampqampqampqampqampqampqamo=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 2500,
+    "status": "pending",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": false,
+    "reasons": [
+     "status_not_success"
+    ],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"BgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgY=\",\"ampqampqampqampqampqampqampqampqampqampqamo=\"]",
+    "contributions": []
+   }
+  },
+  {
+   "name": "STON.fi/missing_eligibility",
+   "protocol": "STON.fi",
+   "kind": "missing_eligibility",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
+    "action_id": "a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2s=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 2800,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": false,
+    "reasons": [
+     "eligibility_not_explicit"
+    ],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=\",\"a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2s=\"]",
+    "contributions": []
+   }
+  },
+  {
+   "name": "STON.fi/missing_trader",
+   "protocol": "STON.fi",
+   "kind": "missing_trader",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg=",
+    "action_id": "bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 3100,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg=\",\"bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg=\",\"bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=\"]",
+      "token": "TON",
+      "role": "input",
+      "window_start": 3000,
+      "window_end": 3300,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg=\",\"bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=\"]",
+      "count_eligible": true,
+      "trader": null,
+      "trader_eligible": false,
+      "unit": "raw:TON",
+      "input_raw": "1500000000",
+      "output_raw": null,
+      "input_scaled": "1.500000000",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg=\",\"bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=\"]",
+      "token": "jetton:X",
+      "role": "output",
+      "window_start": 3000,
+      "window_end": 3300,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg=\",\"bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=\"]",
+      "count_eligible": true,
+      "trader": null,
+      "trader_eligible": false,
+      "unit": "raw:jetton:X",
+      "input_raw": null,
+      "output_raw": "300",
+      "input_scaled": null,
+      "output_scaled": "3.00"
+     }
+    ]
+   }
+  },
+  {
+   "name": "STON.fi/cyclic",
+   "protocol": "STON.fi",
+   "kind": "cyclic",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQk=",
+    "action_id": "bW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW0=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 3400,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "jetton:X",
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "250",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQk=\",\"bW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW0=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQk=\",\"bW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW0=\"]",
+      "token": "jetton:X",
+      "role": "both",
+      "window_start": 3300,
+      "window_end": 3600,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQk=\",\"bW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW0=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": "300",
+      "output_raw": "250",
+      "input_scaled": "3.00",
+      "output_scaled": "2.50"
+     }
+    ]
+   }
+  },
+  {
+   "name": "STON.fi/same_trace_equal_a",
+   "protocol": "STON.fi",
+   "kind": "same_trace_equal_a",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=",
+    "action_id": "bm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm4=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 3700,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "2000000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "500",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=\",\"bm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm4=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=\",\"bm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm4=\"]",
+      "token": "TON",
+      "role": "input",
+      "window_start": 3600,
+      "window_end": 3900,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=\",\"bm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm4=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:TON",
+      "input_raw": "2000000000",
+      "output_raw": null,
+      "input_scaled": "2.000000000",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=\",\"bm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm4=\"]",
+      "token": "jetton:X",
+      "role": "output",
+      "window_start": 3600,
+      "window_end": 3900,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=\",\"bm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm4=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": null,
+      "output_raw": "500",
+      "input_scaled": null,
+      "output_scaled": "5.00"
+     }
+    ]
+   }
+  },
+  {
+   "name": "STON.fi/same_trace_equal_b",
+   "protocol": "STON.fi",
+   "kind": "same_trace_equal_b",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=",
+    "action_id": "b29vb29vb29vb29vb29vb29vb29vb29vb29vb29vb28=",
+    "protocol": "STON.fi",
+    "protocol_version": "synthetic-v1",
+    "action_end": 3700,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "2000000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "500",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=\",\"b29vb29vb29vb29vb29vb29vb29vb29vb29vb29vb28=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=\",\"b29vb29vb29vb29vb29vb29vb29vb29vb29vb29vb28=\"]",
+      "token": "TON",
+      "role": "input",
+      "window_start": 3600,
+      "window_end": 3900,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=\",\"b29vb29vb29vb29vb29vb29vb29vb29vb29vb29vb28=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:TON",
+      "input_raw": "2000000000",
+      "output_raw": null,
+      "input_scaled": "2.000000000",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=\",\"b29vb29vb29vb29vb29vb29vb29vb29vb29vb29vb28=\"]",
+      "token": "jetton:X",
+      "role": "output",
+      "window_start": 3600,
+      "window_end": 3900,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vo=\",\"b29vb29vb29vb29vb29vb29vb29vb29vb29vb29vb28=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": null,
+      "output_raw": "500",
+      "input_scaled": null,
+      "output_scaled": "5.00"
+     }
+    ]
+   }
+  },
+  {
+   "name": "DeDust/buy",
+   "protocol": "DeDust",
+   "kind": "buy",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw=",
+    "action_id": "cHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHA=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 1000,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw=\",\"cHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHA=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw=\",\"cHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHA=\"]",
+      "token": "TON",
+      "role": "input",
+      "window_start": 900,
+      "window_end": 1200,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw=\",\"cHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHA=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:TON",
+      "input_raw": "1500000000",
+      "output_raw": null,
+      "input_scaled": "1.500000000",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw=\",\"cHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHA=\"]",
+      "token": "jetton:X",
+      "role": "output",
+      "window_start": 900,
+      "window_end": 1200,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw=\",\"cHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHA=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": null,
+      "output_raw": "300",
+      "input_scaled": null,
+      "output_scaled": "3.00"
+     }
+    ]
+   }
+  },
+  {
+   "name": "DeDust/sell",
+   "protocol": "DeDust",
+   "kind": "sell",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "DQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0=",
+    "action_id": "cXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXE=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 1300,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "jetton:X",
+     "TON"
+    ],
+    "input": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"DQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0=\",\"cXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXE=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"DQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0=\",\"cXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXE=\"]",
+      "token": "jetton:X",
+      "role": "input",
+      "window_start": 1200,
+      "window_end": 1500,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"DQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0=\",\"cXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXE=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": "300",
+      "output_raw": null,
+      "input_scaled": "3.00",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"DQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0=\",\"cXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXE=\"]",
+      "token": "TON",
+      "role": "output",
+      "window_start": 1200,
+      "window_end": 1500,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"DQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0=\",\"cXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXE=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:TON",
+      "input_raw": null,
+      "output_raw": "1500000000",
+      "input_scaled": null,
+      "output_scaled": "1.500000000"
+     }
+    ]
+   }
+  },
+  {
+   "name": "DeDust/jetton_to_jetton",
+   "protocol": "DeDust",
+   "kind": "jetton_to_jetton",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "Dg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4=",
+    "action_id": "cnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnI=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 1600,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "jetton:X",
+     "jetton:Y"
+    ],
+    "input": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:Y",
+     "raw_amount": "45",
+     "decimals": 3,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:ambiguous",
+    "trader_unambiguous": false
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"Dg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4=\",\"cnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnI=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"Dg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4=\",\"cnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnI=\"]",
+      "token": "jetton:X",
+      "role": "input",
+      "window_start": 1500,
+      "window_end": 1800,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"Dg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4=\",\"cnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnI=\"]",
+      "count_eligible": true,
+      "trader": null,
+      "trader_eligible": false,
+      "unit": "raw:jetton:X",
+      "input_raw": "300",
+      "output_raw": null,
+      "input_scaled": "3.00",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"Dg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4=\",\"cnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnI=\"]",
+      "token": "jetton:Y",
+      "role": "output",
+      "window_start": 1500,
+      "window_end": 1800,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"Dg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4=\",\"cnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnI=\"]",
+      "count_eligible": true,
+      "trader": null,
+      "trader_eligible": false,
+      "unit": "raw:jetton:Y",
+      "input_raw": null,
+      "output_raw": "45",
+      "input_scaled": null,
+      "output_scaled": "0.045"
+     }
+    ]
+   }
+  },
+  {
+   "name": "DeDust/multihop",
+   "protocol": "DeDust",
+   "kind": "multihop",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "Dw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8=",
+    "action_id": "c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3M=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 1900,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "jetton:X",
+     "jetton:M",
+     "TON",
+     "jetton:Y"
+    ],
+    "input": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:Y",
+     "raw_amount": "45",
+     "decimals": 3,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"Dw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8=\",\"c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3M=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"Dw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8=\",\"c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3M=\"]",
+      "token": "jetton:X",
+      "role": "input",
+      "window_start": 1800,
+      "window_end": 2100,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"Dw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8=\",\"c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3M=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": "300",
+      "output_raw": null,
+      "input_scaled": "3.00",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"Dw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8=\",\"c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3M=\"]",
+      "token": "jetton:Y",
+      "role": "output",
+      "window_start": 1800,
+      "window_end": 2100,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"Dw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8=\",\"c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3M=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:Y",
+      "input_raw": null,
+      "output_raw": "45",
+      "input_scaled": null,
+      "output_scaled": "0.045"
+     }
+    ]
+   }
+  },
+  {
+   "name": "DeDust/failed",
+   "protocol": "DeDust",
+   "kind": "failed",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "EBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBA=",
+    "action_id": "dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHQ=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 2200,
+    "status": "failed",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": false,
+    "reasons": [
+     "status_not_success"
+    ],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"EBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBA=\",\"dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHQ=\"]",
+    "contributions": []
+   }
+  },
+  {
+   "name": "DeDust/pending",
+   "protocol": "DeDust",
+   "kind": "pending",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "ERERERERERERERERERERERERERERERERERERERERERE=",
+    "action_id": "dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXU=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 2500,
+    "status": "pending",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": false,
+    "reasons": [
+     "status_not_success"
+    ],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"ERERERERERERERERERERERERERERERERERERERERERE=\",\"dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXU=\"]",
+    "contributions": []
+   }
+  },
+  {
+   "name": "DeDust/missing_eligibility",
+   "protocol": "DeDust",
+   "kind": "missing_eligibility",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "EhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhI=",
+    "action_id": "dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnY=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 2800,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": false,
+    "reasons": [
+     "eligibility_not_explicit"
+    ],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"EhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhI=\",\"dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnY=\"]",
+    "contributions": []
+   }
+  },
+  {
+   "name": "DeDust/missing_trader",
+   "protocol": "DeDust",
+   "kind": "missing_trader",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM=",
+    "action_id": "d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3c=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 3100,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "1500000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM=\",\"d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3c=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM=\",\"d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3c=\"]",
+      "token": "TON",
+      "role": "input",
+      "window_start": 3000,
+      "window_end": 3300,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM=\",\"d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3c=\"]",
+      "count_eligible": true,
+      "trader": null,
+      "trader_eligible": false,
+      "unit": "raw:TON",
+      "input_raw": "1500000000",
+      "output_raw": null,
+      "input_scaled": "1.500000000",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM=\",\"d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3c=\"]",
+      "token": "jetton:X",
+      "role": "output",
+      "window_start": 3000,
+      "window_end": 3300,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM=\",\"d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3c=\"]",
+      "count_eligible": true,
+      "trader": null,
+      "trader_eligible": false,
+      "unit": "raw:jetton:X",
+      "input_raw": null,
+      "output_raw": "300",
+      "input_scaled": null,
+      "output_scaled": "3.00"
+     }
+    ]
+   }
+  },
+  {
+   "name": "DeDust/cyclic",
+   "protocol": "DeDust",
+   "kind": "cyclic",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ=",
+    "action_id": "eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHg=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 3400,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "jetton:X",
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "jetton:X",
+     "raw_amount": "300",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "250",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ=\",\"eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHg=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ=\",\"eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHg=\"]",
+      "token": "jetton:X",
+      "role": "both",
+      "window_start": 3300,
+      "window_end": 3600,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ=\",\"eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHg=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": "300",
+      "output_raw": "250",
+      "input_scaled": "3.00",
+      "output_scaled": "2.50"
+     }
+    ]
+   }
+  },
+  {
+   "name": "DeDust/same_trace_equal_a",
+   "protocol": "DeDust",
+   "kind": "same_trace_equal_a",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=",
+    "action_id": "eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXk=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 3700,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "2000000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "500",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=\",\"eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXk=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=\",\"eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXk=\"]",
+      "token": "TON",
+      "role": "input",
+      "window_start": 3600,
+      "window_end": 3900,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=\",\"eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXk=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:TON",
+      "input_raw": "2000000000",
+      "output_raw": null,
+      "input_scaled": "2.000000000",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=\",\"eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXk=\"]",
+      "token": "jetton:X",
+      "role": "output",
+      "window_start": 3600,
+      "window_end": 3900,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=\",\"eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXk=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": null,
+      "output_raw": "500",
+      "input_scaled": null,
+      "output_scaled": "5.00"
+     }
+    ]
+   }
+  },
+  {
+   "name": "DeDust/same_trace_equal_b",
+   "protocol": "DeDust",
+   "kind": "same_trace_equal_b",
+   "payload": {
+    "schema_version": 1,
+    "kind": "synthetic_swap",
+    "synthetic": true,
+    "network": "testnet",
+    "trace_id": "+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=",
+    "action_id": "enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6eno=",
+    "protocol": "DeDust",
+    "protocol_version": "synthetic-v1",
+    "action_end": 3700,
+    "status": "success",
+    "route_proven": true,
+    "route": [
+     "TON",
+     "jetton:X"
+    ],
+    "input": {
+     "asset": "TON",
+     "raw_amount": "2000000000",
+     "decimals": 9,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "output": {
+     "asset": "jetton:X",
+     "raw_amount": "500",
+     "decimals": 2,
+     "decimal_provenance": "synthetic:declared"
+    },
+    "eligible": true,
+    "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+    "trader_method": "synthetic:explicit",
+    "trader_unambiguous": true
+   },
+   "expected": {
+    "eligible": true,
+    "reasons": [],
+    "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=\",\"enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6eno=\"]",
+    "contributions": [
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=\",\"enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6eno=\"]",
+      "token": "TON",
+      "role": "input",
+      "window_start": 3600,
+      "window_end": 3900,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=\",\"enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6eno=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:TON",
+      "input_raw": "2000000000",
+      "output_raw": null,
+      "input_scaled": "2.000000000",
+      "output_scaled": null
+     },
+     {
+      "event_id": "ton-sentinel:event:v1:[\"testnet\",\"+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=\",\"enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6eno=\"]",
+      "token": "jetton:X",
+      "role": "output",
+      "window_start": 3600,
+      "window_end": 3900,
+      "routed_trade_id": "ton-sentinel:event:v1:[\"testnet\",\"+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s=\",\"enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6eno=\"]",
+      "count_eligible": true,
+      "trader": "yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg=",
+      "trader_eligible": true,
+      "unit": "raw:jetton:X",
+      "input_raw": null,
+      "output_raw": "500",
+      "input_scaled": null,
+      "output_scaled": "5.00"
+     }
+    ]
+   }
+  }
+ ],
+ "decisions": {
+  "STON.fi/buy": [
+   {
+    "candidate_id": "STON.fi/buy",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "STON.fi/sell": [
+   {
+    "candidate_id": "STON.fi/sell",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "STON.fi/jetton_to_jetton": [
+   {
+    "candidate_id": "STON.fi/jetton_to_jetton",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "STON.fi/multihop": [
+   {
+    "candidate_id": "STON.fi/multihop",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "STON.fi/failed": [
+   {
+    "candidate_id": "STON.fi/failed",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "STON.fi/pending": [
+   {
+    "candidate_id": "STON.fi/pending",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "STON.fi/missing_eligibility": [
+   {
+    "candidate_id": "STON.fi/missing_eligibility",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "STON.fi/missing_trader": [
+   {
+    "candidate_id": "STON.fi/missing_trader",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "STON.fi/cyclic": [
+   {
+    "candidate_id": "STON.fi/cyclic",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "STON.fi/same_trace_equal_a": [
+   {
+    "candidate_id": "STON.fi/same_trace_equal_a",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "STON.fi/same_trace_equal_b": [
+   {
+    "candidate_id": "STON.fi/same_trace_equal_b",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/buy": [
+   {
+    "candidate_id": "DeDust/buy",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/sell": [
+   {
+    "candidate_id": "DeDust/sell",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/jetton_to_jetton": [
+   {
+    "candidate_id": "DeDust/jetton_to_jetton",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/multihop": [
+   {
+    "candidate_id": "DeDust/multihop",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/failed": [
+   {
+    "candidate_id": "DeDust/failed",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/pending": [
+   {
+    "candidate_id": "DeDust/pending",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/missing_eligibility": [
+   {
+    "candidate_id": "DeDust/missing_eligibility",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/missing_trader": [
+   {
+    "candidate_id": "DeDust/missing_trader",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/cyclic": [
+   {
+    "candidate_id": "DeDust/cyclic",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/same_trace_equal_a": [
+   {
+    "candidate_id": "DeDust/same_trace_equal_a",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ],
+  "DeDust/same_trace_equal_b": [
+   {
+    "candidate_id": "DeDust/same_trace_equal_b",
+    "decision": "accepted",
+    "authority": "synthetic:test-policy:v1",
+    "reason": "explicit synthetic acceptance; eligibility is judged separately"
+   }
+  ]
+ }
+}

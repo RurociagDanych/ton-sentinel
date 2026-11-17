@@ -1,0 +1,24 @@
+{
+  "mode": "offline-hold-separate-filesystems-required",
+  "dataVolumeBytes": 150000000000,
+  "reserveBytes": 17179869184,
+  "writersGiB": {
+    "postgres": 40,
+    "kafka": 20,
+    "checkpoints": 12,
+    "scratch": 8,
+    "metrics": 1,
+    "k3s": 16
+  },
+  "kafka": {
+    "segmentBytes": 134217728,
+    "overshootSegmentsPerPartition": 2,
+    "metadataReserveBytes": 2147483648,
+    "topics": [
+      {"name": "ton.pool_state.v1", "partitions": 1, "budgetPerPartitionBytes": 2147483648},
+      {"name": "ton.swap_events.v1", "partitions": 1, "budgetPerPartitionBytes": 2147483648},
+      {"name": "__consumer_offsets", "partitions": 1, "budgetPerPartitionBytes": 4294967296},
+      {"name": "__transaction_state", "partitions": 1, "budgetPerPartitionBytes": 4294967296}
+    ]
+  }
+}

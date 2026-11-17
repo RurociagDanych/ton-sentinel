@@ -1,0 +1,21 @@
+# OFFLINE HOLD: unresolved images and measured admission; zero replicas.
+{
+  "enabled": false,
+  "admission": {
+    "g2EvidenceId": "",
+    "allocatableMiB": 0,
+    "osReserveMiB": 2048,
+    "nodeName": ""
+  },
+  "images": {
+    "app": "",
+    "kafka": "",
+    "postgres": "",
+    "spark": ""
+  },
+  "existingSecret": "",
+  "replicas": 0,
+  "local": {
+    "enabled": false
+  }
+}

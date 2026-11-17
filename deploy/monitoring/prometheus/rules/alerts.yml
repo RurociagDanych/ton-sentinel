@@ -1,0 +1,83 @@
+# Alert rules. Prometheus only evaluates them: no Alertmanager, no notification channel.
+# Every threshold below is a LOCAL DEFAULT for a synthetic single-node fixture, not a production SLO.
+# Override a threshold by editing the literal in the alert's expr (and its `for`):
+#   api down 1m | database unreadable 2m | 5xx share 5% (>=10 req) 5m | p95 1s 10m | collector age 120s 2m
+#   serving write age 3600s 15m | outbox_pending 1000 10m | repair_pending 100 15m | db size 4e9 10m | samples 400 10m
+# SentinelOutboxBacklog uses outbox_pending only: the plan's oldest-pending-age metric is not exported by /metrics.
+groups:
+  - name: ton-sentinel-local-defaults
+    rules:
+      - alert: SentinelApiDown
+        expr: up{job="ton-sentinel-api"} == 0
+        for: 1m
+        labels: {severity: critical, threshold_class: local_default}
+        annotations:
+          summary: "Prometheus cannot scrape the api (default 1m)"
+          note: "Threshold is a local default, not a production SLO."
+      - alert: SentinelDatabaseUnreadable
+        expr: ton_sentinel_source_up{source="database"} == 0
+        for: 2m
+        labels: {severity: critical, threshold_class: local_default}
+        annotations:
+          summary: "The api collector cannot read the database (default 2m)"
+          note: "Threshold is a local default, not a production SLO."
+      - alert: SentinelErrorRateHigh
+        expr: |
+          sum(rate(ton_sentinel_http_requests_total{status_class="5xx",route!="/metrics"}[5m]))
+            / sum(rate(ton_sentinel_http_requests_total{route!="/metrics"}[5m])) > 0.05
+          and sum(increase(ton_sentinel_http_requests_total{route!="/metrics"}[5m])) >= 10
+        for: 5m
+        labels: {severity: warning, threshold_class: local_default}
+        annotations:
+          summary: "More than 5% of requests (at least 10) returned 5xx over 5m (default 5%)"
+          note: "Threshold is a local default, not a production SLO."
+      - alert: SentinelSlowRequests
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(ton_sentinel_http_request_duration_seconds_bucket{route!="/metrics"}[5m]))) > 1
+        for: 10m
+        labels: {severity: warning, threshold_class: local_default}
+        annotations:
+          summary: "p95 request latency above 1s, /metrics excluded (default 1s)"
+          note: "Threshold is a local default, not a production SLO."
+      - alert: SentinelCollectorStale
+        expr: ton_sentinel_collector_age_seconds > 120
+        for: 2m
+        labels: {severity: warning, threshold_class: local_default}
+        annotations:
+          summary: "Cached database snapshot older than 120s (default 120s)"
+          note: "Threshold is a local default, not a production SLO."
+      - alert: SentinelServingWriteStale
+        expr: time() - ton_sentinel_serving_latest_write_timestamp_seconds > 3600
+        for: 15m
+        labels: {severity: info, threshold_class: local_default}
+        annotations:
+          summary: "No serving write for over 1h (default 1h); fires on a purposely idle fixture"
+          note: "Threshold is a local default, not a production SLO."
+      - alert: SentinelOutboxBacklog
+        expr: ton_sentinel_outbox_pending > 1000
+        for: 10m
+        labels: {severity: warning, threshold_class: local_default}
+        annotations:
+          summary: "More than 1000 unpublished outbox rows (default 1000)"
+          note: "Threshold is a local default, not a production SLO."
+      - alert: SentinelRepairBacklog
+        expr: ton_sentinel_repair_pending > 100
+        for: 15m
+        labels: {severity: warning, threshold_class: local_default}
+        annotations:
+          summary: "More than 100 dirty windows pending repair (default 100)"
+          note: "Threshold is a local default, not a production SLO."
+      - alert: SentinelDatabaseGrowth
+        expr: ton_sentinel_database_size_bytes > 4e9
+        for: 10m
+        labels: {severity: warning, threshold_class: local_default}
+        annotations:
+          summary: "Database larger than 4 GB (default 4e9 bytes)"
+          note: "Threshold is a local default, not a production SLO."
+      - alert: SentinelMetricsSeriesBudget
+        expr: scrape_samples_scraped{job="ton-sentinel-api"} > 400
+        for: 10m
+        labels: {severity: warning, threshold_class: local_default}
+        annotations:
+          summary: "api scrape exposes more than 400 samples (default 400)"
+          note: "Threshold is a local default, not a production SLO."

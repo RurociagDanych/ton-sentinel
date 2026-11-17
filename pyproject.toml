@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools==82.0.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ton-sentinel"
+version = "0.0.1"
+description = "Local-first detector of unusual DEX swap activity on TON (STON.fi, DeDust); not production"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = ["psycopg[binary]==3.3.8", "kafka-python==3.0.13"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
+
+[tool.setuptools.package-data]
+ton_sentinel = ["demo.html", "dashboard/*.html", "dashboard/*.css", "dashboard/*.js"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+markers = ["integration: requires isolated real Docker services", "k3s: requires authorized existing local K3s"]

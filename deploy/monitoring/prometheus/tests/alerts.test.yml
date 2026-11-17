@@ -1,0 +1,107 @@
+# promtool test rules: each alert has one firing and one non-firing case (integration step).
+rule_files: [../rules/alerts.yml]
+evaluation_interval: 1m
+tests:
+  - name: api-down
+    interval: 1m
+    input_series:
+      - {series: 'up{job="ton-sentinel-api",instance="a"}', values: '0x5'}
+      - {series: 'up{job="ton-sentinel-api",instance="b"}', values: '1x5'}
+    alert_rule_test:
+      - {eval_time: 5m, alertname: SentinelApiDown, exp_alerts: [{exp_labels: {severity: critical, threshold_class: local_default, job: ton-sentinel-api, instance: a}, exp_annotations: {summary: "Prometheus cannot scrape the api (default 1m)", note: "Threshold is a local default, not a production SLO."}}]}
+  - name: api-up
+    interval: 1m
+    input_series: [{series: 'up{job="ton-sentinel-api"}', values: '1x10'}]
+    alert_rule_test: [{eval_time: 10m, alertname: SentinelApiDown, exp_alerts: []}]
+  - name: db-unreadable-fires
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_source_up{source="database"}', values: '0x5'}]
+    alert_rule_test: [{eval_time: 5m, alertname: SentinelDatabaseUnreadable, exp_alerts: [{exp_labels: {severity: critical, threshold_class: local_default, source: database}, exp_annotations: {summary: "The api collector cannot read the database (default 2m)", note: "Threshold is a local default, not a production SLO."}}]}]
+  - name: db-readable-and-other-source-down
+    interval: 1m
+    input_series:
+      - {series: 'ton_sentinel_source_up{source="database"}', values: '1x10'}
+      - {series: 'ton_sentinel_source_up{source="pipeline"}', values: '0x10'}
+    alert_rule_test: [{eval_time: 10m, alertname: SentinelDatabaseUnreadable, exp_alerts: []}]
+  - name: error-rate-fires
+    interval: 1m
+    input_series:
+      - {series: 'ton_sentinel_http_requests_total{route="/status",method="GET",status_class="5xx"}', values: '0+10x15'}
+      - {series: 'ton_sentinel_http_requests_total{route="/status",method="GET",status_class="2xx"}', values: '0+10x15'}
+    alert_rule_test: [{eval_time: 15m, alertname: SentinelErrorRateHigh, exp_alerts: [{exp_labels: {severity: warning, threshold_class: local_default}, exp_annotations: {summary: "More than 5% of requests (at least 10) returned 5xx over 5m (default 5%)", note: "Threshold is a local default, not a production SLO."}}]}]
+  - name: error-rate-idle-and-low-share
+    interval: 1m
+    input_series:
+      - {series: 'ton_sentinel_http_requests_total{route="/status",method="GET",status_class="5xx"}', values: '0+1x15'}
+      - {series: 'ton_sentinel_http_requests_total{route="/status",method="GET",status_class="2xx"}', values: '0+100x15'}
+      - {series: 'ton_sentinel_http_requests_total{route="/health",method="GET",status_class="5xx"}', values: '0x15'}
+    alert_rule_test: [{eval_time: 15m, alertname: SentinelErrorRateHigh, exp_alerts: []}]
+  - name: error-rate-few-requests
+    interval: 1m
+    input_series:
+      - {series: 'ton_sentinel_http_requests_total{route="/status",method="GET",status_class="5xx"}', values: '0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1'}
+    alert_rule_test: [{eval_time: 15m, alertname: SentinelErrorRateHigh, exp_alerts: []}]
+  - name: slow-fires
+    interval: 1m
+    input_series:
+      - {series: 'ton_sentinel_http_request_duration_seconds_bucket{route="/status",le="0.5"}', values: '0x20'}
+      - {series: 'ton_sentinel_http_request_duration_seconds_bucket{route="/status",le="1"}', values: '0x20'}
+      - {series: 'ton_sentinel_http_request_duration_seconds_bucket{route="/status",le="2"}', values: '0+10x20'}
+      - {series: 'ton_sentinel_http_request_duration_seconds_bucket{route="/status",le="+Inf"}', values: '0+10x20'}
+    alert_rule_test: [{eval_time: 20m, alertname: SentinelSlowRequests, exp_alerts: [{exp_labels: {severity: warning, threshold_class: local_default}, exp_annotations: {summary: "p95 request latency above 1s, /metrics excluded (default 1s)", note: "Threshold is a local default, not a production SLO."}}]}]
+  - name: slow-not-firing-fast-or-only-metrics-route
+    interval: 1m
+    input_series:
+      - {series: 'ton_sentinel_http_request_duration_seconds_bucket{route="/status",le="0.1"}', values: '0+10x20'}
+      - {series: 'ton_sentinel_http_request_duration_seconds_bucket{route="/status",le="+Inf"}', values: '0+10x20'}
+      - {series: 'ton_sentinel_http_request_duration_seconds_bucket{route="/metrics",le="1"}', values: '0x20'}
+      - {series: 'ton_sentinel_http_request_duration_seconds_bucket{route="/metrics",le="+Inf"}', values: '0+10x20'}
+    alert_rule_test: [{eval_time: 20m, alertname: SentinelSlowRequests, exp_alerts: []}]
+  - name: collector-stale-fires
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_collector_age_seconds', values: '300x5'}]
+    alert_rule_test: [{eval_time: 5m, alertname: SentinelCollectorStale, exp_alerts: [{exp_labels: {severity: warning, threshold_class: local_default}, exp_annotations: {summary: "Cached database snapshot older than 120s (default 120s)", note: "Threshold is a local default, not a production SLO."}}]}]
+  - name: collector-fresh
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_collector_age_seconds', values: '5x10'}]
+    alert_rule_test: [{eval_time: 10m, alertname: SentinelCollectorStale, exp_alerts: []}]
+  - name: serving-write-stale-fires
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_serving_latest_write_timestamp_seconds', values: '-4000x30'}]
+    alert_rule_test: [{eval_time: 30m, alertname: SentinelServingWriteStale, exp_alerts: [{exp_labels: {severity: info, threshold_class: local_default}, exp_annotations: {summary: "No serving write for over 1h (default 1h); fires on a purposely idle fixture", note: "Threshold is a local default, not a production SLO."}}]}]
+  - name: serving-write-recent
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_serving_latest_write_timestamp_seconds', values: '1000+60x30'}]
+    alert_rule_test: [{eval_time: 30m, alertname: SentinelServingWriteStale, exp_alerts: []}]
+  - name: outbox-fires
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_outbox_pending', values: '5000x15'}]
+    alert_rule_test: [{eval_time: 15m, alertname: SentinelOutboxBacklog, exp_alerts: [{exp_labels: {severity: warning, threshold_class: local_default}, exp_annotations: {summary: "More than 1000 unpublished outbox rows (default 1000)", note: "Threshold is a local default, not a production SLO."}}]}]
+  - name: outbox-small
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_outbox_pending', values: '10x15'}]
+    alert_rule_test: [{eval_time: 15m, alertname: SentinelOutboxBacklog, exp_alerts: []}]
+  - name: repair-fires
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_repair_pending', values: '500x20'}]
+    alert_rule_test: [{eval_time: 20m, alertname: SentinelRepairBacklog, exp_alerts: [{exp_labels: {severity: warning, threshold_class: local_default}, exp_annotations: {summary: "More than 100 dirty windows pending repair (default 100)", note: "Threshold is a local default, not a production SLO."}}]}]
+  - name: repair-small
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_repair_pending', values: '0x20'}]
+    alert_rule_test: [{eval_time: 20m, alertname: SentinelRepairBacklog, exp_alerts: []}]
+  - name: db-growth-fires
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_database_size_bytes', values: '5e9x15'}]
+    alert_rule_test: [{eval_time: 15m, alertname: SentinelDatabaseGrowth, exp_alerts: [{exp_labels: {severity: warning, threshold_class: local_default}, exp_annotations: {summary: "Database larger than 4 GB (default 4e9 bytes)", note: "Threshold is a local default, not a production SLO."}}]}]
+  - name: db-small
+    interval: 1m
+    input_series: [{series: 'ton_sentinel_database_size_bytes', values: '1e8x15'}]
+    alert_rule_test: [{eval_time: 15m, alertname: SentinelDatabaseGrowth, exp_alerts: []}]
+  - name: series-budget-fires
+    interval: 1m
+    input_series: [{series: 'scrape_samples_scraped{job="ton-sentinel-api"}', values: '900x15'}]
+    alert_rule_test: [{eval_time: 15m, alertname: SentinelMetricsSeriesBudget, exp_alerts: [{exp_labels: {severity: warning, threshold_class: local_default, job: ton-sentinel-api}, exp_annotations: {summary: "api scrape exposes more than 400 samples (default 400)", note: "Threshold is a local default, not a production SLO."}}]}]
+  - name: series-budget-ok
+    interval: 1m
+    input_series: [{series: 'scrape_samples_scraped{job="ton-sentinel-api"}', values: '300x15'}]
+    alert_rule_test: [{eval_time: 15m, alertname: SentinelMetricsSeriesBudget, exp_alerts: []}]

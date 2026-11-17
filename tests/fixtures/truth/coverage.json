@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "provenance": "Hand-authored coverage states for synthetic policy-decision fixtures only; no deployed fingerprints or live source claims.",
+  "scenarios": [
+    {
+      "name": "all-observations-decided",
+      "decision_ids": ["action-0", "action-1", "action-2", "action-3", "action-4", "conflicting-amount"],
+      "expected": {"coverage": "complete", "accepted": 5, "rejected": 1, "missing": []}
+    },
+    {
+      "name": "conflicting-observation-undecided",
+      "decision_ids": ["action-0", "action-1", "action-2", "action-3", "action-4"],
+      "expected": {"coverage": "missing", "accepted": 5, "rejected": 0, "missing": ["conflicting-amount"]}
+    }
+  ],
+  "action_time_mapping": {
+    "schema_version": 1,
+    "synthetic": true,
+    "mappings": [
+      {"action_start": 0, "action_end": 600, "status": "bounded_observed"},
+      {"action_start": 900, "action_end": 1200, "status": "bounded_observed"}
+    ]
+  },
+  "mapping_scenarios": [
+    {
+      "name": "exact-covered-boundary",
+      "window": [0, 600],
+      "expected": {
+        "coverage_status": "bounded_observed",
+        "eligible_zero": false,
+        "reason": "explicit_mapping_covers_window",
+        "source_coverage": "unknown",
+        "features": {"status": "unsupported", "computed": false, "items": null},
+        "alerts": {"status": "unsupported", "computed": false, "items": null}
+      }
+    },
+    {
+      "name": "window-crosses-mapping-gap",
+      "window": [300, 900],
+      "expected": {
+        "coverage_status": "missing",
+        "eligible_zero": false,
+        "reason": "mapping_gap",
+        "source_coverage": "unknown",
+        "features": {"status": "unsupported", "computed": false, "items": null},
+        "alerts": {"status": "unsupported", "computed": false, "items": null}
+      }
+    },
+    {
+      "name": "exact-next-mapped-boundary",
+      "window": [900, 1200],
+      "expected": {
+        "coverage_status": "bounded_observed",
+        "eligible_zero": false,
+        "reason": "explicit_mapping_covers_window",
+        "source_coverage": "unknown",
+        "features": {"status": "unsupported", "computed": false, "items": null},
+        "alerts": {"status": "unsupported", "computed": false, "items": null}
+      }
+    },
+    {
+      "name": "right-open-boundary-is-not-covered",
+      "window": [1200, 1500],
+      "expected": {
+        "coverage_status": "missing",
+        "eligible_zero": false,
+        "reason": "mapping_gap",
+        "source_coverage": "unknown",
+        "features": {"status": "unsupported", "computed": false, "items": null},
+        "alerts": {"status": "unsupported", "computed": false, "items": null}
+      }
+    }
+  ]
+}

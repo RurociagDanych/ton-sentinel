@@ -1,0 +1,185 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "enabled",
+    "admission",
+    "images",
+    "existingSecret",
+    "replicas"
+  ],
+  "properties": {
+    "enabled": {
+      "type": "boolean"
+    },
+    "replicas": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Offline storage enforcement hold: no runtime replicas are admitted (local K3s mode may admit 1)."
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "g2EvidenceId",
+        "allocatableMiB",
+        "osReserveMiB",
+        "nodeName"
+      ],
+      "properties": {
+        "g2EvidenceId": {
+          "type": "string"
+        },
+        "allocatableMiB": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "osReserveMiB": {
+          "type": "integer",
+          "minimum": 2048
+        },
+        "nodeName": {
+          "type": "string",
+          "pattern": "^$|^[a-z0-9][a-z0-9.-]*$"
+        }
+      }
+    },
+    "images": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "app",
+        "kafka",
+        "postgres",
+        "spark"
+      ],
+      "properties": {
+        "app": {
+          "type": "string",
+          "pattern": "^$|^[a-zA-Z0-9./:_-]+@sha256:[a-f0-9]{64}$"
+        },
+        "kafka": {
+          "type": "string",
+          "pattern": "^$|^[a-zA-Z0-9./:_-]+@sha256:[a-f0-9]{64}$"
+        },
+        "postgres": {
+          "type": "string",
+          "pattern": "^$|^[a-zA-Z0-9./:_-]+@sha256:[a-f0-9]{64}$"
+        },
+        "spark": {
+          "type": "string",
+          "pattern": "^$|^[a-zA-Z0-9./:_-]+@sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "existingSecret": {
+      "type": "string",
+      "pattern": "^$|^[a-z0-9][a-z0-9.-]*$"
+    },
+    "local": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "LOCAL K3s test override only; never set in production/target values.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "nodeArch": {
+          "type": "string",
+          "enum": [
+            "amd64",
+            "arm64"
+          ]
+        },
+        "storageClass": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "enabled": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "existingSecret": {
+            "minLength": 1
+          },
+          "admission": {
+            "properties": {
+              "g2EvidenceId": {
+                "minLength": 1
+              },
+              "nodeName": {
+                "minLength": 1
+              }
+            }
+          },
+          "images": {
+            "properties": {
+              "app": {
+                "minLength": 72
+              },
+              "kafka": {
+                "minLength": 72
+              },
+              "postgres": {
+                "minLength": 72
+              },
+              "spark": {
+                "minLength": 72
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "local"
+        ],
+        "properties": {
+          "local": {
+            "required": [
+              "enabled"
+            ],
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "replicas": {
+            "maximum": 1
+          },
+          "local": {
+            "required": [
+              "nodeArch",
+              "storageClass"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "replicas": {
+            "maximum": 0
+          }
+        }
+      }
+    }
+  ]
+}

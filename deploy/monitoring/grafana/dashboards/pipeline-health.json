@@ -1,0 +1,321 @@
+{
+ "uid": "ts-pipeline",
+ "title": "TON Sentinel / Pipeline health",
+ "tags": [
+  "ton-sentinel"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": false,
+ "time": {
+  "from": "now-6h",
+  "to": "now"
+ },
+ "refresh": "30s",
+ "timezone": "utc",
+ "panels": [
+  {
+   "id": 1,
+   "type": "stat",
+   "title": "Outbox pending",
+   "description": "Unpublished outbox rows. Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_outbox_pending",
+     "legendFormat": "pending"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   }
+  },
+  {
+   "id": 2,
+   "type": "stat",
+   "title": "Oldest pending outbox age [partial]",
+   "description": "Age of oldest unpublished outbox row. Data source: Prometheus (prom-local) <- api /metrics. PARTIAL DATA: family exists only while rows are pending; series absent (no sample) when the source query fails or nothing is recorded; absence is not zero.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 0,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_outbox_oldest_pending_age_seconds",
+     "legendFormat": "age"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "Repair pending",
+   "description": "Rows awaiting repair. Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 0,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_repair_pending",
+     "legendFormat": "pending"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   }
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "Scoring backlog (unscored + stale served windows) [partial]",
+   "description": "Per network. Data source: Prometheus (prom-local) <- api /metrics. PARTIAL DATA: only exported when both unscored and stale counts are observed.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 7,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_pipeline_backlog",
+     "legendFormat": "{{network}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   }
+  },
+  {
+   "id": 5,
+   "type": "timeseries",
+   "title": "Quality issues incl. dirty windows pending [partial]",
+   "description": "Trailing 288 windows (24h); per network and kind. Data source: Prometheus (prom-local) <- api /metrics. PARTIAL DATA: revision_quarantine_open is not range-scoped; truncated dirty-window counts are omitted.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 7,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_quality_issues",
+     "legendFormat": "{{network}} {{kind}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   }
+  },
+  {
+   "id": 6,
+   "type": "timeseries",
+   "title": "Outbox / repair history",
+   "description": "Pending counts over time. Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_outbox_pending",
+     "legendFormat": "outbox"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_repair_pending",
+     "legendFormat": "repair"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   }
+  },
+  {
+   "id": 7,
+   "type": "timeseries",
+   "title": "Source up",
+   "description": "1 when the collector read the source successfully. Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 14,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "ton_sentinel_source_up",
+     "legendFormat": "{{source}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   }
+  },
+  {
+   "id": 8,
+   "type": "timeseries",
+   "title": "Last activity [partial]",
+   "description": "Seconds since last recorded activity. Data source: Prometheus (prom-local) <- api /metrics. PARTIAL DATA: canonical_actions, Kafka lag and Spark state are not measured; activity with none recorded has no series.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 21,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "time() - ton_sentinel_last_activity_timestamp_seconds",
+     "legendFormat": "{{activity}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Serving freshness",
+   "description": "Age of latest served window end and latest write. Data source: Prometheus (prom-local) <- api /metrics.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom-local"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 21,
+    "w": 12,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "time() - ton_sentinel_serving_latest_window_end_timestamp_seconds",
+     "legendFormat": "window end"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prom-local"
+     },
+     "expr": "time() - ton_sentinel_serving_latest_write_timestamp_seconds",
+     "legendFormat": "write"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   }
+  }
+ ]
+}

@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Run local source, publication and Spark checks in an isolated pinned stack.
+set -Eeuo pipefail
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+for tool in docker python3; do
+  command -v "$tool" >/dev/null || { printf 'BLOCKED: required tool missing: %s\n' "$tool" >&2; exit 2; }
+done
+
+# Refuse an explicitly selected non-default Docker context or remote endpoint.
+if [[ -n "${DOCKER_HOST:-}" || -n "${DOCKER_CONTEXT:-}" ]]; then
+  printf 'BLOCKED: DOCKER_HOST/DOCKER_CONTEXT override is set; use the local default context.\n' >&2
+  exit 2
+fi
+context="$(docker context show)"
+endpoint="$(docker context inspect "$context" --format '{{.Endpoints.docker.Host}}')"
+case "$endpoint" in
+  unix:///var/run/docker.sock|unix:///run/docker.sock|unix:///run/user/*/docker.sock) ;;
+  *) printf 'BLOCKED: Docker endpoint is not a recognized local Unix socket: %s\n' "$endpoint" >&2; exit 2 ;;
+esac
+
+run="$(python3 -c 'import uuid; print(uuid.uuid4().hex)')"
+project="ton-sentinel-local-${run:0:12}"
+override="${TMPDIR:-/tmp}/ton-sentinel-local-${run}.compose.yaml"
+run_root="$(mktemp -d "${TMPDIR:-/tmp}/ton-sentinel-local-${run}.XXXXXX")"
+mkdir -p "$run_root/runtime/home" "$run_root/runtime/tmp" "$run_root/evidence"
+export LOCAL_STACK_ROOT="$run_root"
+# Disposable stack with fresh volumes: a random per-run database password, never stored.
+TON_SENTINEL_PG_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
+export TON_SENTINEL_PG_PASSWORD
+export LOCAL_STACK_UID="$(id -u)"
+export LOCAL_STACK_GID="$(id -g)"
+python3 - "$override" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+root = Path(os.environ['LOCAL_STACK_ROOT'])
+app = {
+    'user': os.environ['LOCAL_STACK_UID'] + ':' + os.environ['LOCAL_STACK_GID'],
+    'volumes': [str(root / 'runtime') + ':/runtime',
+                str(root / 'evidence') + ':/evidence'],
+}
+Path(sys.argv[1]).write_text(json.dumps({'services': {'app': app}}))
+PY
+compose=(docker compose --env-file /dev/null -p "$project" -f deploy/compose.yaml -f "$override")
+cleanup() {
+  status=$?
+  trap - EXIT INT TERM
+  "${compose[@]}" down --volumes --remove-orphans >/dev/null 2>&1 || {
+    printf 'CLEANUP FAILED: project=%s; run: docker compose --env-file /dev/null -p %s -f deploy/compose.yaml -f %s down --volumes --remove-orphans\n' "$project" "$project" "$override" >&2
+    status=1
+  }
+  for resource in container volume network; do
+    if [[ "$resource" == container ]]; then
+      remaining="$(docker container ls -aq --filter "label=com.docker.compose.project=$project")" || status=1
+    else
+      remaining="$(docker "$resource" ls -q --filter "label=com.docker.compose.project=$project")" || status=1
+    fi
+    if [[ -n "$remaining" ]]; then
+      printf 'CLEANUP FAILED: project=%s still has %s resources.\n' "$project" "$resource" >&2
+      status=1
+    fi
+  done
+  # Retain the exact cleanup recipe if resource cleanup or its readback failed.
+  if [[ "$status" == 0 ]]; then
+    rm -f -- "$override"
+  fi
+  exit "$status"
+}
+trap cleanup EXIT INT TERM
+
+printf 'Docker endpoint: %s\nProject: %s\n' "$endpoint" "$project"
+printf 'Starting pinned services (Compose waits for Kafka/PostgreSQL health)...\n'
+"${compose[@]}" up -d --wait --wait-timeout 240
+printf 'Running source/ledger regressions and real Kafka publication readback...\n'
+"${compose[@]}" exec -T \
+  -e "TON_SENTINEL_TEST_DSN=postgresql://probe:${TON_SENTINEL_PG_PASSWORD}@postgres:5432/feasibility" \
+  -e TON_SENTINEL_KAFKA_BOOTSTRAP=kafka:9092 \
+  app python3 -m pytest -q \
+    tests/integration/test_source_http.py \
+    tests/integration/test_source_coverage.py \
+    tests/integration/test_trace_evidence.py \
+    tests/integration/test_scan_ledger.py \
+    tests/integration/test_scan_resume.py \
+    tests/integration/test_scan_quarantine.py \
+    tests/integration/test_scan_corroboration.py \
+    tests/integration/test_ingest.py \
+    tests/integration/test_outbox_publication.py \
+    tests/unit/test_normalize.py tests/unit/test_truth.py tests/unit/test_outbox.py \
+    tests/unit/test_stream_identity.py \
+    tests/unit/test_source_bounds.py tests/unit/test_source_import_order.py \
+    tests/unit/test_trace_lookup.py tests/unit/test_source_client.py \
+    tests/unit/test_api_bounds.py tests/integration/test_api.py
+printf 'Running canonical full-window feature regressions on real Spark...\n'
+"${compose[@]}" exec -T \
+  -e "TON_SENTINEL_TEST_DSN=postgresql://probe:${TON_SENTINEL_PG_PASSWORD}@postgres:5432/feasibility" \
+  app python3 -m pytest -q \
+    tests/integration/test_spark_features.py \
+    tests/integration/test_vertical_slice.py \
+    tests/integration/test_canonical_stream.py
+printf 'Checking canonical consumer CLI and real outbox-to-HTTP checkpoint restart...\n'
+"${compose[@]}" exec -T app python3 -m ton_sentinel.stream_cli --help >/dev/null
+test_dsn="$(PYTHONPATH="$ROOT/src" python3 -c 'from ton_sentinel.feasibility import local_dsn; print(local_dsn())')"
+"${compose[@]}" exec -T \
+  -e "TON_SENTINEL_TEST_DSN=$test_dsn" \
+  -e TON_SENTINEL_TEST_KAFKA_BOOTSTRAP=kafka:9092 \
+  app python3 -m pytest -q tests/integration/test_canonical_kafka.py
+printf 'Running real Kafka produce, Spark state/restart, and PostgreSQL readback...\n'
+"${compose[@]}" exec -T app python3 -m pytest -q -s tests/integration/test_local_stack.py
+
+server="$(docker version --format '{{.Server.Version}} {{.Server.Os}}/{{.Server.Arch}}')"
+for service in kafka postgres app; do
+  state="$("${compose[@]}" ps --format json "$service" | python3 -c 'import json,sys; x=json.load(sys.stdin); x=x[0] if isinstance(x,list) and x else x; print(x.get("State",x.get("Status","missing")) if isinstance(x,dict) else "missing")')"
+  [[ "$state" == "running" ]] || { printf 'FAIL: %s ended in state %s\n' "$service" "$state" >&2; exit 1; }
+done
+printf 'Verified Docker server: %s\nVerified pinned images (tag and architecture):\n' "$server"
+docker image inspect \
+  ton-sentinel@sha256:8b1759daf094bd768b25108ae78e3e3bbc96a3706d542ea092c6620c5e68e7b2 \
+  spark@sha256:60b99fa37465eac7749f2bad2ab90eb4b52dc04584a8b1b163f10926c82a7045 \
+  postgres@sha256:bd5dfa494a5a259704365813dbfa5fa6b3e69be7348d43b547f540c730478583 \
+  apache/kafka@sha256:852a0d49fc4e656b022e7f23785411802c9a088c78a7c5e39f33969de9c227a7 \
+  --format '{{.RepoTags}} {{.Os}}/{{.Architecture}}'
+printf 'Cleanup on exit: project %s and its project-scoped volumes/networks/containers; evidence remains in %s/evidence.\n' "$project" "$run_root"
