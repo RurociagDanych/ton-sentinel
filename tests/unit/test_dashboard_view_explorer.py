@@ -1,4 +1,5 @@
-"""Token and window explorer. Static checks of served files and node logic."""
+"""Token and window explorer."""
+
 import json
 import re
 import shutil
@@ -43,7 +44,6 @@ const point = (i, extra) => Object.assign({window_start: T0 + 300 * i, window_en
 """
 
 
-# ---- static: files are served, packaged, and obey the shell rules ----------------------------
 
 def test_explorer_modules_are_allowlisted_packaged_and_served():
     for name in NEW_JS:
@@ -75,7 +75,7 @@ def test_explorer_uses_only_documented_endpoints_through_the_client():
     for path in ("/v1/tokens", "/v1/series", "/v1/coverage"):
         assert f'"{path}"' in src, path
     assert "getChecked" in src
-    assert "wallet" not in src.lower()  # DD4: no wallet addresses in the explorer
+    assert "wallet" not in src.lower()
 
 
 def test_chart_is_svg_built_in_code_without_inline_style_or_remote_origin():
@@ -110,7 +110,6 @@ def test_harness_has_explorer_scenarios():
         assert needle in source, needle
 
 
-# ---- range rules: 7 days enforced in the UI --------------------------------------------------
 
 @needs_node
 def test_range_over_7_days_disabled_client_side_and_400_handled(tmp_path):
@@ -161,7 +160,6 @@ console.log(JSON.stringify({presets, custom, bad, wide, keys: Object.keys(X.PRES
     assert out["wide"]["ok"] is False and "7 days" in out["wide"]["reason"]
 
 
-# ---- token paging and the loaded-page-only filter -------------------------------------------
 
 @needs_node
 def test_token_paging_is_keyset_deduplicated_and_ends_without_cursor(tmp_path):
@@ -195,12 +193,11 @@ console.log(JSON.stringify({
     assert out["hit"] == ["jetton:Alpha"] and out["empty"] == 3 and out["none"] == 0
     assert "loaded" in out["label_more"] and "3" in out["label_more"]
     assert "not" in out["label_more"].lower() or "only" in out["label_more"].lower()
-    assert "more" in out["label_more"].lower()  # more pages exist, filter does not search them
+    assert "more" in out["label_more"].lower()
     assert "loaded" in out["label_done"]
     assert "filter" in text("explorer.js").lower() and "filterLabel" in text("explorer.js")
 
 
-# ---- series, gaps, labels ---------------------------------------------------------------------
 
 @needs_node
 def test_series_gap_rendered_as_no_row_hatch(tmp_path):
@@ -214,7 +211,6 @@ console.log(JSON.stringify({slots: grid.slots.length, present: grid.slots.filter
     assert out["slots"] == 12 and out["present"] == 5
     assert [b[0] for b in out["bars"]] == [0, 300, 1200, 1500, 2700]
     assert all(b[1] for b in out["bars"])
-    # gaps: 2-3 (2 windows), 6-8 (3), 10-11 (2); merged runs, never zero-height bars
     assert out["gaps"] == [[600, 2], [1800, 3], [3000, 2]]
     assert out["gap_total"] == 7 and out["ignored"] == 0
 
@@ -250,7 +246,7 @@ console.log(JSON.stringify({labels, kinds: chart.bars.map(b => b.kind), classes:
     assert out["labels"][0]["text"] == "unrecorded" and out["labels"][1]["text"].startswith("synthetic")
     assert out["legend"] and "unrecorded" in json.dumps(out["legend"]) and "synthetic" in json.dumps(out["legend"])
     src = text("explorer.js")
-    assert "pointLabels" in src and "dataset.qualification" in src  # table rows carry the same label
+    assert "pointLabels" in src and "dataset.qualification" in src
 
 
 @needs_node
@@ -281,7 +277,6 @@ console.log(JSON.stringify({done: [done.points.length, done.truncated, done.page
     assert out["first_calls"] == [None, "more", "more"] and out["max"] >= 3
 
 
-# ---- provenance: a view without it is blocked -------------------------------------------------
 
 @needs_node
 def test_missing_provenance_blocks_explorer_inputs(tmp_path):
@@ -306,10 +301,9 @@ console.log(JSON.stringify(result));""")
 def test_explorer_blocks_the_shell_on_provenance_errors():
     src = text("explorer.js")
     assert "ProvenanceError" in src and "onBlock" in src
-    assert src.count("getChecked") >= 3  # tokens, series and coverage all go through the checked path
+    assert src.count("getChecked") >= 3
 
 
-# ---- window detail: coverage state and reasons ------------------------------------------------
 
 @needs_node
 def test_window_detail_shows_coverage_state_and_reasons_verbatim(tmp_path):
@@ -329,7 +323,7 @@ console.log(JSON.stringify({d, absent, unknown_known: S.badge(unknown.state).kno
     assert d["missing"] == ["source_gap:range_a"] and d["admission_reasons"] == ["epoch_mismatch"]
     assert d["admission_refused"] is True and d["lineage_records"] == 4
     assert out["absent"]["state"] == "unavailable" and out["malformed"]["state"] == "unavailable"
-    assert out["unknown_known"] is False  # an unrecognised state fails closed, never ok
+    assert out["unknown_known"] is False
     assert "lineage" not in json.dumps({k: v for k, v in d.items() if k != "lineage_records"})
 
 

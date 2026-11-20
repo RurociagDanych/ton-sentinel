@@ -1,10 +1,5 @@
-"""Synthetic identity-only truth; no deployed hashes or economic assertions.
+"""Synthetic identity-only truth; no deployed hashes or economic assertions."""
 
-Fixture schema v1 is the tuple (network, trace_id, action_id). Hashes below
-are generated from constant bytes, not TON observations. Profile v1 admits
-mainnet/testnet and canonical padded standard-base64 32-byte hashes only.
-Epoch fingerprints are opaque exact nonempty strings, not inferred build IDs.
-"""
 import base64
 from dataclasses import FrozenInstanceError, fields
 import json
@@ -411,7 +406,6 @@ def test_matrix_product_and_independent_oracle_match_literal_expectations():
         assert len({r.token for r in rows}) == len(rows)
     ids = [c['expected']['event_id'] for c in data['cases']]
     assert len(set(ids)) == len(ids)
-    # oracle: every case selected by an explicit decision must reproduce literals
     obs = [{'candidate_id': c['name'], 'action': c['payload']} for c in data['cases']]
     oracle_rows = {}
     for c in data['cases']:

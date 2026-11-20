@@ -1,4 +1,5 @@
 """G5b: /v1/pipeline kafka_lag over HTTP through sentinel_reader, equal to /status."""
+
 import json
 import threading
 from urllib.request import urlopen

@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL over HTTP, through the sentinel_reader login."""
+
 import json
 import os
 import threading
@@ -46,11 +47,11 @@ def _qualify(db, offset, synthetic=True):
 
 @pytest.fixture
 def seeded(db):  # noqa: F811
-    _feature(db, NET, T0 + 600, TOKEN, 3, False)       # 2 observed
-    _feature(db, NET, T0 + 900, TOKEN, 0, False)       # 3 zero
-    _feature(db, NET, T0 + 1200, TOKEN, 2, False)      # 4 partial (no qualification)
-    _feature(db, NET, T0 + 1500, TOKEN, 2, True)       # 5 provisional row
-    _feature(db, NET, T0 + 1800, TOKEN, 2, False)      # 6 provisional: pending dirty row
+    _feature(db, NET, T0 + 600, TOKEN, 3, False)
+    _feature(db, NET, T0 + 900, TOKEN, 0, False)
+    _feature(db, NET, T0 + 1200, TOKEN, 2, False)
+    _feature(db, NET, T0 + 1500, TOKEN, 2, True)
+    _feature(db, NET, T0 + 1800, TOKEN, 2, False)
     for offset in (2, 3, 5, 6, 11):
         _qualify(db, offset)
     db.execute(
@@ -72,8 +73,8 @@ def seeded(db):  # noqa: F811
         " dependency_epoch, usage, budget, lease_owner, lease_fence) VALUES (%s,%s,%s,%s,"
         "'missing','[\"window_open\"]','[1]',1,1,1,1,'{}','{}','o',1)",
         ("sha256:" + "a" * 64, NET, start, start + 300))
-    _feature(db, NET, T0, "jetton:B", 1, False)        # other token must not leak
-    _feature(db, "mainnet", T0 + 600, TOKEN, 1, False)  # other network must not leak
+    _feature(db, NET, T0, "jetton:B", 1, False)
+    _feature(db, "mainnet", T0 + 600, TOKEN, 1, False)
     db.commit()
     return db
 
@@ -142,10 +143,10 @@ def test_every_window_listed_with_state_gaps_missing_never_filled(base):
     assert {o: c["state"] for o, c in cells.items()} == EXPECTED
     assert [c["window_start"] for c in body["coverage"]] == [T0 + 300 * i for i in range(12)]
     assert all(c["window_end"] == c["window_start"] + 300 for c in body["coverage"])
-    for offset in (7, 8, 9, 10):  # no served row: missing, no values invented
+    for offset in (7, 8, 9, 10):
         assert cells[offset]["served"]["rows"] == 0
         assert cells[offset]["served"]["known_traders"] is None
-    assert cells[11]["state"] == "provisional"  # qualified gap is not proven zero
+    assert cells[11]["state"] == "provisional"
     assert cells[11]["reasons"] == ["qualified_without_served_row"]
 
 
@@ -181,7 +182,7 @@ def test_other_token_network_and_lineage_contents_never_returned(base):
     text = json.dumps(body)
     assert "jetton:B" not in text and '"r"' not in text and "lineage\"" not in text
     assert dashboard_payload.find_violations(body) == []
-    assert by_offset(body["coverage"])[2]["served"]["rows"] == 1  # mainnet row not counted
+    assert by_offset(body["coverage"])[2]["served"]["rows"] == 1
     assert body["honesty_banner"] == dashboard_payload.HONESTY_BANNER
     status, body = get(base, {"network": NET, "token": "jetton:none", **RANGE, "limit": 1000})
     assert status == 200 and {c["state"] for c in body["coverage"]} == {"pre_universe"}

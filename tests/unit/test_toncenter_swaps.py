@@ -1,8 +1,5 @@
-"""Live TON Center v3 `jetton_swap` adapter -> product swap contract.
+"""Live TON Center v3 `jetton_swap` adapter -> product swap contract."""
 
-Records below are copies of public on-chain data observed in a live sample
- trace g2QCRwCb...); no credentials appear in them.
-"""
 import base64
 import copy
 import json
@@ -83,7 +80,6 @@ def test_payload_has_the_synthetic_fixture_fields_and_normalizes_like_truth():
     assert action.eligible and action.reasons == ()
     assert action.route == ('jetton:0:' + JETTON[2:].lower(), 'native')
     rows = contributions(action)
-    # Values of the independent truth record for this trace (independent truth set).
     assert [(r.token, r.role, r.input_raw, r.input_scaled, r.output_raw, r.output_scaled)
             for r in rows] == [
         ('jetton:0:' + JETTON[2:].lower(), 'input', '1068858253805', '1068.858253805', None, None),

@@ -1,4 +1,5 @@
 """Pure contract tests for revision authorization (no database)."""
+
 import json
 
 import pytest
@@ -96,7 +97,6 @@ def test_window_key_math_and_baseline_dependent_span():
     key = WindowKey("testnet", "TON", 600)
     assert key.window_end == 900
     policy = RevisionPolicy(baseline_lookback_seconds=3600)
-    # Windows whose trailing baseline contains [600,900): starts in (600, 600+3600].
     assert key.dependents_span(policy) == (900, 4500)
     for bad in (-1, 7, 1.5):
         with pytest.raises(ValueError):

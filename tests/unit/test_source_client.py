@@ -1,4 +1,5 @@
 """Configuration and input validation for the bounded REST page client."""
+
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import threading

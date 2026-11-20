@@ -1,4 +1,5 @@
 """Executable Helm ownership, resource and security policy (offline, real `helm`)."""
+
 import json
 import re
 import subprocess
@@ -11,7 +12,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent))
 from test_deployment_policy import CHART, HELM, fixture_values, objects, pod_specs, render  # noqa: E402
 
-LOCAL = CHART.parent / 'local' / 'values-local-k3s.yaml'  # tracked, outside the chart
+LOCAL = CHART.parent / 'local' / 'values-local-k3s.yaml'
 
 
 def helm(*args):
@@ -65,7 +66,6 @@ def test_helm_owns_namespace_workloads_services_pvc_config_jobs(tmp_path):
     kinds = {o['kind'] for o in objects(tmp_path)}
     assert {'Namespace', 'Deployment', 'StatefulSet', 'Service', 'PersistentVolumeClaim',
             'CronJob', 'NetworkPolicy', 'ResourceQuota', 'ServiceAccount'} <= kinds
-    # every namespaced object lives in the one Helm-owned namespace
     objs = objects(tmp_path)
     ns = next(o['metadata']['name'] for o in objs if o['kind'] == 'Namespace')
     cluster = {'Namespace', 'PersistentVolume'}
@@ -87,7 +87,7 @@ def test_least_privilege_rbac_and_secret_separation(tmp_path):
             assert o['automountServiceAccountToken'] is False
         assert o['kind'] != 'Secret'
     text = json.dumps(objs)
-    assert 'fixture-existing-secret' in text  # secret is referenced, never embedded
+    assert 'fixture-existing-secret' in text
     for c in containers(objs):
         for env in c.get('env', []):
             if re.search(r'PASSWORD|SECRET|TOKEN|_KEY$', env['name']):
@@ -131,7 +131,7 @@ def test_resource_quota_covers_workload_totals_and_storage_budget(tmp_path):
     assert int(quota['persistentvolumeclaims']) == len(pvcs)
     req = sum(mem_mi(p['spec']['resources']['requests']['storage']) for p in pvcs)
     assert req <= mem_mi(quota['requests.storage'])
-    assert req <= 100 * 1024  # bounded PVC total, within the data-volume budget
+    assert req <= 100 * 1024
     assert quota['services.loadbalancers'] == '0' and quota['services.nodeports'] == '0'
     budget = json.loads((CHART / 'storage-budget.json').read_text())
     assert req * 1024**2 <= budget['dataVolumeBytes'] - budget['reserveBytes']

@@ -1,12 +1,5 @@
-"""Regression tests for defects found on the live stack.
+"""Regression tests for defects found on the live stack."""
 
-1. measured Kafka lag rendered as "unavailable" (overview + pipeline view), label/banner stale.
-2. an address-like token (wallet or raw address) answered 503 "unavailable" instead of 400.
-3. quality gap list -> explorer deep link lost the window: the explorer opened on 24 h.
-4. overview service-status counts are global but were not labelled as all networks.
-5. Grafana storage panels rendered epoch seconds as milliseconds (1970 dates).
-6. one idle TCP client blocked the single-threaded api server (false SentinelApiDown).
-"""
 import json
 import re
 import shutil
@@ -51,7 +44,6 @@ def node_json(tmp_path, body):
     return json.loads(result.stdout)
 
 
-# ---- 1. a measured Kafka lag is shown as measured --------------------------------------------
 
 @needs_node
 def test_overview_shows_measured_kafka_lag_not_unavailable(tmp_path):
@@ -85,7 +77,7 @@ console.log(JSON.stringify({{panel, many, partial, malformed, empty, down, banne
     assert items["ingestion_freshness"]["state"] == "not_measured"
     assert "Nothing measures these two values" not in out["panel"]["text"]
     assert out["many"]["state"] == "observed" and out["many"]["text"] == "a: 3 records, b: 0 records"
-    for bad in ("partial", "malformed", "empty", "down"):  # never a number for an unreadable lag
+    for bad in ("partial", "malformed", "empty", "down"):
         assert out[bad]["state"] == "unavailable", bad
         assert not re.search(r"\d", out[bad]["text"]), bad
     assert out["down"]["detail"] == "broker_unreachable"
@@ -106,7 +98,6 @@ def test_pipeline_label_does_not_claim_kafka_lag_is_never_measured():
     assert "Kafka lag" in PIPELINE_LABEL and "broker probe" in PIPELINE_LABEL
 
 
-# ---- 2. an address-like token is bad input, not a server failure -----------------------------
 
 class _FakeConnection:
     def __enter__(self):
@@ -168,7 +159,6 @@ def test_real_token_ids_still_answer_200(path, reader, query, token):
     assert body["token"] == token
 
 
-# ---- 3. a linked window keeps its range ------------------------------------------------------
 
 @needs_node
 def test_linked_range_contains_the_linked_window(tmp_path):
@@ -183,8 +173,8 @@ console.log(JSON.stringify({{
     assert outside["from"] % 300 == 0 and outside["to"] % 300 == 0
     assert 0 < outside["to"] - outside["from"] <= 7 * 86400
     assert outside["ok"] is True
-    assert out["inside"] is None  # already in range: keep the current range
-    assert out["bad"] is None  # not a window start: ignore the link
+    assert out["inside"] is None
+    assert out["bad"] is None
     assert out["early"]["from"] == 0 and out["early"]["from"] <= 600 < out["early"]["to"]
 
 
@@ -195,7 +185,6 @@ def test_explorer_applies_the_linked_range_before_the_first_load():
     assert mount.index("linkedRange(") < mount.rindex("loadTokens(true);")
 
 
-# ---- 4. global status counts say they are global ---------------------------------------------
 
 @needs_node
 def test_overview_global_status_tiles_are_labelled_all_networks(tmp_path):
@@ -216,7 +205,6 @@ def test_overview_global_status_tiles_are_labelled_all_networks(tmp_path):
     assert "lag not measured" in by["serving_freshness"]["detail"]
 
 
-# ---- 5. Grafana time panels get milliseconds -------------------------------------------------
 
 def test_grafana_datetime_panels_convert_epoch_seconds_to_milliseconds():
     seen = 0
@@ -238,7 +226,6 @@ def test_grafana_datetime_panels_convert_epoch_seconds_to_milliseconds():
     assert seen >= 2
 
 
-# ---- 6. an idle client must not block the api server ----------------------------------------
 
 def test_idle_client_does_not_block_other_requests():
     from ton_sentinel import cli

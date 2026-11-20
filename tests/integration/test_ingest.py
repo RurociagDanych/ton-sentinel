@@ -1,4 +1,5 @@
 """Real loopback HTTP to canonical acceptance/outbox integration coverage."""
+
 import base64
 import json
 import os
@@ -95,7 +96,6 @@ def policy():
 
 
 def default_budget():
-    """Explicit generous limits for ordinary synthetic integration paths."""
     return OutboxBudget(max_pending_bytes=1_000_000_000,
                         max_oldest_age_seconds=86_400)
 

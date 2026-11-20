@@ -1,4 +1,5 @@
 """Alertmanager + local webhook sink wiring (static checks)."""
+
 import re
 from pathlib import Path
 

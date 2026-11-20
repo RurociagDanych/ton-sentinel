@@ -1,4 +1,5 @@
 """The dashboard local route is loopback-only, digest-pinned, non-root and secret-free."""
+
 import re
 from pathlib import Path
 
@@ -47,7 +48,7 @@ def test_api_service_dsn_not_in_environment_literal():
     env = api.get("environment") or {}
     assert not any("DSN" in k or "PASSWORD" in k for k in (env if isinstance(env, dict) else []))
     assert not re.search(r"postgres(ql)?://", text)
-    assert "TON_SENTINEL_PG_PASSWORD" not in text  # the admin DB password never reaches the api
+    assert "TON_SENTINEL_PG_PASSWORD" not in text
     assert "password" not in text.lower().replace("no password", "")
     assert "--dsn-file" in api["command"]
     assert "--dsn" not in api["command"]
@@ -90,7 +91,7 @@ def test_serve_dsn_file_is_read_and_not_echoed(tmp_path, capsys):
         def __exit__(self, *a): return False
         def serve_forever(self): return None
 
-    def fake_app(dsn, telemetry_probes=None):  # Optional probes keyword
+    def fake_app(dsn, telemetry_probes=None):
         seen["dsn"] = dsn
         return lambda *a: []
 

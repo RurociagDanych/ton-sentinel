@@ -1,15 +1,4 @@
-"""Serve the read-only feature API with explicit command-line settings.
-
-``migrate`` applies the packaged schema (idempotent):
-``python -m ton_sentinel.cli migrate [--dsn D]``.
-
-``score`` runs one bounded scoring pass:
-``python -m ton_sentinel.cli score --owner O --network N --limit K [--dsn D]``.
-
-``maintenance`` runs one fenced retention/maintenance cycle:
-``python -m ton_sentinel.cli maintenance --policy-file P --owner O [--now T] [--dsn D]``.
-The DSN comes from ``--dsn`` or ``SENTINEL_DATABASE_DSN`` and is never printed.
-"""
+"""Serve the read-only feature API with explicit command-line settings."""
 import argparse
 import json
 import logging
@@ -33,7 +22,6 @@ class _QuietRequestHandler(WSGIRequestHandler):
     ``timeout`` bounds every socket read, so a client that connects and sends nothing cannot
     hold a worker forever.
     """
-
     timeout = REQUEST_SOCKET_TIMEOUT_SECONDS
 
     def log_message(self, format, *args):  # noqa: A002 - wsgiref signature
@@ -42,7 +30,6 @@ class _QuietRequestHandler(WSGIRequestHandler):
 
 class _ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     """One thread per connection: an idle client must not block /health or /metrics."""
-
     daemon_threads = True
 
 

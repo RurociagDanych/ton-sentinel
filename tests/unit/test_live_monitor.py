@@ -1,9 +1,5 @@
-"""Unit contract: the bounded live monitor (flag, schedule, polite read-only client, cycle).
+"""Unit contract: the bounded live monitor (flag, schedule, polite read-only client, cycle)."""
 
-No network and no database: the HTTP transport, the clock and every production step are
-injected. The integration side (real PostgreSQL, Kafka, Spark) is
-tests/integration/test_live_monitor_pg.py.
-"""
 from __future__ import annotations
 
 import json
@@ -31,7 +27,6 @@ class Clock:
 
 class Transport:
     """Scripted (status, headers, body) answers; records every request."""
-
     def __init__(self, clock, answers):
         self.clock, self.answers, self.calls = clock, list(answers), []
 
@@ -48,7 +43,6 @@ def client(clock, answers, **kw):
                              sleep=clock.sleep, **kw), transport
 
 
-# ----------------------------------------------------------------------------- flag
 @pytest.mark.parametrize("env,expected", [({}, False), ({"TON_SENTINEL_LIVE_MONITOR": "0"}, False),
                                           ({"TON_SENTINEL_LIVE_MONITOR": "true"}, False),
                                           ({"TON_SENTINEL_LIVE_MONITOR": "1"}, True)])
@@ -62,7 +56,6 @@ def test_run_loop_refuses_to_start_when_the_flag_is_off():
                     sleep=Clock().sleep, max_cycles=1)
 
 
-# ----------------------------------------------------------------------------- schedule
 def test_newest_closed_window_is_the_last_whole_quarter_hour_behind_the_lag():
     assert lm.newest_closed_window(1800 + 179) == (0, 900)
     assert lm.newest_closed_window(1800 + 180) == (900, 1800)
@@ -92,7 +85,6 @@ def test_run_loop_stops_when_the_provider_is_unreachable():
     assert len(seen) == 1
 
 
-# ----------------------------------------------------------------------------- client
 def test_requests_are_serial_and_at_most_one_per_second():
     clock = Clock()
     c, transport = client(clock, [])
@@ -165,14 +157,13 @@ def test_request_budget_is_a_hard_stop():
     assert len(transport.calls) == 2
 
 
-# ----------------------------------------------------------------------------- fetch
 def test_fetch_window_queries_the_registry_then_the_dedust_traces():
     clock = Clock()
     answers = [(200, {}, {"last": {"seqno": 5, "gen_utime": 2000}})]
     answers += [(200, {}, {"actions": [{"trace_id": "T1", "details": {"dex": "dedust"}}]})]
-    answers += [(200, {}, {"actions": []})]                      # router
-    answers += [(200, {}, {"transactions": [{"trace_id": "T2"}]})]   # vault txs
-    answers += [(200, {}, {"actions": [{"trace_id": "T2"}]})]    # actions for uncovered trace
+    answers += [(200, {}, {"actions": []})]
+    answers += [(200, {}, {"transactions": [{"trace_id": "T2"}]})]
+    answers += [(200, {}, {"actions": [{"trace_id": "T2"}]})]
     answers += [(200, {}, {"traces": [{"trace_id": "T1"}, {"trace_id": "T2"}]})]
     c, transport = client(clock, answers)
     registry = {"network": "mainnet", "dedust_vaults": ["VAULT"], "stonfi_routers": ["ROUTER"],
@@ -198,7 +189,6 @@ def test_fetch_window_refuses_a_window_that_is_not_yet_behind_the_indexer_fronti
         lm.fetch_window(c, registry, 900, 1800, delta_seconds=120)
 
 
-# ----------------------------------------------------------------------------- cycle
 def test_ingest_cycle_runs_the_production_steps_in_order_and_qualifies_the_accepted_range():
     calls = []
 

@@ -1,11 +1,5 @@
-"""Admit_work(db, windows, now, policy) -> Admission (real PostgreSQL).
+"""Admit_work(db, windows, now, policy) -> Admission (real PostgreSQL)."""
 
-Policy and cutoffs follow spec section 9 ("Clock and admission contract"):
-C_event = T - retention on the action-end clock, C_repair = ceil_to_window(C_event + M),
-whole windows only, both sides of a time move admitted together or not at all.
-
-Expected values below are computed by hand from those formulas, not by product helpers.
-"""
 from datetime import datetime, timezone
 
 import pytest
@@ -19,7 +13,7 @@ from tests.integration.test_repair_fencing import (  # noqa: F401  (fixture + he
 )
 
 DAY = 86400
-NOW = 10 * DAY                       # 864000; C_event = 259200 with seven-day retention
+NOW = 10 * DAY
 POLICY = {"event_retention_seconds": 7 * DAY, "repair_margin_seconds": 600,
           "baseline_lookback_seconds": 7 * DAY, "derived_retention_seconds": 30 * DAY,
           "max_windows": 1000, "max_actions": 1_000_000, "max_input_bytes": 1_000_000_000,
@@ -52,15 +46,15 @@ def test_admits_whole_closed_window_at_repair_cutoff_and_pins_context(db):
     assert admission.dependency_epoch == 0
     assert admission.active_epoch is not None and "synthetic:source" in admission.active_epoch
     assert admission.baseline_spans == ((win(259800), 259800 - 7 * DAY, 259800),)
-    assert state(db) == before                      # admission never writes
+    assert state(db) == before
 
 
 def test_window_cutoffs_are_exact_at_their_boundaries(db):
     world_with_correction(db)
-    margin = admit_work(db, (win(259500),), NOW, POLICY)        # C_event <= start < C_repair
+    margin = admit_work(db, (win(259500),), NOW, POLICY)
     assert (margin.admitted, margin.status) == (False, "unrepairable")
     assert margin.reasons == ((win(259500), "inside_repair_margin"),)
-    expired = admit_work(db, (win(258900),), NOW, POLICY)       # start < C_event
+    expired = admit_work(db, (win(258900),), NOW, POLICY)
     assert expired.reasons == ((win(258900), "before_event_cutoff"),)
     # unaligned T: C_event = 259300, the straddling window [259200, 259500) is not whole
     straddle = admit_work(db, (win(259200),), NOW + 100, dict(POLICY, repair_margin_seconds=0))
@@ -83,7 +77,7 @@ def test_open_window_is_deferred_and_closed_window_end_is_admitted(db):
 def test_time_move_is_admitted_on_both_sides_or_not_at_all_without_writes(db):
     world, evidence, auth = world_with_correction(db)
     lease = acquire_transition(db, "repair")
-    decide_revision(db, lease, evidence, auth)        # X moves from window 0 to window 600
+    decide_revision(db, lease, evidence, auth)
     db.commit()
     before = state(db)
     # old side (window 0) is far before C_event at T = NOW, new side would be admissible alone
@@ -93,10 +87,10 @@ def test_time_move_is_admitted_on_both_sides_or_not_at_all_without_writes(db):
     one_side = admit_work(db, (win(600), win(0)), 7 * DAY + 300,
                           dict(POLICY, repair_margin_seconds=0))
     assert one_side.admitted is False
-    assert one_side.reasons == ((win(0), "before_event_cutoff"),)   # 600 alone would pass
+    assert one_side.reasons == ((win(0), "before_event_cutoff"),)
     with pytest.raises(ValueError, match="not admitted"):
         freeze_work(db, lease, one_side)
-    assert state(db) == before                         # no partial change, dirty rows pending
+    assert state(db) == before
     assert {r[3] for r in before[1]} == {"pending"}
     both = admit_work(db, (win(600), win(0)), 7 * DAY, dict(POLICY, repair_margin_seconds=0))
     assert both.admitted is True and both.windows == (win(0), win(600))
@@ -113,7 +107,7 @@ def test_mixed_open_and_expired_windows_report_unrepairable_with_every_reason(db
 
 
 @pytest.mark.parametrize("policy", [
-    {"event_retention_seconds": 7 * DAY, "baseline_lookback_seconds": 7 * DAY},   # no M
+    {"event_retention_seconds": 7 * DAY, "baseline_lookback_seconds": 7 * DAY},
     dict(POLICY, extra=1),
     dict(POLICY, repair_margin_seconds=-1),
     dict(POLICY, repair_margin_seconds=True),

@@ -1,4 +1,5 @@
 """Dashboard API unit tests: provenance block, payload safety filter, /v1/policy shape (no database)."""
+
 import json
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -60,7 +61,7 @@ def test_filter_strips_forbidden_key_at_any_depth(key):
     payload = {"ok": 1, "a": [{"b": {key: "x", "keep": 2}}], key: "y"}
     cleaned = dp.strip_forbidden(payload)
     assert cleaned == {"ok": 1, "a": [{"b": {"keep": 2}}]}
-    assert payload[key] == "y"  # input untouched
+    assert payload[key] == "y"
     assert dp.find_violations(cleaned) == []
 
 
@@ -163,7 +164,6 @@ def test_policy_post_is_405():
     assert out["s"].startswith("405")
 
 
-# Row origin. Origins are (origin, served windows) rows over the scoped windows.
 def test_all_live_windows_make_the_provenance_live():
     block = dp.build_provenance(qualification=[("bounded_observed", False, 3)], scored=1,
                                 origins=[("live", 3)], now=NOW)
@@ -267,7 +267,7 @@ def test_top_level_banner_follows_the_scoped_provenance():
             if s.startswith("SELECT coalesce(q.origin"):
                 return _Result([("live", 3)])
             if "action_window_qualification" in s and "count(*) FROM action_window" not in s:
-                return _Result([])                  # view rows: none in this fake
+                return _Result([])
             return super().execute(statement, parameters)
 
     out = {}
@@ -282,4 +282,4 @@ def test_top_level_banner_follows_the_scoped_provenance():
         assert body["provenance"]["source_kind"] == "live", path
         assert body["honesty_banner"] == dp.LIVE_BANNER, path
     status, body = _get("/v1/policy")
-    assert body["honesty_banner"] == dp.HONESTY_BANNER     # fake: origin rows unreadable
+    assert body["honesty_banner"] == dp.HONESTY_BANNER

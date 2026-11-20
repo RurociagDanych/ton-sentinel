@@ -1,4 +1,5 @@
 """Unit contract: full-window replacement is delete-then-insert, never additive."""
+
 from contextlib import contextmanager
 
 import pytest
@@ -67,16 +68,16 @@ def test_each_touched_window_is_deleted_before_its_rows_are_inserted():
     assert replace_features(connection, LEASE, [_row(300, "B", 1), _row(0, "A", 2)]) == 2
     kinds = [entry[0] for entry in connection.log]
     assert kinds == ["begin", "delete", "insert", "delete", "insert", "commit"]
-    assert connection.log[1][1] == ("testnet", 0, 300)  # windows are processed in sorted order
+    assert connection.log[1][1] == ("testnet", 0, 300)
     assert connection.log[3][1] == ("testnet", 300, 600)
-    assert connection.log[2][1] == [(0, "A", 2, 3)]  # inserted counts are recomputed totals, not deltas
+    assert connection.log[2][1] == [(0, "A", 2, 3)]
 
 
 def test_explicit_empty_recomputation_still_deletes_prior_window():
     connection = _Connection()
     assert replace_features(connection, LEASE, [], windows=[WindowKey("testnet", 0, 300)]) == 0
     assert [entry[0] for entry in connection.log] == ["begin", "delete", "insert", "commit"]
-    assert connection.log[2][1] == []  # nothing re-inserted: prior rows are gone
+    assert connection.log[2][1] == []
 
 
 def test_rows_outside_declared_windows_and_duplicate_tokens_never_touch_the_database():

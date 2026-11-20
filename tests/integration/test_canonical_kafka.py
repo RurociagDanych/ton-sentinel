@@ -1,4 +1,5 @@
-"""Real Kafka → canonical Spark adapter → PostgreSQL restart regression."""
+"""Real Kafka -> canonical Spark adapter -> PostgreSQL restart regression."""
+
 from __future__ import annotations
 
 import base64
@@ -174,7 +175,6 @@ def test_real_kafka_canonical_stream_resumes_and_retries_failed_batch(
             assert len(publish_pending(connection, producer, lease, limit=10)) == 1
         producer.flush(timeout=15)
 
-        # A fresh Spark query resumes the committed offsets from the same durable checkpoint.
         run_consumer(config)
         assert len(processed) == 2
         assert [(partition, offset) for partition, offset, _ in processed[-1]] == [(0, 1)]
@@ -189,7 +189,6 @@ def test_real_kafka_canonical_stream_resumes_and_retries_failed_batch(
             ("TON", 2, "320", None),
         ]
 
-        # Changed source identity is rejected before Spark starts or writes.
         with pytest.raises(ValueError, match="checkpoint identity mismatch"):
             run_consumer(ConsumerConfig(
                 dsn=database, bootstrap_servers=bootstrap or "", topic=topic,
@@ -267,7 +266,6 @@ def test_real_kafka_canonical_stream_resumes_and_retries_failed_batch(
         assert len(feature_payload["features"]) == 2
         assert {item["swaps"] for item in feature_payload["features"]} == {3}
 
-        # Commit PostgreSQL, then fail before foreachBatch returns to Spark.
         with psycopg.connect(database) as connection:
             _accept(connection, 40, 50, 41, 45)
             lease = acquire_transition(connection, "canonical-kafka-publish-" + uuid.uuid4().hex,

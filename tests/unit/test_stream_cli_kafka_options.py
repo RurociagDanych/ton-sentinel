@@ -1,4 +1,5 @@
 """Unit tests for the TLS passthrough options of the bounded Kafka->Spark consumer."""
+
 import pytest
 
 from ton_sentinel import stream_cli

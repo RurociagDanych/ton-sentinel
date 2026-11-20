@@ -1,4 +1,5 @@
 """Contrast and console-cleanliness defects found in the live Chrome pass."""
+
 import re
 from pathlib import Path
 
@@ -30,7 +31,7 @@ def test_muted_text_inherits_dark_colour_inside_light_tiles():
         bg = _decl(tile, "background") or _decl(".pipe-tile" + tile, "background")
         if tile == ".pipe-not-measured":
             bg = re.search(r"\.pipe-not-measured \.pipe-tile[^{]*\{[^}]*background:\s*(#[0-9a-f]{6})", CSS)[1]
-        assert _ratio(muted, bg) < 4.5  # confirms the override is needed
+        assert _ratio(muted, bg) < 4.5
         rule = re.search(re.escape(tile) + r"[^{]*\.muted[^{]*\{([^}]*)\}", CSS)
         assert rule, f"no .muted override inside {tile}"
         assert "color: inherit" in rule[1] or "color:inherit" in rule[1]

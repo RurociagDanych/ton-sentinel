@@ -1,5 +1,4 @@
 import re
-"""Bounded feature readback through a loopback WSGI server and real PostgreSQL."""
 import json
 import os
 import threading
@@ -95,7 +94,6 @@ def test_bounded_deterministic_feature_readback_over_loopback(database):
         assert [(row["window_start"], row["token"]) for row in payload["features"]] == [
             (0, "JETTON:A"), (0, "JETTON:A+B"), (0, "JETTON:Z"), (300, "JETTON:A+B")
         ]
-        # Existing small response shape is unchanged, and LIMIT follows the stable key order.
         assert set(payload) == {"features"}
         status, limited = _request(base, "/v1/features?network=testnet&limit=2")
         assert status == 200
@@ -165,7 +163,6 @@ def test_bounded_deterministic_feature_readback_over_loopback(database):
         assert freshness["latest_serving_write_at"] in rendered
         assert "Source or pipeline lag unknown — not measured" in rendered
         assert "not pipeline/source freshness or per-scope freshness" in rendered
-        # database_storage and spark_checkpoint, maintenance, rates are observed
         assert document.count("<code>unsupported</code>") == 3
         assert "not a readiness or coverage check" in rendered
 
@@ -255,10 +252,8 @@ def test_bounded_deterministic_feature_readback_over_loopback(database):
         assert paged_keys == expected_keys
         assert len(paged_keys) == len(set(paged_keys))
         assert page_count > 1
-        # The literal percent and Unicode identifiers survive real cursor round-trips.
         assert "JETTON:%GG" in [key[3] for key in paged_keys]
         assert "JETTON:ą" in [key[3] for key in paged_keys]
-        # The cursor has its own bounded budget in addition to ordinary filters.
         long_token = "JETTON:" + "L" * 1400
         with psycopg.connect(database) as connection:
             connection.execute("UPDATE served_features SET token=%s WHERE token='JETTON:A+B'",

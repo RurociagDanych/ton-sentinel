@@ -1,4 +1,5 @@
 """Unit contract: the sweeper closes windows only through canonical repair."""
+
 from __future__ import annotations
 
 import inspect
@@ -65,7 +66,7 @@ def test_a_closed_window_is_not_repaired_twice_for_the_same_canonical_inputs():
 
 
 def test_open_or_unserved_matching_windows_are_left_alone():
-    s = snap(canonical={("testnet", 9900): (1, FP)})        # window end 10200 > now
+    s = snap(canonical={("testnet", 9900): (1, FP)})
     assert reasons(s) == {}
     served_ok = snap(canonical={("testnet", 0): (1, FP)}, served=frozenset({("testnet", 0)}),
                      candidates={("testnet", 0): 1})
@@ -165,7 +166,7 @@ def test_a_lost_sweeper_lease_stops_the_sweep_instead_of_reporting_stale_pins(mo
     calls = _two_idle_windows(monkeypatch, LeaseRejected("lease expired"))
     with pytest.raises(LeaseRejected):
         sweep_windows(_Conn(), lease, "spark", NOW, POLICY)
-    assert calls == [(K0,)]                     # no further window is tried with a dead lease
+    assert calls == [(K0,)]
 
 
 def test_pins_that_keep_moving_are_still_reported_as_stale_pins(monkeypatch):

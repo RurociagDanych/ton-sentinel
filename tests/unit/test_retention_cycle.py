@@ -1,10 +1,5 @@
-"""Pure decisions of the retention cycle.
+"""Pure decisions of the retention cycle."""
 
-Derived-history retention policy, the full cycle policy (no defaults), the 20% free-space
-low-water decision, the bounded vacuum selection (plain VACUUM only, table and byte budgets),
-the late-delivery classification and the maintenance CLI's fail-closed argument handling.
-
-"""
 import json
 
 import pytest
@@ -22,7 +17,6 @@ CYCLE = {"event_retention_seconds": 7 * DAY, "guard_retention_seconds": 30 * DAY
          "vacuum_max_bytes": 1 << 20, "storage_budget_bytes": 1 << 30, "min_free_percent": 20}
 
 
-# --------------------------------------------------------------------------------- policies
 def test_derived_policy_names_exactly_its_keys_without_defaults():
     assert DERIVED_POLICY_KEYS == frozenset(DERIVED)
     assert derived_policy(dict(DERIVED)) == (30 * DAY, 10)
@@ -66,7 +60,6 @@ def test_free_target_is_a_percentage_strictly_between_0_and_100(percent):
         cycle_policy(dict(CYCLE, min_free_percent=percent))
 
 
-# ------------------------------------------------------------------------------ low water
 def test_low_water_is_exactly_below_twenty_percent_free():
     assert storage_pressure(80, 100, 20) == {
         "used_bytes": 80, "budget_bytes": 100, "free_bytes": 20, "free_percent": "20.00",
@@ -84,14 +77,13 @@ def test_low_water_inputs_are_checked(args):
         storage_pressure(*args)
 
 
-# --------------------------------------------------------------------------------- vacuum
 TABLES = {"a": {"bytes": 300, "dead_tuples": 5}, "b": {"bytes": 200, "dead_tuples": 9},
           "c": {"bytes": 900, "dead_tuples": 7}, "d": {"bytes": 10, "dead_tuples": 0}}
 
 
 def test_vacuum_takes_the_most_dead_tuples_first_within_both_budgets():
     chosen, skipped = choose_vacuum(TABLES, max_tables=2, max_bytes=600)
-    assert chosen == ["b", "a"]                       # 9 then 5 dead; c (900 B) never fits
+    assert chosen == ["b", "a"]
     assert skipped == {"c": "over_byte_budget", "d": "no_dead_tuples"}
     chosen, skipped = choose_vacuum(TABLES, max_tables=1, max_bytes=10_000)
     assert chosen == ["b"]
@@ -106,7 +98,6 @@ def test_vacuum_budgets_are_positive_integers():
             choose_vacuum(TABLES, **kwargs)
 
 
-# -------------------------------------------------------------------------- late delivery
 def change(*windows, generation=3, kind="revision"):
     return Change(kind, "ton-sentinel:event:v1:x", "redelivery", generation,
                   tuple(WindowKey("testnet", "TON", w) for w in windows), ())
@@ -119,7 +110,6 @@ def test_delivery_reasons_name_every_expiry_that_applies():
                             guard_generation=None) == ("payload_expired",)
     assert delivery_reasons(change(300, 900), payload_from=600, guard_retired_before=600,
                             guard_generation=None) == ("guard_retired", "payload_expired")
-    # a guarded identity is never new; an old generation is named as such
     assert delivery_reasons(change(900, generation=3), payload_from=600,
                             guard_retired_before=0, guard_generation=3) == (
         "identity_guarded", "stale_generation")
@@ -150,7 +140,6 @@ def test_delivery_admission_is_admitted_only_without_reasons():
         DeliveryAdmission(event_id="e", admitted=False, status="backfill_only", reasons=())
 
 
-# ------------------------------------------------------------------------------------ CLI
 def test_maintenance_cli_requires_policy_and_owner(capsys):
     from ton_sentinel.cli import main
 
@@ -182,7 +171,7 @@ def test_maintenance_cli_reads_the_dsn_from_the_environment_and_never_prints_it(
     monkeypatch.setenv("SENTINEL_DATABASE_DSN", "postgresql://u:s3cret@127.0.0.1:1/x")
     code = main(["maintenance", "--policy-file", str(path), "--owner", "maintenance",
                  "--now", "604800"])
-    assert code == 1                                  # connection refused: exit 1, no trace
+    assert code == 1
     out = capsys.readouterr()
     assert "s3cret" not in out.err + out.out
     assert json.loads(out.out)["status"] == "failed"

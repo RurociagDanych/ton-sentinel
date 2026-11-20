@@ -1,8 +1,5 @@
-"""Keyset cursors on detector/alert views over real HTTP + PostgreSQL.
+"""Keyset cursors on detector/alert views over real HTTP + PostgreSQL."""
 
-Rows are produced by the production scoring/promotion transitions (``promote_first``); every
-cursor walk is compared with the single unpaged read of the same view, not with a literal.
-"""
 from tests.integration.test_api_alert_views_pg import (  # noqa: F401  (fixtures + helpers)
     _dsn, get, key, promote_first, served,
 )

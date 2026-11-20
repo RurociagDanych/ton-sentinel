@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL: the reader login can read what the API reads and nothing else."""
+
 import os
 import uuid
 
@@ -57,7 +58,7 @@ def test_reader_login_can_run_every_api_reader(db, reader_dsn):  # noqa: F811
 ])
 def test_reader_insert_update_delete_truncate_fail_with_permission_denied(
         db, reader_dsn, statement):  # noqa: F811
-    with psycopg.connect(reader_dsn) as c:  # read-write transaction: privilege is what blocks
+    with psycopg.connect(reader_dsn) as c:
         with pytest.raises((psycopg.errors.InsufficientPrivilege, psycopg.errors.UndefinedTable,
                             psycopg.errors.SyntaxError)) as info:
             c.execute(statement)

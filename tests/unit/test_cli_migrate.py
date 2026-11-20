@@ -1,9 +1,5 @@
-"""The ``migrate`` CLI applies the packaged schema to a deployment database.
+"""The ``migrate`` CLI applies the packaged schema to a deployment database."""
 
-Root cause of the 503s: the api's database (``feasibility``, schema ``public``) was never
-migrated because the project had no migrate entrypoint outside tests and the K3s probe. These
-tests pin a ``python -m ton_sentinel.cli migrate`` command that never prints the DSN.
-"""
 import importlib
 import json
 from contextlib import contextmanager

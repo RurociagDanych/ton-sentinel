@@ -1,9 +1,5 @@
-# Alert rules. Prometheus only evaluates them: no Alertmanager, no notification channel.
-# Every threshold below is a LOCAL DEFAULT for a synthetic single-node fixture, not a production SLO.
-# Override a threshold by editing the literal in the alert's expr (and its `for`):
-#   api down 1m | database unreadable 2m | 5xx share 5% (>=10 req) 5m | p95 1s 10m | collector age 120s 2m
-#   serving write age 3600s 15m | outbox_pending 1000 10m | repair_pending 100 15m | db size 4e9 10m | samples 400 10m
-# SentinelOutboxBacklog uses outbox_pending only: the plan's oldest-pending-age metric is not exported by /metrics.
+# Thresholds are LOCAL DEFAULTS for a synthetic single-node fixture, not a production SLO.
+# Override one by editing the literal in the alert's expr (and its `for`).
 groups:
   - name: ton-sentinel-local-defaults
     rules:

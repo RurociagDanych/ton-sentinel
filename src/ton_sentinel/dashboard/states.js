@@ -1,14 +1,12 @@
 // State vocabulary: maps explicit server state values to a badge. The client never infers a
-// state; a value it does not know fails closed to the "unknown" tone, never to "ok" (DD3).
+// state; a value it does not know fails closed to the "unknown" tone, never to "ok".
 
 export const STATE_LEGEND = {
-  // data and counter states
   "observed": { label: "observed", tone: "info", meaning: "A value was read from recorded rows. It is a count, not a quality judgement." },
   "unavailable": { label: "unavailable", tone: "bad", meaning: "The value could not be read. It is not zero and not healthy." },
   "not_measured": { label: "not measured", tone: "warn", meaning: "Nothing measures this yet. It is not zero and not healthy." },
   "none_recorded": { label: "none recorded", tone: "neutral", meaning: "The source holds no record. This is not a measured zero." },
   "empty": { label: "empty", tone: "neutral", meaning: "The table was read and holds no rows." },
-  // service state
   "ok": { label: "ok", tone: "ok", meaning: "The database query succeeded. It says nothing about data quality." },
   "available": { label: "available", tone: "ok", meaning: "The component answered. It does not mean data is fresh or certified." },
   "unknown": { label: "unknown", tone: "warn", meaning: "The service does not know and does not claim a state." },
@@ -16,23 +14,19 @@ export const STATE_LEGEND = {
   "not_configured": { label: "not configured", tone: "warn", meaning: "The capability is not set up." },
   "not_qualified": { label: "not qualified", tone: "warn", meaning: "No qualification evidence exists, so the gate is not passed." },
   "not_granted": { label: "not granted", tone: "warn", meaning: "No approval was recorded." },
-  // provenance: source and certification
   "unverified_origin": { label: "unverified origin", tone: "warn", meaning: "Row origin is not recorded; rows may be fixture or synthetic." },
   "live": { label: "live", tone: "info", meaning: "Every window in scope is recorded as read live from the source. It is not certified." },
   "mixed_origin": { label: "mixed origin", tone: "warn", meaning: "Some windows in scope are live; others are fixture, recorded or of unrecorded origin." },
   "not_certified": { label: "not certified", tone: "warn", meaning: "Nothing is certified by this service." },
-  // provenance: coverage
   "unrecorded": { label: "unrecorded", tone: "neutral", meaning: "No coverage record exists for these rows." },
   "bounded_observed": { label: "bounded observed", tone: "info", meaning: "Coverage was observed within a bounded range. It is not full coverage." },
   "synthetic_bounded_observed": { label: "synthetic, bounded observed", tone: "warn", meaning: "Rows include synthetic fixture data observed within a bounded range." },
   "certified_claimed": { label: "certified (claimed)", tone: "warn", meaning: "A record claims certification. This service does not verify it." },
-  // per-window coverage states (/v1/coverage)
   "zero": { label: "zero", tone: "info", meaning: "The window has a served row with 0 swaps and a qualification record." },
   "partial": { label: "partial", tone: "warn", meaning: "The window has a served row but coverage gaps or a missing qualification are recorded." },
   "provisional": { label: "provisional", tone: "warn", meaning: "The window is not final: provisional row, pending work, or qualified without a served row." },
   "missing": { label: "missing", tone: "bad", meaning: "No served row exists for this window. It is a gap, not a zero." },
   "pre_universe": { label: "before first row", tone: "neutral", meaning: "The window lies before the token's first served row." },
-  // provenance: scoring
   "scored_effectiveness_unmeasured": { label: "scored, effectiveness unmeasured", tone: "warn", meaning: "Detectors ran. Their effectiveness is unmeasured." },
 };
 
@@ -53,8 +47,10 @@ function cell(state, text, detail) {
   return { state: b.state, tone: b.tone, label: b.label, known: b.known, text, detail: detail || "" };
 }
 
-// A counter is {status, value?, reason?}. Only "observed" with a finite number shows a number;
-// every other state shows its own words and never a zero.
+/**
+ * A counter is {status, value?, reason?}. Only "observed" with a finite number shows a number;
+ * every other state shows its own words and never a zero.
+ */
 export function counterCell(counter) {
   if (!counter || typeof counter !== "object" || Array.isArray(counter) || typeof counter.status !== "string") {
     return cell("unavailable", "unavailable", "no state in response");
@@ -79,7 +75,7 @@ export function counterCell(counter) {
   }
 }
 
-// A group counter is {status, value: {key: count}, truncated?}: shown as "key: n" pairs.
+/** A group counter is {status, value: {key: count}, truncated?}: shown as "key: n" pairs. */
 export function groupCell(counter) {
   if (counter && counter.status === "observed" && counter.value && typeof counter.value === "object"
       && !Array.isArray(counter.value)) {
@@ -93,10 +89,11 @@ export function groupCell(counter) {
   return counterCell(counter);
 }
 
-// Kafka lag (/status telemetry and /v1/pipeline): an observed value is a list of per-Spark-query
-// entries {query_id, status, total_lag_records}. It is shown as a record count only when every entry
-// was measured; one unreadable or malformed entry makes the whole value unavailable, never a number.
-// Per-query counts are listed, not added together.
+/**
+ * Kafka lag cell: an observed value is a list of per-Spark-query entries {query_id, status, total_lag_records}.
+ * Shown as a record count only when every entry was measured; one unreadable or malformed entry makes
+ * the whole value unavailable, never a number. Per-query counts are listed, not added together.
+ */
 export function kafkaLagCell(section) {
   if (section && typeof section === "object" && !Array.isArray(section) && section.status === "observed") {
     const entries = section.value;
@@ -115,7 +112,6 @@ export function kafkaLagCell(section) {
   return counterCell(section);
 }
 
-// A plain state value (readiness, gate, backup...) from the service status.
 export function stateCell(state) {
   if (typeof state !== "string" || state === "") return cell("unavailable", "unavailable", "no state in response");
   const b = badge(state);

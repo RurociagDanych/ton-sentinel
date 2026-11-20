@@ -1,4 +1,5 @@
-"""Data quality and coverage view. Static checks of served files and node logic."""
+"""Data quality and coverage view."""
+
 import json
 import re
 import shutil
@@ -30,7 +31,6 @@ def node_json(tmp_path, body):
     return json.loads(result.stdout)
 
 
-# ---- static: files are served, packaged, and obey the shell rules ----------------------------------
 
 def test_quality_modules_are_allowlisted_packaged_and_served():
     for name in NEW_JS:
@@ -76,7 +76,6 @@ def test_completeness_disclaimer_present():
     first_fetch = min(i for i in (view.find("loadQuality("), view.find("getChecked(")) if i >= 0)
     assert view.find("quality-completeness") < first_fetch
     assert "dismiss" not in lowered
-    # the approximations of the coverage view are stated on the view
     for needle in ("canonical", "first served row", "pending"):
         assert needle in lowered, needle
 
@@ -109,7 +108,6 @@ def test_harness_has_quality_scenarios():
         assert needle in source, needle
 
 
-# ---- logic: tiles, breakdown, strip, gaps ---------------------------------------------------------
 
 QUALITY_BODY = """
 const q = {
@@ -131,16 +129,14 @@ def test_unavailable_counter_not_zero(tmp_path):
 const tiles = Q.tiles(q);
 console.log(JSON.stringify(tiles));""")
     by = {t["key"]: t for t in out}
-    assert len(out) == 9  # every documented counter has a tile, also those the response omitted
+    assert len(out) == 9
     for key in ("dirty_windows_pending_by_role", "scan_quarantine", "coverage_ranges_pending"):
         tile = by[key]
         assert tile["state"] == "unavailable" and tile["text"] == "unavailable" and tile["text"] != "0"
     assert by["scan_quarantine"]["detail"] == "not_network_scoped"
     assert by["dirty_windows_pending_by_role"]["detail"] == "query_failed"
-    # an omitted counter is unavailable with a reason, never zero
     omitted = by["coverage_ranges_bounded_observed"]
     assert omitted["state"] == "unavailable" and omitted["text"] != "0" and omitted["detail"]
-    # a real observed zero stays a zero and is shown as observed
     assert by["served_windows"]["state"] == "observed" and by["served_windows"]["text"] == "0"
     assert by["delivery_quarantine"]["text"] == "1"
     assert "synthetic_bounded_observed: 2" in by["qualifications_by_class"]["text"]
@@ -176,13 +172,13 @@ console.log(JSON.stringify({strip: Q.strip(wins), br: Q.breakdown(wins, 3000, 30
     cls = [c["qualification"] for c in out["strip"]]
     assert cls == ["bounded", "synthetic", "unrecorded", "unrecorded", "unrecorded", "bounded", "unrecorded"]
     assert [c["state"] for c in out["strip"]][3] == "missing"
-    assert out["strip"][6]["state"] == "unknown"  # unrecognised state fails closed
+    assert out["strip"][6]["state"] == "unknown"
     br = out["br"]
     assert br["by_state"] == {"observed": 2, "zero": 1, "partial": 0, "provisional": 1, "missing": 1,
                               "pre_universe": 1, "unknown": 1}
     assert br["by_qualification"] == {"bounded": 2, "synthetic": 1, "unrecorded": 4}
     assert br["listed"] == 7 and br["slots"] == 10
-    assert br["not_listed"] == 3  # unlisted slots are not called missing and not zero
+    assert br["not_listed"] == 3
     assert "missing" not in br["not_listed_text"].lower() or "not" in br["not_listed_text"].lower()
 
 

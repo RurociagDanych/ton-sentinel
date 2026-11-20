@@ -1,4 +1,5 @@
 """The app image packages the source + dashboard assets and the pins match the tagged image."""
+
 import json
 import re
 import shutil
@@ -66,19 +67,15 @@ def test_lock_digest_matches_local_tagged_image():
 
 
 def test_m3_api_image_pin_matches_lock_in_all_compose_files():
-    """Every compose file referencing the app/api image uses the lock digest (metrics-capable image)."""
     digest = APP["repo_digests"][0].split("@")[1]
     for name in ("compose.yaml", "compose.dashboard.yaml"):
         text = (DEPLOY / name).read_text(encoding="utf-8")
         assert digest in text
         assert set(DIGEST_RE.findall(text)) == {digest}
-    # The api image was rebuilt with telemetry probes; metrics remain in it.
     assert APP["tag_used_for_setup"] == "ton-sentinel:l2-app"
 
 
 def test_l2_app_image_rebuilt_from_current_src_and_pinned_everywhere():
-    """The app image is the l2 rebuild (row-origin provenance, live monitor module); it
-    supersedes the g7 pin. Lock id, repo digest and both compose files agree."""
     new = "sha256:92fddf750cd564e58286c995b7910d4b1ebf1764cd52359a55aab94ceeaa0134"
     assert APP["tag_used_for_setup"] == "ton-sentinel:l2-app"
     assert APP["id"] == new and APP["repo_digests"] == [f"ton-sentinel@{new}"]

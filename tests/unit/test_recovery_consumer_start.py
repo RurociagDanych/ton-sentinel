@@ -1,8 +1,5 @@
-"""The resumed Spark consumer lineage starts exactly at the cut's end offsets E.
+"""The resumed Spark consumer lineage starts exactly at the cut's end offsets E."""
 
-Pure rules only (no Spark, no database). The real Spark/Kafka/PostgreSQL run is
-``tests/integration/test_recovery_drills_pg.py``.
-"""
 import json
 from datetime import datetime, timezone
 
@@ -59,16 +56,16 @@ def test_resumed_config_refuses_another_topic_or_a_non_resumption():
 
 
 @pytest.mark.parametrize("value", [
-    "latest",                                       # never jump to the newest offset
-    "",                                             # no guessed coordinates
-    "{",                                            # malformed JSON
-    json.dumps({"other": {"0": 1}}),                # another topic
-    json.dumps({"canonical": {}}),                  # no partition
-    json.dumps({"canonical": {"0": -1}}),           # negative / Spark's -1 latest / -2 earliest
+    "latest",
+    "",
+    "{",
+    json.dumps({"other": {"0": 1}}),
+    json.dumps({"canonical": {}}),
+    json.dumps({"canonical": {"0": -1}}),
     json.dumps({"canonical": {"0": -2}}),
-    json.dumps({"canonical": {"0": 1.5}}),          # not an integer
+    json.dumps({"canonical": {"0": 1.5}}),
     json.dumps({"canonical": {"0": True}}),
-    json.dumps({"canonical": {"1": 4}}),            # partitions must be exactly 0..n-1
+    json.dumps({"canonical": {"1": 4}}),
     json.dumps({"canonical": {"x": 4}}),
     json.dumps({"canonical": {"0": 1}, "other": {"0": 1}}),
     json.dumps(["canonical"]),

@@ -1,4 +1,5 @@
 """Durable quarantine for malformed local scan proposals in real PostgreSQL."""
+
 import base64
 import json
 import os

@@ -1,4 +1,5 @@
 """Synthetic aggregation inputs only: these tests do not qualify any deployment."""
+
 from copy import deepcopy
 import json
 import os
@@ -251,7 +252,6 @@ def test_report_result_rejects_fifo_without_blocking(tmp_path):
     assert result.status == 'BLOCKED'
 
 
-# ---- target-bound evidence and fail-closed aggregation -------------
 
 IDENTITY_DIMENSIONS = ('target', 'build', 'config', 'workload')
 
@@ -286,7 +286,6 @@ def set_path(report, path, value, delete=False):
 
 
 def test_every_supplied_field_is_load_bearing_deleting_or_corrupting_never_passes():
-    """No default PASS: removing or type-corrupting any field cannot keep a PASS."""
     paths = list(leaf_paths(supplied_report()))
     assert len(paths) > 100
     # Only the identity-free, purely informational list entries may be absent.
@@ -296,11 +295,11 @@ def test_every_supplied_field_is_load_bearing_deleting_or_corrupting_never_passe
             report = supplied_report()
             if corruption == 'delete':
                 if isinstance(path[-1], int):
-                    continue  # list element removal is covered by the replacement cases
+                    continue
                 set_path(report, path, None, delete=True)
             else:
                 if corruption == lookup(report, path):
-                    continue  # a no-op replacement is not a corruption
+                    continue
                 set_path(report, path, corruption)
             if evaluate(report).status == 'PASS':
                 survivors.append((path, repr(corruption)))

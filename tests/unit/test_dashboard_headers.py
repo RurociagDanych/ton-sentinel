@@ -1,4 +1,5 @@
 """Security headers on every response and the /dashboard/ static route."""
+
 import hashlib
 import base64
 import io

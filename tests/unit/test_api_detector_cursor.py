@@ -1,9 +1,5 @@
-"""Bounded keyset cursors for the detector/alert views (no database).
+"""Bounded keyset cursors for the detector/alert views (no database)."""
 
-The readers are replaced by recorders so the request boundary (cursor encoding, binding to
-the view and its filters, rejection before any connection) is tested in isolation; the real
-keyset SQL is exercised against PostgreSQL in tests/integration/test_api_detector_cursor_pg.py.
-"""
 import base64
 import json
 from unittest.mock import MagicMock, patch
@@ -95,25 +91,25 @@ def test_cursor_is_bound_to_its_view_and_filters_and_rejected_before_connecting(
     rows = [_doc("jetton:A", 600, "a.v1"), _doc("jetton:A", 600, "b.v1")]
     cursor = _issue(app, "/v1/alerts", "network=testnet&limit=1", "read_alerts", rows)
     bad = [
-        ("/v1/detections", f"network=testnet&limit=1&cursor={cursor}"),   # other view
-        ("/v1/alerts", f"network=mainnet&limit=1&cursor={cursor}"),       # other network
-        ("/v1/alerts", f"network=testnet&token=jetton%3AA&limit=1&cursor={cursor}"),  # filter
-        ("/v1/alerts", "network=testnet&cursor=" + cursor[:-2]),          # truncated
-        ("/v1/alerts", "network=testnet&cursor=!!"),                      # alphabet
-        ("/v1/alerts", "network=testnet&cursor="),                        # empty
-        ("/v1/alerts", "network=testnet&cursor=" + "A" * 5000),           # oversized
+        ("/v1/detections", f"network=testnet&limit=1&cursor={cursor}"),
+        ("/v1/alerts", f"network=mainnet&limit=1&cursor={cursor}"),
+        ("/v1/alerts", f"network=testnet&token=jetton%3AA&limit=1&cursor={cursor}"),
+        ("/v1/alerts", "network=testnet&cursor=" + cursor[:-2]),
+        ("/v1/alerts", "network=testnet&cursor=!!"),
+        ("/v1/alerts", "network=testnet&cursor="),
+        ("/v1/alerts", "network=testnet&cursor=" + "A" * 5000),
         ("/v1/alerts", "network=testnet&cursor=" + _forge(
             {"v": 1, "e": "alerts", "f": {"network": "testnet", "token": None,
                                           "window_start": None},
-             "k": ["jetton:A", 601, "a.v1", "both"]})),                   # off-grid window
+             "k": ["jetton:A", 601, "a.v1", "both"]})),
         ("/v1/alerts", "network=testnet&cursor=" + _forge(
             {"v": 1, "e": "alerts", "f": {"network": "testnet", "token": None,
                                           "window_start": None},
-             "k": ["jetton:A", 600, "'; DROP TABLE x;--", "both"]})),     # unsafe detector
+             "k": ["jetton:A", 600, "'; DROP TABLE x;--", "both"]})),
         ("/v1/alerts", "network=testnet&cursor=" + _forge(
             {"v": 2, "e": "alerts", "f": {"network": "testnet", "token": None,
                                           "window_start": None},
-             "k": ["jetton:A", 600, "a.v1", "both"]})),                   # version
+             "k": ["jetton:A", 600, "a.v1", "both"]})),
     ]
     for path, query in bad:
         with patch("psycopg.connect", side_effect=AssertionError("must not connect")):

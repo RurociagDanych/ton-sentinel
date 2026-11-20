@@ -1,11 +1,5 @@
-"""The live monitor cycle qualifies, closes and scores live windows (production path).
+"""The live monitor cycle qualifies, closes and scores live windows (production path)."""
 
-Real PostgreSQL, Kafka and Spark (compose project ton-sentinel-local, app container). The
-input is the recorded live window W (tests/fixtures/live/g3_window.json, public on-chain data), fed
-to ``live_monitor.ingest_batch`` exactly as a fetched batch would be; no request is made. Before
-Before the monitor the same production steps left every window unqualified and unclosed, so every detector
-result stayed ``missing`` (``current_partial``) and the provenance said "not live".
-"""
 from __future__ import annotations
 
 import json
@@ -121,7 +115,7 @@ def test_a_second_cycle_on_the_same_window_writes_no_conflicting_qualification(
     first = lm.ingest_batch(config, _batch(window, as_of=w1 + 600), now=w1 + 3600)
     again = lm.ingest_batch(config, _batch(window, as_of=w1 + 900), now=w1 + 4500)
     assert first['status'] == 'ok', first
-    assert again['status'] in ('ok', 'not_accepted'), again   # a repeat adds no new evidence
+    assert again['status'] in ('ok', 'not_accepted'), again
     assert again['qualified'] == []
     with psycopg.connect(database) as connection:
         count = connection.execute(

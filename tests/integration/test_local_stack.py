@@ -1,4 +1,5 @@
-"""Real local Kafka → stateful Spark → PostgreSQL connectivity evidence."""
+"""Real local Kafka -> stateful Spark -> PostgreSQL connectivity evidence."""
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,7 @@ def test_local_stack_real_roundtrip_and_readback(probe_cleanup):
         "evidence": str(evidence / "probe"),
         "fixture": fixture,
     }
-    probe_cleanup(settings)                 # schema and topic are dropped after the test
+    probe_cleanup(settings)
 
     probe = run_probe(settings)
     with psycopg.connect(local_dsn()) as connection:

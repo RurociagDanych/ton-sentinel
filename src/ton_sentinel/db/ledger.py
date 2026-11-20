@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 class IngestionPaused(RuntimeError):
     """Maintenance (storage low water) or a recovery cut paused ingestion; nothing was accepted."""
+    pass
 
 
 def refuse_if_paused(connection) -> None:

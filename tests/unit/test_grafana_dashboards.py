@@ -1,4 +1,5 @@
 """Provisioned Grafana dashboards reference only exported metrics."""
+
 import json
 import re
 from pathlib import Path

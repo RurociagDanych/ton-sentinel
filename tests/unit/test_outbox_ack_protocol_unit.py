@@ -1,8 +1,5 @@
-"""Unit tests: ordering of persisted state around Kafka acknowledgements.
+"""Unit tests: ordering of persisted state around Kafka acknowledgements."""
 
-A recording PostgreSQL stand-in is used only to observe call order; the real
-database/broker behaviour is covered by tests/integration/test_outbox_ack_protocol.py.
-"""
 from datetime import datetime, timedelta, timezone
 
 import pytest

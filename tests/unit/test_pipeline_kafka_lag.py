@@ -1,4 +1,5 @@
 """G5b: /v1/pipeline kafka_lag uses the same telemetry probe as /status and /metrics."""
+
 from unittest.mock import patch
 
 from ton_sentinel import api, telemetry_probes

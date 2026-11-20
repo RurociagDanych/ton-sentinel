@@ -1,6 +1,5 @@
-// Pure logic of the detections and alerts view: the permanent effectiveness banner text, exact
-// rational arithmetic that recomputes median, MAD, scale and score from the pinned baseline cells,
-// the comparison with the stored result, and the alert status of one result. No DOM here.
+// Pure logic of the detections and alerts view: effectiveness banner text, exact rational arithmetic that
+// recomputes median, MAD, scale and score from the pinned baseline cells, and alert status. No DOM here.
 import { ProvenanceError, validateProvenance } from "./client.js";
 
 export const DETECTION_BANNER = "Detection effectiveness is unmeasured: no labelled anomaly data exists, so "
@@ -16,7 +15,6 @@ export const DETECTORS = {
 const ELIGIBLE = ["observed", "zero"];
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 
-// ---- exact rationals over BigInt --------------------------------------------------------------
 
 const gcd = (a, b) => { a = a < 0n ? -a : a; b = b < 0n ? -b : b; while (b) [a, b] = [b, a % b]; return a; };
 
@@ -39,7 +37,7 @@ const div = (a, b) => new Frac(a.n * b.d, a.d * b.n);
 const cmp = (a, b) => { const x = a.n * b.d; const y = b.n * a.d; return x < y ? -1 : x > y ? 1 : 0; };
 const abs = (a) => new Frac(a.n < 0n ? -a.n : a.n, a.d);
 
-// Decimal text ("1.4826", "6", "-2.5") to an exact fraction. Anything else is refused.
+/** Parse decimal text ("1.4826", "6", "-2.5") to an exact fraction. Anything else is refused. */
 export function parseDecimal(textValue) {
   if (typeof textValue !== "string" || !/^-?\d+(\.\d+)?$/.test(textValue)) {
     throw new RangeError("not a plain decimal text");
@@ -61,7 +59,7 @@ function roundHalfEven(value) {
   return q;
 }
 
-// Decimal text, half-even at 9 places, no trailing zeros: the same text the scorer stores.
+/** Format a fraction as decimal text, half-even at 9 places, no trailing zeros: the same text the scorer stores. */
 export function publish(value) {
   const scaled = roundHalfEven(value);
   const negative = scaled < 0n;
@@ -80,14 +78,12 @@ function median(values) {
   return div(add(ordered[middle - 1], ordered[middle]), frac(2));
 }
 
-// ---- provenance --------------------------------------------------------------------------------
 
 export function requireDetectionProvenance(payload) {
   if (!isObject(payload)) throw new ProvenanceError("response has no provenance block");
   return validateProvenance(payload);
 }
 
-// ---- explanation from the pinned baseline ---------------------------------------------------------
 
 const row = (name, stored, recomputed) => ({ name, stored: stored === null || stored === undefined ? "none" : String(stored),
   recomputed: String(recomputed), match: String(stored) === String(recomputed) });
@@ -96,7 +92,7 @@ function mismatch(reason) {
   return { kind: "input_mismatch", reproduced: false, rows: [], reason };
 }
 
-// Recompute what the scorer computed, from the cells the pin returns, and compare with the stored result.
+/** Recompute what the scorer computed from the cells the pin returns and compare with the stored result. */
 export function explain(result, pin, policy) {
   const spec = isObject(result) ? DETECTORS[result.detector] : null;
   if (!spec) return mismatch("The detector of this result is not one this view knows how to explain.");
@@ -155,7 +151,6 @@ export function ruleText(policy, result, spec) {
     + "; any failed condition is listed as a reason.";
 }
 
-// ---- alert status per result ------------------------------------------------------------------
 
 const ALERT_TEXT = {
   active: "An alert is active for this result.",
@@ -164,8 +159,10 @@ const ALERT_TEXT = {
   inactive: "The alert is inactive.",
 };
 
-// The latest alert revision of this result's key. No record is not "inactive"; a truncated feed that
-// does not show one is "unknown"; an unrecognised state fails closed to "unknown".
+/**
+ * Latest alert revision of this result's key.
+ * No record is not "inactive"; a truncated feed that does not show one is "unknown"; an unrecognised state fails closed to "unknown".
+ */
 export function alertStatus(alerts, result, { truncated = false } = {}) {
   const list = (Array.isArray(alerts) ? alerts : []).filter((alert) => isObject(alert)
     && alert.token === result.token && alert.window_start === result.window_start && alert.detector === result.detector);

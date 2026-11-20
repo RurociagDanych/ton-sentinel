@@ -1,4 +1,5 @@
-"""Overview and health view. State rendering rules, static checks, node logic."""
+"""Overview and health view."""
+
 import json
 import re
 import shutil
@@ -31,7 +32,6 @@ def node_json(tmp_path, body):
     return json.loads(result.stdout)
 
 
-# ---- static: files are served, packaged, and obey the shell rules ----------------------------
 
 def test_new_view_modules_are_allowlisted_packaged_and_served():
     for name in NEW_JS:
@@ -55,7 +55,7 @@ def test_view_modules_follow_shell_rules(name):
 def test_views_module_routes_overview_to_real_view_and_keeps_other_stubs():
     views = text("views.js")
     assert 'from "./overview.js"' in views
-    assert views.count("This view is a stub") == 0  # still used by the five other views
+    assert views.count("This view is a stub") == 0
 
 
 def test_overview_uses_only_the_documented_endpoints_through_the_client():
@@ -78,7 +78,6 @@ def test_css_defines_every_badge_tone_with_text_not_colour_only():
     assert "--color-ok-" in css
 
 
-# ---- vocabulary: every server state value maps to a legend entry -----------------------------
 
 def server_state_values():
     prov = dashboard_payload.build_provenance(qualification=[], scored=False)
@@ -132,7 +131,6 @@ console.log(JSON.stringify([b, c, S.badge("available")]));""")
     assert ok["tone"] == "ok" and ok["known"] is True
 
 
-# ---- the plan's RED tests --------------------------------------------------------------------
 
 STATUS_OK = api._status_payload(database="available", feature_rows=5, windows=2,
                                 latest_window_end=1800, latest_serving_write_at="2026-01-01T00:00:00Z",
@@ -172,7 +170,7 @@ console.log(JSON.stringify([M.statusTiles({json.dumps(STATUS_DOWN)}), M.statusTi
     assert by_id["status_query"]["state"] == "unavailable"
     assert by_id["feature_rows"]["state"] == "unavailable"
     assert by_id["feature_rows"]["text"] != "0" and by_id["windows"]["text"] != "0"
-    for fallback in (none, empty, odd):  # no/garbled /status: every tile unavailable, never ok
+    for fallback in (none, empty, odd):
         assert fallback and all(t["state"] == "unavailable" for t in fallback)
         assert all(t["tone"] != "ok" and t["text"] != "0" for t in fallback)
 
@@ -225,7 +223,6 @@ console.log(JSON.stringify({whileHidden, afterVisible, ms: r_ms, cleared, remove
     assert out == {"whileHidden": 1, "afterVisible": 2, "ms": 30000, "cleared": 1, "removed": True}
 
 
-# ---- remaining state rendering rules ---------------------------------------------------------
 
 @needs_node
 def test_unavailable_and_not_measured_are_never_rendered_as_zero(tmp_path):
@@ -245,7 +242,7 @@ console.log(JSON.stringify(cells));""")
     assert unavailable["text"] == "unavailable" and unavailable["detail"] == "query_failed"
     assert unavail_zero["text"] == "unavailable"
     assert not_measured["text"] == "not measured" and not_measured["state"] == "not_measured"
-    assert observed_zero["text"] == "0" and observed_zero["state"] == "observed"  # a real zero
+    assert observed_zero["text"] == "0" and observed_zero["state"] == "observed"
     assert no_value["state"] == "unavailable" and no_value["text"] == "unavailable"
     assert string_value["state"] == "unavailable"
     assert bogus["tone"] == "unknown" and bogus["text"] != "3"
@@ -286,7 +283,7 @@ console.log(JSON.stringify(["1h","6h","24h","7d","bogus"].map(k => M.qualityRang
         assert entry["from"] % 300 == 0 and entry["to"] % 300 == 0
         assert 0 < entry["to"] - entry["from"] <= 7 * 86400
     assert [e["to"] - e["from"] for e in out[:4]] == [3600, 6 * 3600, 86400, 7 * 86400]
-    assert out[4]["to"] - out[4]["from"] == 86400  # unknown key falls back to the default 24h
+    assert out[4]["to"] - out[4]["from"] == 86400
 
 
 @needs_node
@@ -311,7 +308,7 @@ const p = {{label: {json.dumps(PIPELINE_LABEL)}, pipeline: {{}}}};
 console.log(JSON.stringify(M.pipelineLabel(p)));""")
     assert out == PIPELINE_LABEL
     out = node_json(tmp_path, 'console.log(JSON.stringify(M.pipelineLabel({pipeline: {}})));')
-    assert out == ""  # no label in the payload: nothing invented
+    assert out == ""
 
 
 @needs_node
@@ -333,7 +330,6 @@ def test_legend_is_rendered_for_every_state_badge_in_overview():
     assert ".legend" in css
 
 
-# ---- browser harness: overview scenarios -----------------------------------------------------
 
 def load_harness():
     import importlib.util
@@ -355,7 +351,7 @@ def test_harness_has_overview_scenarios_and_stub_support():
     assert set(fixtures) >= {"/v1/policy", "/status", "/v1/pipeline", "/v1/quality"}
     for path in ("/v1/pipeline", "/v1/quality", "/v1/policy"):
         assert "provenance" in fixtures[path]
-    assert "provenance" not in fixtures["/status"]  # /status is unchanged and carries none
+    assert "provenance" not in fixtures["/status"]
 
 
 def test_harness_stub_wrapper_serves_stub_and_passes_other_paths():

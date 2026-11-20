@@ -1,7 +1,5 @@
-// Pure logic of the data quality and coverage view: counter tiles (an unavailable counter is never a
-// zero), the per-state coverage breakdown over a grid of five-minute windows, the coverage strip and
-// the gap list. Nothing here infers a state: every value comes from the server, and an unrecognised
-// value fails closed to "unknown". No DOM here.
+// Pure logic of the data quality and coverage view. An unavailable counter is never a zero; nothing here infers
+// a state, and an unrecognised value fails closed to "unknown". No DOM here.
 import { ProvenanceError } from "./client.js";
 import { counterCell, groupCell } from "./states.js";
 import { WINDOW_SECONDS } from "./explorer-model.js";
@@ -35,7 +33,6 @@ export const COVERAGE_APPROXIMATIONS = [
 export const COVERAGE_STATES = ["observed", "zero", "partial", "provisional", "missing", "pre_universe"];
 export const QUALIFICATION_CLASSES = ["bounded", "synthetic", "unrecorded"];
 
-// ---- counter tiles -------------------------------------------------------------------------------
 
 export const COUNTERS = [
   { key: "served_rows_by_coverage_status", title: "Served rows by coverage status", group: true, scope: "network, range" },
@@ -49,7 +46,7 @@ export const COUNTERS = [
   { key: "coverage_ranges_bounded_observed", title: "Coverage ranges bounded observed", group: false, scope: "not network scoped" },
 ];
 
-// One tile per documented counter. A counter the response omits or malforms is unavailable, never 0.
+/** One tile per documented counter. A counter the response omits or malforms is unavailable, never 0. */
 export function tiles(quality) {
   const source = isObject(quality) ? quality : {};
   return COUNTERS.map((def) => {
@@ -59,7 +56,6 @@ export function tiles(quality) {
   });
 }
 
-// ---- coverage: strip, breakdown, gaps --------------------------------------------------------------
 
 export function qualificationClass(window) {
   const q = isObject(window) ? window.qualification : null;
@@ -76,8 +72,10 @@ export function strip(windows) {
     .map((w) => ({ window_start: w.window_start, state: stateOf(w), raw_state: w.state, qualification: qualificationClass(w) }));
 }
 
-// Counts over the listed windows of [from, to). Windows outside the range, off the grid or repeated are
-// ignored and counted. Slots with no listed window are "not listed": never missing and never zero.
+/**
+ * Counts over the listed windows of [from, to). Windows outside the range, off the grid or repeated are
+ * ignored and counted. Slots with no listed window are "not listed": never missing and never zero.
+ */
 export function breakdown(windows, from, to) {
   const slots = Math.max(0, Math.floor((to - from) / WINDOW_SECONDS));
   const byState = { observed: 0, zero: 0, partial: 0, provisional: 0, missing: 0, pre_universe: 0, unknown: 0 };
@@ -102,7 +100,7 @@ export function explorerHref(token, windowStart) {
   return "#/explorer/" + encodeURIComponent(token) + "/" + String(windowStart);
 }
 
-// Windows whose state is missing or pre_universe, ascending, each with its reasons verbatim.
+/** Windows whose state is missing or pre_universe, ascending, each with its reasons verbatim. */
 export function gaps(windows, token) {
   const out = [];
   for (const w of Array.isArray(windows) ? windows : []) {

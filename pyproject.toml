@@ -11,6 +11,10 @@ license = "MIT"
 license-files = ["LICENSE"]
 dependencies = ["psycopg[binary]==3.3.8", "kafka-python==3.0.13"]
 
+[dependency-groups]
+# Host development and test dependencies (unit suite and scripts/qualify static).
+dev = ["pytest==9.2.0", "PyYAML==6.0.3", "pyspark==4.0.5"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 namespaces = true

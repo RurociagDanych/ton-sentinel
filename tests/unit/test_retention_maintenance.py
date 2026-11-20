@@ -1,8 +1,5 @@
-"""Bounded retention horizon arithmetic, policy and plan validation.
+"""Bounded retention horizon arithmetic, policy and plan validation."""
 
-Pure decisions only; the real-PostgreSQL behaviour (deletion, atomic horizon, holds, guards,
-rollback) is in tests/integration/test_retention.py. Expected values are written by hand.
-"""
 import pytest
 
 from ton_sentinel import maintenance
@@ -18,12 +15,10 @@ POLICY = {"event_retention_seconds": 7 * DAY, "guard_retention_seconds": 30 * DA
 
 class NoDatabase:
     """A connection that fails the test on any use: validation must happen first."""
-
     def __getattr__(self, name):
         pytest.fail(f"database touched before validation: {name}")
 
 
-# ----------------------------------------------------------------------------- policy
 def test_policy_names_exactly_the_retention_keys_without_defaults():
     assert retention_policy(dict(POLICY)) == (7 * DAY, 30 * DAY, 10)
     for broken in ({k: v for k, v in POLICY.items() if k != "max_windows"},
@@ -47,15 +42,13 @@ def test_guards_never_expire_before_the_payload_they_guard():
     assert retention_policy(dict(POLICY, guard_retention_seconds=7 * DAY))[1] == 7 * DAY
 
 
-# ------------------------------------------------------------------------ cutoff window
 def test_cutoff_counts_only_whole_windows_that_ended_before_it():
-    assert whole_window_cutoff(7 * DAY + 600, 7 * DAY) == 600      # 0 and 300 expired
-    assert whole_window_cutoff(7 * DAY + 599, 7 * DAY) == 300      # 300 straddles: kept
+    assert whole_window_cutoff(7 * DAY + 600, 7 * DAY) == 600
+    assert whole_window_cutoff(7 * DAY + 599, 7 * DAY) == 300
     assert whole_window_cutoff(7 * DAY + 299, 7 * DAY) == 0
-    assert whole_window_cutoff(DAY, 7 * DAY) == 0                  # nothing expired yet
+    assert whole_window_cutoff(DAY, 7 * DAY) == 0
 
 
-# ------------------------------------------------------------------------ next horizon
 def test_horizon_advances_over_covered_windows_up_to_the_cutoff():
     assert next_horizon(0, 900, [0, 300, 600, 900, 1200], [], 10) == Step(
         to=900, windows=(0, 300, 600), blocked=None, bounded=False)
@@ -83,7 +76,6 @@ def test_blockers_below_the_horizon_or_at_or_after_the_cutoff_are_ignored():
 def test_bounded_run_stops_before_the_first_data_window_over_the_limit():
     assert next_horizon(0, 3000, [0, 300, 1200, 2400], [], 2) == Step(
         to=1200, windows=(0, 300), blocked=None, bounded=True)
-    # empty windows between covered ones cost nothing; exactly the limit is not bounded
     assert next_horizon(0, 3000, [0, 2400], [], 2) == Step(
         to=3000, windows=(0, 2400), blocked=None, bounded=False)
 
@@ -103,7 +95,6 @@ def test_horizon_inputs_are_whole_windows(args):
         next_horizon(*args)
 
 
-# --------------------------------------------------------------------------- plans
 def _plan():
     body = {"kind": "retention", "now": 7 * DAY + 600, "policy": dict(POLICY),
             "payload": [], "guards": []}

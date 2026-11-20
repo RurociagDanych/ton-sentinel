@@ -1,4 +1,5 @@
-"""Detections and alerts view. Static checks of served files and node logic."""
+"""Detections and alerts view."""
+
 import json
 import re
 import shutil
@@ -35,7 +36,6 @@ def node_json(tmp_path, body):
     return json.loads(result.stdout)
 
 
-# ---- fixture: stored results computed with the production arithmetic ----------------------------
 
 def fixture():
     """20 prior cells (18 eligible; one partial, one low attribution) and the current cell."""
@@ -43,7 +43,7 @@ def fixture():
     cells = []
     for i, value in enumerate(swaps):
         state = "partial" if i == 3 else "observed"
-        unknown = 8 if i == 5 else 0  # attribution 6/14 < 0.90: out of the wallet sample
+        unknown = 8 if i == 5 else 0
         cells.append({"window_start": 1000 * 300 + 300 * i, "state": state, "swaps": value,
                       "known_traders": max(1, value // 3) - 0, "unknown_count": unknown,
                       "coverage": "unknown", "synthetic": True})
@@ -93,7 +93,6 @@ def head():
     return NODE_HEAD % (json.dumps({"pin": pin, "results": results}), json.dumps(POLICY))
 
 
-# ---- static: files are served, packaged, and obey the shell rules ----------------------------------
 
 def test_detections_modules_are_allowlisted_packaged_and_served():
     for name in NEW_JS:
@@ -138,7 +137,7 @@ def test_effectiveness_banner_text_is_permanent_and_complete():
         assert phrase in model.lower(), phrase
     assert "DETECTION_BANNER" in view and 'dataset.banner = "detection-effectiveness"' in view
     first_fetch = min(i for i in (view.find("loadTokens("), view.find("getChecked(")) if i >= 0)
-    assert view.find("DETECTION_BANNER") < first_fetch  # the banner is built before any request
+    assert view.find("DETECTION_BANNER") < first_fetch
     assert "hidden" not in view[view.find("DETECTION_BANNER"):view.find("DETECTION_BANNER") + 400]
     assert "dismiss" not in (view + model).lower()
 
@@ -163,7 +162,6 @@ def test_harness_has_detections_scenarios():
         assert needle in source, needle
 
 
-# ---- explanation arithmetic: the pinned cells reproduce the stored result ---------------------------
 
 @needs_node
 def test_explanation_reproduces_stored_median_mad_scale_and_score_for_both_detectors(tmp_path):
@@ -234,7 +232,7 @@ const ok = D.explain(S.results.wallets, S.pin, POLICY);
 console.log(JSON.stringify({rule: ok.rule, recomputed: ok.recomputed_triggered, lowRule: e.rule, lowReproduced: e.reproduced}));""")
     assert "score >= 6" in out["rule"] and "observed >= 3" in out["rule"]
     assert out["recomputed"] is True
-    assert out["lowReproduced"] is False  # the stored 5.9 is not what the pin gives
+    assert out["lowReproduced"] is False
 
 
 @needs_node
@@ -256,7 +254,7 @@ console.log(JSON.stringify({latest, none, unknown, inactive, weird, states: D.AL
     assert out["none"]["state"] == "no_record" and "no alert record" in out["none"]["text"].lower()
     assert out["unknown"]["state"] == "unknown" and "truncated" in out["unknown"]["text"].lower()
     assert out["inactive"]["state"] == "inactive"
-    assert out["weird"]["state"] == "unknown"  # an unrecognised state fails closed, never shown as active
+    assert out["weird"]["state"] == "unknown"
     assert out["states"] == ["active", "pending", "retracted", "inactive"]
 
 
@@ -287,4 +285,4 @@ console.log(JSON.stringify({r, pub: [D.publish(D.parseDecimal("2.5")), D.publish
     assert out["r"]["0.90"] == "9/10" and out["r"]["6"] == "6" and out["r"]["-2.5"] == "-5/2"
     for bad in ("", "1e3", "abc", "null", "1.5"):
         assert out["r"][bad] == "refused", bad
-    assert out["pub"] == ["2.5", "0.333333333", "-0.125", "0", "0.000000002"]  # half-even at 9 places
+    assert out["pub"] == ["2.5", "0.333333333", "-0.125", "0", "0.000000002"]

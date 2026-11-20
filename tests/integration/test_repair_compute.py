@@ -1,4 +1,5 @@
 """Compute_replacement(spark, frozen) reads only the frozen pins."""
+
 import json
 
 import pytest

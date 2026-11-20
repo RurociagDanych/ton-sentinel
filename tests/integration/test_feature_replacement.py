@@ -1,7 +1,5 @@
-"""Real Spark full-window feature replacement into real PostgreSQL.
+"""Real Spark full-window feature replacement into real PostgreSQL."""
 
-Provisional/non-certified synthetic fixtures only; no live source claim.
-"""
 import json
 import uuid
 from pathlib import Path
@@ -30,7 +28,7 @@ COVERAGE = "network string, window_start long, window_end long, status string, e
 def _fixture_actions():
     path = Path(__file__).parents[1] / "fixtures" / "truth" / "actions.json"
     actions = json.loads(path.read_text())["actions"]
-    return actions + [actions[0]]  # exact replay must not add volume
+    return actions + [actions[0]]
 
 
 def _spark_features(spark, source_actions, windows):
@@ -60,13 +58,11 @@ def test_persisted_spark_features_equal_independent_oracle_with_directions_and_r
                   for k in ("network", "window_start", "window_end", "token", "generation", "swaps",
                             "input_raw", "output_raw", "known_traders", "unknown_count", "status", "provisional")}
                  for r in stored]
-    assert projected == expected  # exact keys, values, sorted order
+    assert projected == expected
     by_key = {(r["window_start"], r["token"]): r for r in stored}
-    # Both directions of the TON<->jetton:A pair: input-only and output-only endpoints.
     assert by_key[(0, "TON")]["input_raw"] == "1000000000" and by_key[(0, "TON")]["output_raw"] is None
     assert by_key[(0, "jetton:A")]["output_raw"] == "250" and by_key[(0, "jetton:A")]["input_raw"] is None
     assert by_key[(300, "TON")]["output_raw"] == "1000000000" and by_key[(300, "TON")]["input_raw"] is None
-    # Jetton->jetton route: only the swapped endpoints count; intermediate hops are not tokens.
     assert (600, "jetton:A") in by_key and (600, "jetton:B") in by_key
     assert not any(token == "jetton:intermediate" for _, token in by_key)
     assert all(r["status"] == "provisional" and r["provisional"] and r["coverage_status"] == "bounded_observed"
@@ -76,24 +72,22 @@ def test_persisted_spark_features_equal_independent_oracle_with_directions_and_r
 def test_recomputation_replaces_full_window_instead_of_incrementing(spark, database):
     source = _fixture_actions()
     full = _spark_features(spark, source, (0, 300, 600))
-    # Window 600 later shrinks to its first remaining action only (drops jetton:A/B rows, recomputed from fewer inputs).
     shrunk_source = [a for a in source if a["action_end"] < 600]
     shrunk = _spark_features(spark, shrunk_source, (0, 300))
     with psycopg.connect(database) as connection:
         lease = acquire_transition(connection, "task61-replace")
         replace_features(connection, lease, full)
         first = _stored(connection)
-        replace_features(connection, lease, full)  # identical recompute: never doubles
+        replace_features(connection, lease, full)
         assert _stored(connection) == first
         replace_features(connection, lease, shrunk, windows=[WindowKey("testnet", s, s + 300) for s in (0, 300, 600)])
         after = _stored(connection)
-    assert {r["window_start"] for r in after} == {0, 300}  # emptied touched window removed
+    assert {r["window_start"] for r in after} == {0, 300}
     assert [r for r in after if r["window_start"] < 600] == [r for r in first if r["window_start"] < 600]
     assert {r["swaps"] for r in after if r["window_start"] == 300} == {1}
 
 
 def _make_events(connection, lease, incarnation):
-    # three accepted actions: two in window [0,300) and one in window [300,600)
     _accepted(connection, lease, 10, 20, 11, 15)
     _accepted(connection, lease, 20, 30, 21, 25)
     _accepted(connection, lease, 300, 310, 31, 305)
@@ -126,20 +120,17 @@ def test_changed_batch_boundaries_and_post_commit_retry_yield_identical_results(
         events = _make_events(connection, lease, incarnation)
         rows = _audited_rows(events, incarnation)
 
-        # Layout A: one batch with every trigger.
         _run(connection, lease, spark, incarnation, rows, 0)
         reference = _business(connection)
         connection.commit()
         assert reference and {r["window_start"] for r in reference} == {0, 300}
         assert {r["swaps"] for r in reference if r["window_start"] == 0} == {2}
 
-        # Commit-before-checkpoint retry: identical batch identity is processed again after its SQL commit.
         assert _run(connection, lease, spark, incarnation, rows, 0) == len(reference)
         assert _business(connection) == reference
         connection.commit()
         assert connection.execute("SELECT count(*) FROM stream_batches WHERE batch_id=0").fetchone()[0] == 1
 
-        # Layout B: wipe serving rows, process one trigger per batch in reverse order (new pipeline epoch).
         connection.execute("DELETE FROM served_features")
         connection.commit()
         for batch_id, row in enumerate(reversed(rows)):
@@ -147,7 +138,6 @@ def test_changed_batch_boundaries_and_post_commit_retry_yield_identical_results(
             connection.commit()
         assert _business(connection) == reference
 
-        # Layout C: different split (2+1) and a replay of the first split.
         connection.execute("DELETE FROM served_features")
         connection.commit()
         _run(connection, lease, spark, incarnation, rows[2:], 0, query="q3", epoch="pe3")

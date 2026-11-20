@@ -1,4 +1,5 @@
 """Dashboard API over HTTP on real PostgreSQL: the endpoints the overview reads, and the client vocabulary."""
+
 import json
 import re
 import threading
@@ -75,7 +76,7 @@ def test_status_unchanged_shape_has_every_field_the_overview_reads(base):
     assert body["readiness"] == "unknown" and body["backup"] == "not_configured"
     assert body["gates"]["stateful_streaming"]["status"] == "not_qualified"
     assert body["gates"]["live_source"]["status"] == "not_qualified"
-    assert "provenance" not in body  # /status stays unchanged; the view takes it as state values only
+    assert "provenance" not in body
     assert collect_statuses(body, set()) <= legend_states() | {"unknown"}
 
 
@@ -119,6 +120,6 @@ def test_quality_range_is_what_the_view_sends(base):
 
 def test_policy_still_serves_banner_for_the_shell(base):
     status, body, _ = get(base, "/v1/policy")
-    assert status in (200, 404)  # 404 only when no active policy row exists in the fixture DB
+    assert status in (200, 404)
     if status == 200:
         assert PROVENANCE_KEYS <= set(body["provenance"])

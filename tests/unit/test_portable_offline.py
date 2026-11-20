@@ -1,4 +1,5 @@
 """Portable local tooling selection and fail-closed runtime handoff."""
+
 import json
 import runpy
 from pathlib import Path

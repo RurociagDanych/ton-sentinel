@@ -1,4 +1,5 @@
 """Dashboard API unit tests: GET /v1/baseline, the pinned baseline input read (no database)."""
+
 import json
 from unittest.mock import patch
 
@@ -94,17 +95,16 @@ def key_query(**over):
     return "&".join(f"{k}={v}" for k, v in q.items() if v is not None)
 
 
-# ---- validation ------------------------------------------------------------------------
 @pytest.mark.parametrize("query", [
-    "",                                                       # no selector at all
+    "",
     digest_query(network=None), digest_query(network="devnet"),
-    digest_query(input_digest="sha256:" + "A" * 64),          # uppercase hex
+    digest_query(input_digest="sha256:" + "A" * 64),
     digest_query(input_digest="sha256:" + "a" * 63),
     digest_query(input_digest="md5:" + "a" * 64),
     digest_query(input_digest=""),
-    digest_query(token="jetton:a"),                           # digest and key are exclusive
+    digest_query(token="jetton:a"),
     digest_query(window_start=T0),
-    digest_query(limit=1),                                    # a digest names exactly one pin
+    digest_query(limit=1),
     key_query(token=None), key_query(token=""), key_query(window_start=None),
     key_query(window_start=T0 + 1), key_query(window_start="-300"),
     key_query(window_start="abc"), key_query(limit=0), key_query(limit=11), key_query(limit="x"),
@@ -135,7 +135,6 @@ def test_key_selector_default_and_max_limit():
     assert run(key_query(limit=10), [pin()])[2].call_args.kwargs["limit"] == 10
 
 
-# ---- response shape --------------------------------------------------------------------
 def test_response_shape_has_provenance_digest_policy_cells_and_coverage_counts():
     status, body, _ = run(digest_query(), [pin()])
     assert status == "200 OK"
@@ -153,7 +152,7 @@ def test_response_shape_has_provenance_digest_policy_cells_and_coverage_counts()
     assert counts["cells_total"] == 3 and counts["eligible"] == 2
     assert counts["by_state"] == {"observed": 1, "zero": 1, "partial": 0, "provisional": 0,
                                   "missing": 1, "pre_universe": 0}
-    assert counts["expected"] == 3  # lookback_seconds / 300
+    assert counts["expected"] == 3
 
 
 def test_every_cell_state_is_reported_verbatim_and_counted():
@@ -178,7 +177,6 @@ def test_unknown_digest_is_an_explicit_404_not_an_empty_list():
     assert status == "404 Not Found" and body == {"error": "baseline_not_found"}
 
 
-# ---- safety filter ---------------------------------------------------------------------
 def test_lease_owner_and_lineage_keys_are_stripped_from_the_response():
     dirty = pin(lease_owner="worker-7", lease_fence=9, lineage={"offsets": [1]},
                 current_cell=cell(T0, wallet="0:" + "1" * 64))
@@ -207,7 +205,6 @@ def test_more_rows_than_limit_are_cut_and_flagged_truncated():
     assert status == "200 OK" and body["truncated"] is True and len(body["baselines"]) == 2
 
 
-# ---- serving projection (no database) ----------------------------------------------------
 class RecordingConnection:
     def __init__(self, rows):
         self.rows, self.sql, self.params = rows, None, None

@@ -1,4 +1,5 @@
 """GET /metrics rendering, label bounds, cardinality, redaction, omission rules (fake DB)."""
+
 import io
 import re
 import threading
@@ -310,7 +311,7 @@ def test_series_budget_holds_in_the_worst_case():
     assert status == 200
     _, _, samples = parse(body)
     assert len(samples) <= api.METRICS_SERIES_BUDGET == 200
-    assert len(samples) > 100  # the worst case was actually exercised
+    assert len(samples) > 100
     assert len(body.encode()) < api.METRICS_MAX_BYTES
 
 
@@ -375,7 +376,7 @@ def test_conditional_families_follow_reader_values():
                   kind="dirty_windows_pending") == [3.0]
     assert values(samples, "ton_sentinel_quality_issues", network="mainnet",
                   kind="delivery_quarantine") == [2.0]
-    assert "ton_sentinel_coverage_ratio" not in body  # read_coverage is per token: no ratio
+    assert "ton_sentinel_coverage_ratio" not in body
 
 
 def test_unobserved_pipeline_value_is_omitted():
@@ -399,9 +400,9 @@ def test_values_come_from_the_database_snapshot():
     assert values(samples, "ton_sentinel_outbox_oldest_pending_age_seconds") == [12.5]
     assert values(samples, "ton_sentinel_database_size_bytes") == [123456.0]
     assert values(samples, "ton_sentinel_table_size_bytes", table="outbox") == [4096.0]
-    assert len(values(samples, "ton_sentinel_table_size_bytes")) == 1  # non-allowlisted dropped
+    assert len(values(samples, "ton_sentinel_table_size_bytes")) == 1
     assert values(samples, "ton_sentinel_last_activity_timestamp_seconds",
-                  activity="outbox_published") == []  # none_recorded: omitted, not 0
+                  activity="outbox_published") == []
     assert values(samples, "ton_sentinel_last_activity_timestamp_seconds",
                   activity="stream_commit") == [
         datetime(2026, 11, 15, 10, 2, tzinfo=timezone.utc).timestamp()]

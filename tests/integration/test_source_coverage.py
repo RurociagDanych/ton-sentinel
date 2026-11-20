@@ -1,4 +1,5 @@
 """Database-backed, fail-closed action-window coverage read path."""
+
 import os
 import uuid
 

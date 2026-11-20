@@ -1,4 +1,3 @@
-// Views. All six are real.
 import { mountOverview } from "./overview.js";
 import { mountExplorer } from "./explorer.js";
 import { mountDetections } from "./detections.js";

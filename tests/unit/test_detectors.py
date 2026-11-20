@@ -240,10 +240,6 @@ class DetectorTests(unittest.TestCase):
 
 
 
-# ------------------------------------------------------------------------------------------
-# Both v1 detectors over a pinned BaselineInput, against the independent oracle in
-# tests/oracle.py (``expected_detector_outcome``), which reads only the stored record and
-# the stored policy body and uses exact rational arithmetic.
 import dataclasses as _dc
 
 import pytest as _pytest
@@ -289,7 +285,7 @@ def _varied(scored, count=24):
             for i in range(count)]
 
 
-S = 3000 * _W     # lookback not clipped
+S = 3000 * _W
 
 
 def _scenarios():
@@ -412,7 +408,6 @@ def test_score_baseline_refuses_inputs_of_another_policy():
         score_baseline(baseline, other)
     with _pytest.raises(ValueError):
         score_baseline(baseline.to_record(), _V1)
-    # the same input under a changed (registered elsewhere) policy scores with its thresholds
     changed = _input(S, _zeros(S, 24), _cell(S, "observed", 12, 6), policy=other)
     count, _ = score_baseline(changed, other)
     assert count["policy_id"] == other.identity and count["threshold"] == "5"

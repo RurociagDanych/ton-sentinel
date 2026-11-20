@@ -1,4 +1,5 @@
 """Least-privilege reader behavior on disposable real PostgreSQL."""
+
 import json
 import os
 import secrets
@@ -56,7 +57,7 @@ def provisioned_reader():
                 "VALUES ('testnet', 0, 300, 'token', 'generation', 2, 1, 0, 'ready', false, 1)"
             )
             provision_api_reader(connection, role)
-            provision_api_reader(connection, role)  # explicit provisioning is idempotent
+            provision_api_reader(connection, role)
         reader_dsn = psycopg.conninfo.make_conninfo(
             dsn, user=role, password=password, options=f"-c search_path={schema}"
         )

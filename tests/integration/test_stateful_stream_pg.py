@@ -1,4 +1,5 @@
 """Real Kafka + Spark Structured Streaming + PostgreSQL: bounded dedup state and durable checkpoint."""
+
 from __future__ import annotations
 
 import json
@@ -18,7 +19,7 @@ from ton_sentinel.db.revisions import decide_revision
 from ton_sentinel.spark import stream
 from ton_sentinel.stream_cli import ConsumerConfig, kafka_reader_options
 
-W1 = 1_800_000_000 // 300 * 300      # start of a five-minute window
+W1 = 1_800_000_000 // 300 * 300
 POLICY = {"watermark_seconds": 60, "max_state_rows": 50, "max_partitions": 1}
 
 
@@ -109,10 +110,8 @@ def test_actual_state_store_and_checkpoint(spark, database, kafka, tmp_path):
 
 def test_duplicates_and_equal_trades(spark, database, kafka, tmp_path):
     bootstrap, topic, send = kafka
-    # a is duplicated within the bound; b and c are distinct ids with identical content.
     send(("a", W1 + 10), ("a", W1 + 10), ("b", W1 + 20), ("c", W1 + 20), ("close", W1 + 900))
     stream.run_fast_path(spark, _config(database, bootstrap, topic, tmp_path / "cp"), POLICY)
-    # The first (closing) window is emitted once the watermark passes it; only W1 is final.
     assert _rows(database)[0] == ("testnet", _rows(database)[0][1], 3, True)
     assert _rows(database)[0][1].timestamp() == W1
 
@@ -125,9 +124,8 @@ def test_state_bound_enforced_and_offsets_bounded(spark, database, kafka, tmp_pa
     with pytest.raises(stream.StateBoundExceeded):
         stream.run_fast_path(spark, config, tight)
     with psycopg.connect(database) as c:
-        # No batch exceeded the per-trigger offset cap before the bound stopped the query.
         assert c.execute("SELECT coalesce(max(input_rows),0) FROM stream_state_metrics").fetchone()[0] <= 2
-    with pytest.raises(ValueError):                    # partition bound is enforced too
+    with pytest.raises(ValueError):
         spark.conf.set("spark.sql.shuffle.partitions", "4")
         try:
             stream.run_fast_path(spark, _config(database, bootstrap, topic, tmp_path / "cp2"), POLICY)
@@ -145,11 +143,10 @@ def test_restart_resumes_state_without_double_counting(database, kafka, tmp_path
         r1 = stream.run_fast_path(first, config, POLICY)
     finally:
         first.stop()
-    assert _rows(database) == []                        # W1 still open: nothing emitted yet
+    assert _rows(database) == []
     assert r1.max_state_rows >= 2
     committed = sorted(p.name for p in (checkpoint / "commits").iterdir() if p.name.isdigit())
 
-    # Fresh JVM/session on the same checkpoint: replayed a,b are deduped from restored state.
     send(("a", W1 + 10), ("b", W1 + 20), ("c", W1 + 30), ("close", W1 + 900))
     second = _session("run-2")
     try:
@@ -158,15 +155,12 @@ def test_restart_resumes_state_without_double_counting(database, kafka, tmp_path
         second.stop()
     assert [(row[0], row[1].timestamp(), row[2]) for row in _rows(database)] == [("testnet", W1, 3)]
     assert sorted(p.name for p in (checkpoint / "commits").iterdir() if p.name.isdigit()) != committed
-    assert min(p["batchId"] for p in r2.progress) > int(committed[-1])   # resumed, not restarted at 0
-    # Restored state, not recount: the first resumed batch holds only the replayed a,b and
-    # inserts/updates no state row, while the restored dedup+window state still has rows.
+    assert min(p["batchId"] for p in r2.progress) > int(committed[-1])
     replay = min((p for p in r2.progress if p["numInputRows"]), key=lambda p: p["batchId"])
     assert replay["numInputRows"] == 2
     assert sum(op["numRowsUpdated"] for op in replay["stateOperators"]) == 0
     assert sum(op["numRowsTotal"] for op in replay["stateOperators"]) >= 2
 
-    # Third restart with no new input must not reprocess or alter anything.
     third = _session("run-3")
     try:
         stream.run_fast_path(third, config, POLICY)
@@ -186,7 +180,6 @@ def test_changed_pipeline_epoch_refuses_existing_checkpoint(spark, database, kaf
         stream.run_fast_path(spark, _config(database, bootstrap, topic, checkpoint, epoch="epoch-b"), POLICY)
 
 
-# Canonical sweeper
 from ton_sentinel.db import work as work_module  # noqa: E402
 from tests.integration.test_repair_fencing import world_with_correction  # noqa: E402,F401
 from tests.integration.test_revisions import A, X, Y, Z, World, db, eid, val  # noqa: E402,F401
@@ -260,7 +253,7 @@ def _seed_at(db, end):
 
 def test_idle_window_closes_only_after_the_configured_sweep_through_canonical_repair(
         db, repair_spark, monkeypatch):
-    _seed_at(db, 90_010)                           # window 90_000, no candidate
+    _seed_at(db, 90_010)
     seen = _wrap_repair(monkeypatch)
     early = _sweep(db, repair_spark, now=90_300 + 599)
     assert early.repaired == () and _served(db) == [] and _promotions(db) == 0
@@ -276,11 +269,11 @@ def test_idle_window_closes_only_after_the_configured_sweep_through_canonical_re
 def test_evicted_window_is_repaired_once_and_candidate_never_becomes_current(
         db, repair_spark, monkeypatch):
     _seed_at(db, 90_010)
-    _cand(db, 90_000, 99)                           # wrong diagnostic value
+    _cand(db, 90_000, 99)
     seen = _wrap_repair(monkeypatch)
     first = _sweep(db, repair_spark, now=90_300 + 60)
     assert [(k.window_start, r) for k, r in first.repaired] == [(90_000, "evicted")]
-    assert _served(db) == [(90_000, "TON", 1), (90_000, "jetton:A", 1)]   # not 99
+    assert _served(db) == [(90_000, "TON", 1), (90_000, "jetton:A", 1)]
     again = _sweep(db, repair_spark)
     assert again.repaired == () and _promotions(db) == 1 and len(seen["promote"]) == 1
     db.commit()
@@ -296,7 +289,7 @@ def test_late_revision_beyond_candidate_is_repaired_exactly_once(db, repair_spar
     first = _sweep(db, repair_spark, now=90_300 + 60)
     assert [r for _, r in first.repaired] == ["evicted"]
     assert _promotions(db) == 1
-    world.seed({Z: val(end=90_020, o_asset="jetton:B")})   # late canonical arrival
+    world.seed({Z: val(end=90_020, o_asset="jetton:B")})
     db.commit()
     seen = _wrap_repair(monkeypatch)
     late = _sweep(db, repair_spark)
@@ -310,7 +303,7 @@ def test_late_revision_beyond_candidate_is_repaired_exactly_once(db, repair_spar
 
 def test_dirty_windows_are_closed_by_repair_and_rows_match_the_policy_oracle(
         db, repair_spark, monkeypatch):
-    world, evidence, auth = world_with_correction(db)         # X moves from window 0 to 600
+    world, evidence, auth = world_with_correction(db)
     lease = acquire_transition(db, "revisor")
     decide_revision(db, lease, evidence, auth)
     db.commit()
@@ -322,14 +315,14 @@ def test_dirty_windows_are_closed_by_repair_and_rows_match_the_policy_oracle(
     report = _sweep(db, repair_spark, now=SW_NOW)
     assert sorted((k.window_start, r) for k, r in report.repaired) == [(0, "dirty"), (600, "dirty")]
     assert len(seen["promote"]) == 2 and _promotions(db) == 2
-    assert _served(db) == [(600, "TON", 1), (600, "jetton:A", 1)]   # window 0 emptied, 600 filled
+    assert _served(db) == [(600, "TON", 1), (600, "jetton:A", 1)]
     assert db.execute("SELECT status FROM dirty_windows WHERE role='target' "
                       "AND status<>'done'").fetchall() == []
     assert _sweep(db, repair_spark).repaired == ()
 
 
 def test_refused_admission_is_reported_and_nothing_is_written(db, repair_spark):
-    _seed_at(db, 10)                                        # far before the event cutoff
+    _seed_at(db, 10)
     short = stream.SweepPolicy(600, 60, 20, {**SW_ADMISSION, "event_retention_seconds": 1000})
     report = _sweep(db, repair_spark, now=200_000, policy=short)
     assert report.repaired == () and report.refused == (
@@ -350,12 +343,12 @@ def test_real_stream_candidates_are_closed_only_by_canonical_repair(
     stream.run_fast_path(repair_spark, config, POLICY)
     db.commit()
     assert db.execute("SELECT swaps FROM stream_candidate_windows").fetchall() == [(3,)]
-    _seed_at(db, SW1 + 10)                                   # canonical truth: one action
+    _seed_at(db, SW1 + 10)
     before = db.execute("SELECT * FROM stream_candidate_windows").fetchall()
     seen = _wrap_repair(monkeypatch)
     report = _sweep(db, repair_spark, now=SW1 + 3000)
     assert [(k.window_start, r) for k, r in report.repaired] == [(SW1, "evicted")]
-    assert _served(db) == [(SW1, "TON", 1), (SW1, "jetton:A", 1)]    # canonical, not the 3 candidate
+    assert _served(db) == [(SW1, "TON", 1), (SW1, "jetton:A", 1)]
     assert len(seen["promote"]) == 1
     db.commit()
     assert db.execute("SELECT * FROM stream_candidate_windows").fetchall() == before
@@ -374,11 +367,11 @@ def test_fail_on_data_loss_stops_the_stream_when_unread_records_are_deleted(
     bootstrap, topic, send = kafka
     config = _config(database, bootstrap, topic, tmp_path / "cp")
     send(("a", W1 + 10), ("b", W1 + 20), ("close", W1 + 900))
-    stream.run_fast_path(spark, config, POLICY)           # checkpoint now holds offset 3
+    stream.run_fast_path(spark, config, POLICY)
     send(("c", W1 + 1200), ("d", W1 + 1210), ("e", W1 + 1220))
     admin = KafkaAdminClient(bootstrap_servers=bootstrap, request_timeout_ms=15_000)
     try:
-        admin.delete_records({TopicPartition(topic, 0): 5})   # offsets 3,4 are lost before being read
+        admin.delete_records({TopicPartition(topic, 0): 5})
     finally:
         admin.close()
     with pytest.raises(Exception, match=r"(?i)lost|out of range|no longer available|deleted"):
@@ -414,7 +407,7 @@ def test_sweep_due_returns_the_repaired_count_and_is_bounded(db, sweep_spark, mo
 def test_close_candidate_windows_uses_canonical_repair_and_never_the_candidate(
         db, sweep_spark, monkeypatch):
     _seed_at(db, 90_010)
-    _cand(db, 90_000, 99)                                   # candidate disagrees with canonical (1)
+    _cand(db, 90_000, 99)
     seen = _wrap_repair(monkeypatch)
     key = stream.WindowKey("testnet", 90_000, 90_300)
     assert stream.close_candidate_windows(db, sweep_spark, (key,), lease=_lease(db),

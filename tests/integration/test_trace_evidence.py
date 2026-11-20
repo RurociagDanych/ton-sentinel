@@ -1,4 +1,5 @@
 """Durable trace lookup evidence stays bound to completed scan lineage."""
+
 import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -158,7 +159,6 @@ def test_lookup_refuses_lineage_epoch_mismatch_before_source_request(db):
         with pytest.raises(ValueError, match="source epoch mismatch"):
             lookup_and_persist_trace(db, client, range_id, "trace-exact", source_epoch=epoch("v2"))
         assert db.execute("SELECT count(*) FROM trace_lookup_evidence").fetchone()[0] == 0
-        # The bounded HTTP endpoint is not called when supplied lineage disagrees.
         assert db.execute("SELECT count(*) FROM source_ranges WHERE range_id=%s", (range_id,)).fetchone()[0] == 1
     finally:
         server.close()

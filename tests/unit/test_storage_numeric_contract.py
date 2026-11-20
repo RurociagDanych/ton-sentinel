@@ -1,4 +1,5 @@
 """Exercise the real offline chart admission, not a Python validator."""
+
 import json
 import shutil
 import subprocess

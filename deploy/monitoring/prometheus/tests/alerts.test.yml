@@ -1,4 +1,4 @@
-# promtool test rules: each alert has one firing and one non-firing case (integration step).
+# promtool test rules: each alert has one firing and one non-firing case.
 rule_files: [../rules/alerts.yml]
 evaluation_interval: 1m
 tests:

@@ -1,5 +1,5 @@
 // Same-origin, read-only fetch client. Every data response must carry a provenance block;
-// without it the client fails closed (DD3) and callers show the blocking state.
+// without it the client fails closed and callers show the blocking state.
 
 export const REQUEST_TIMEOUT_MS = 10000;
 const PROVENANCE_KEYS = ["source_kind", "certification_state", "coverage_state",
@@ -42,7 +42,7 @@ export function validateProvenance(payload) {
 
 const inflight = new Map();
 
-// One in-flight request per slot: a new call aborts the previous call in the same slot.
+/** Fetch JSON for a request slot. One in-flight request per slot: a new call aborts the previous call in the same slot. */
 export async function getJson(path, { slot = "default", params = null } = {}) {
   checkedPath(path);
   const query = params ? new URLSearchParams(params).toString() : "";
@@ -64,7 +64,7 @@ export async function getJson(path, { slot = "default", params = null } = {}) {
   }
 }
 
-// Data fetch that refuses any payload without a valid provenance block.
+/** Data fetch that refuses any payload without a valid provenance block. */
 export async function getChecked(path, options) {
   const payload = await getJson(path, options);
   validateProvenance(payload);

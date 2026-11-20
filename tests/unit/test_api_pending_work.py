@@ -1,7 +1,5 @@
-"""/status reports pending outbox and pending repair from PostgreSQL.
+"""/status reports pending outbox and pending repair from PostgreSQL."""
 
-An unreadable source is ``unavailable`` (never zero); uninstrumented domains stay ``unsupported``.
-"""
 import json
 from unittest.mock import patch
 

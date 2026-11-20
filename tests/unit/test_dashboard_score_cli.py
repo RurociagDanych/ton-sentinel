@@ -1,8 +1,5 @@
-"""Bounded score runner (first-score + rescore) and the ``score`` CLI.
+"""Bounded score runner (first-score + rescore) and the ``score`` CLI."""
 
-Unit level: a scripted connection stands in for PostgreSQL; ``score_window``,
-``promote_scores`` and ``rescore_stale`` are replaced so only the runner's own logic runs.
-"""
 import inspect
 import json
 from contextlib import contextmanager
@@ -28,7 +25,6 @@ class Result:
 
 class FakeConn:
     """Answers the runner's SELECTs; records every statement."""
-
     def __init__(self, unscored=(), stale_count=0, unreadable=False):
         self.unscored = list(unscored)
         self.stale_count = stale_count
@@ -93,7 +89,7 @@ def keys(n):
 def test_limit_bounds_work_and_reports_remaining(calls):
     conn = FakeConn(unscored=keys(5), stale_count=4)
     report = work.score_pending(conn, LEASE, network="mainnet", limit=3)
-    assert len(calls.scored) == 3 and calls.stale_limits == []   # budget spent on first scores
+    assert len(calls.scored) == 3 and calls.stale_limits == []
     assert report == {"first_scored": 3, "rescored": 0, "remaining_unscored": 2,
                       "remaining_stale": 4, "refused": 0}
 
@@ -152,7 +148,7 @@ def test_lost_lease_stops_without_partial_promotion(calls, monkeypatch):
     conn = FakeConn(unscored=keys(3), stale_count=1)
     with pytest.raises(LeaseRejected):
         work.score_pending(conn, LEASE, network="mainnet", limit=5)
-    assert len(calls.scored) == 1 and calls.stale_limits == []     # stopped at the first loss
+    assert len(calls.scored) == 1 and calls.stale_limits == []
 
 
 @pytest.mark.parametrize("kwargs", [{"limit": 0}, {"limit": 10001}, {"limit": True},
@@ -175,7 +171,6 @@ def test_no_direct_writes_outside_promote_scores(calls):
         assert " ".join(sql.split()).upper().startswith("SELECT"), sql
 
 
-# ------------------------------------------------------------------------------------ CLI
 class FakePg:
     def __init__(self):
         self.dsn = None
@@ -227,7 +222,7 @@ def test_cli_rejects_bad_limit_and_network(cli_env, extra, capsys):
     with pytest.raises(SystemExit) as exc:
         cli.main(argv + extra)
     assert exc.value.code == 2
-    assert cli_env.dsn is None                      # never connected
+    assert cli_env.dsn is None
 
 
 def test_cli_lost_lease_exits_two(cli_env, monkeypatch, capsys):

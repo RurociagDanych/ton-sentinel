@@ -1,13 +1,18 @@
+FROM spark@sha256:60b99fa37465eac7749f2bad2ab90eb4b52dc04584a8b1b163f10926c82a7045 AS lock
+USER root
+COPY --from=ghcr.io/astral-sh/uv:0.11.31@sha256:ecd4de2f060c64bea0ff8ecb182ddf46ba3fcccdc8a60cfdbaf20d1a047d7437 /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock /opt/lock/
+RUN uv export --project /opt/lock --frozen --format requirements-txt --no-dev --no-emit-project --no-annotate -o /opt/lock/requirements.lock
+
 FROM spark@sha256:60b99fa37465eac7749f2bad2ab90eb4b52dc04584a8b1b163f10926c82a7045
 USER root
-# Dependency installation only inside image, not host/global Python.
-COPY requirements.lock /opt/probe/requirements.lock
+COPY --from=lock /opt/lock/requirements.lock /opt/probe/requirements.lock
 RUN python3 -m pip install --no-cache-dir --require-hashes --target /opt/probe/deps -r /opt/probe/requirements.lock
 COPY jars/ /opt/probe/jars/
 RUN python3 -c "from pathlib import Path; [p.unlink() for pattern in ('lz4-java-*.jar','checker-qual-*.jar') for p in Path('/opt/spark/jars').glob(pattern)]" \
     && cp /opt/probe/jars/*.jar /opt/spark/jars/ && useradd --uid 1000 --create-home sentinel
 # Package source incl. packaged resources (demo.html, dashboard/*) so the image runs without a src bind mount.
-# Build context must hold requirements.lock, jars/ and src/ton_sentinel (root-owned, read-only to uid 1000).
+# Build context must hold pyproject.toml, uv.lock, jars/ and src/ton_sentinel (root-owned, read-only to uid 1000).
 COPY src/ton_sentinel/ /workspace/src/ton_sentinel/
 ENV PYTHONPATH=/opt/probe/deps:/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.9-src.zip:/workspace/src:/workspace
 USER 1000:1000

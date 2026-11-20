@@ -1,7 +1,5 @@
-// Pure logic of the alert history view: grouping of alert-feed items per key, the client-side
-// filter and its label, the result-revision timeline with labels, and the partial-feed notice.
-// Nothing here infers a state: every value shown comes from a stored revision, and an unrecognised
-// value fails closed to "unknown". No DOM here.
+// Pure logic of the alert history view: feed grouping, client-side filter, result-revision timeline.
+// Nothing here infers a state; an unrecognised value fails closed to "unknown". No DOM here.
 import { ProvenanceError } from "./client.js";
 import { ALERT_STATES, requireDetectionProvenance } from "./detections-model.js";
 
@@ -25,7 +23,6 @@ export function requireList(payload, key) {
 
 const known = (label) => Object.prototype.hasOwnProperty.call(LABELS, label);
 
-// ---- feed: grouping and filter ------------------------------------------------------------------
 
 const keyOf = (item) => item.token + "\u0000" + item.window_start + "\u0000" + item.detector;
 
@@ -34,8 +31,10 @@ function usable(item) {
     && Number.isInteger(item.window_start) && Number.isInteger(item.alert_revision);
 }
 
-// One group per token/window/detector; revisions ascending; the latest is the highest stored
-// alert_revision. Groups are ordered by the recorded time of their latest revision, newest first.
+/**
+ * Group feed items per token/window/detector; revisions ascending, latest is the highest stored alert_revision.
+ * Groups are ordered by the recorded time of their latest revision, newest first.
+ */
 export function groupFeed(items) {
   const map = new Map();
   for (const item of Array.isArray(items) ? items : []) {
@@ -63,7 +62,7 @@ export function groupFeed(items) {
   return groups;
 }
 
-// Exact match on token and on detector, applied to the loaded items only.
+/** Exact match on token and on detector, applied to the loaded items only. */
 export function filterFeed(items, { token = "", detector = "" } = {}) {
   return (Array.isArray(items) ? items : []).filter((item) => isObject(item)
     && (token === "" || item.token === token) && (detector === "" || item.detector === detector));
@@ -88,9 +87,8 @@ export function feedCap(collected, maxPages) {
     + " pages); the range holds more. Latest states shown here may not be the latest stored revisions." };
 }
 
-// ---- result-revision timeline ----------------------------------------------------------------------
 
-// Rows ascending by result_revision. The highlighted row is the highest stored result_revision.
+/** Rows ascending by result_revision. The highlighted row is the highest stored result_revision. */
 export function timeline(revisions) {
   const list = (Array.isArray(revisions) ? revisions : []).filter((r) => isObject(r) && Number.isInteger(r.result_revision));
   const rows = [...list].sort((a, b) => a.result_revision - b.result_revision).map((r) => {

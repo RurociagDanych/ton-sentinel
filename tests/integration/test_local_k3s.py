@@ -1,9 +1,5 @@
-"""Real K3s PVC/restart/resource acceptance.
+"""Real K3s PVC/restart/resource acceptance."""
 
-Requires TON_SENTINEL_K3S_KUBECONFIG pointing at a local K3s (k3d) cluster named
-k3d-ton-sentinel-local-* and the locally imported image postgres:18.6. Docker volumes
-are not PVC evidence; this uses the cluster's local-path StorageClass.
-"""
 import json
 import os
 import secrets
@@ -83,13 +79,11 @@ def test_k3s_pvc_restarts():
         uid_before = kc("-n", NS, "get", "pod", "pg-0", "-o", "jsonpath={.metadata.uid}").stdout
         pvc = json.loads(kc("-n", NS, "get", "pvc", "data-pg-0", "-o", "json").stdout)
         assert pvc["status"]["phase"] == "Bound" and pvc["spec"]["resources"]["requests"]["storage"] == "1Gi"
-        # Restart 1: delete pod; the StatefulSet must recreate it on the same PVC.
         kc("-n", NS, "delete", "pod", "pg-0", "--wait=true")
         time.sleep(3)
         wait_ready()
         assert kc("-n", NS, "get", "pod", "pg-0", "-o", "jsonpath={.metadata.uid}").stdout != uid_before
         assert psql("select v from t") == "before-restart"
-        # Restart 2: scale to zero then one; the claim and data survive.
         kc("-n", NS, "scale", "sts/pg", "--replicas=0")
         kc("-n", NS, "wait", "--for=delete", "pod/pg-0", "--timeout=120s")
         assert kc("-n", NS, "get", "pvc", "data-pg-0", "-o", "jsonpath={.status.phase}").stdout == "Bound"
@@ -97,7 +91,6 @@ def test_k3s_pvc_restarts():
         time.sleep(3)
         wait_ready()
         assert psql("select v from t") == "before-restart"
-        # Resource behaviour: limits applied and a pod over the namespace quota is rejected.
         pod = json.loads(kc("-n", NS, "get", "pod", "pg-0", "-o", "json").stdout)
         assert pod["spec"]["containers"][0]["resources"]["limits"]["memory"] == "1536Mi"
         assert pod["status"]["qosClass"] == "Burstable"
@@ -105,7 +98,6 @@ def test_k3s_pvc_restarts():
                   "--overrides", json.dumps({"spec": {"containers": [{"name": "over", "image": IMAGE, "imagePullPolicy": "Never",
                                               "resources": {"limits": {"memory": "1Gi"}}}]}}), check=False)
         assert over.returncode != 0 and "exceeded quota" in over.stderr, over.stderr
-        # Storage bound: a second claim beyond the quota is rejected.
         pvc2 = kc("-n", NS, "apply", "-f", "-", check=False, input=json.dumps({
             "apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": "extra"},
             "spec": {"accessModes": ["ReadWriteOnce"], "resources": {"requests": {"storage": "1Gi"}}}}))
@@ -115,7 +107,6 @@ def test_k3s_pvc_restarts():
             kc("delete", "ns", NS, "--ignore-not-found", "--wait=false", check=False)
 
 
-# --- Chart workloads on local K3s ---------------------------------------
 # Uses deploy/helm/local/values-local-k3s.yaml (LOCAL ONLY: amd64 selector, local-path
 # storage, replicas lift for postgres+kafka). Secrets are generated here and never committed.
 import pathlib
@@ -131,7 +122,6 @@ LOCAL_IMAGES = {
     "postgres:18.6": ("docker.io/library/postgres", "sha256:e923a22ac074261dd73970c57edf659475bf0497cb9456f17d98ed7cdd3ca913"),
     "apache/kafka:4.3.2": ("docker.io/apache/kafka", "sha256:8f325fc00143fed78eabe00b033a86747078bb06edc21345d06651f77ae44f30"),
 }
-# App/spark images (already present locally; loaded only by the integration test below).
 APP_SPARK_IMAGES = {
     "ton-sentinel:local": ("docker.io/library/ton-sentinel", "sha256:8b1759daf094bd768b25108ae78e3e3bbc96a3706d542ea092c6620c5e68e7b2"),
     "spark:4.0.5-scala2.13-java21-python3-ubuntu": ("docker.io/library/spark", "sha256:60b99fa37465eac7749f2bad2ab90eb4b52dc04584a8b1b163f10926c82a7045"),
@@ -248,14 +238,12 @@ def test_chart_workloads_ready_with_local_values():
     for n in ("checkpoints", "scratch", "metrics"):
         assert kc("-n", CHART_NS, "get", "pvc", f"{REL}-ton-sentinel-{n}", "-o", "jsonpath={.status.phase}").stdout == "Bound"
     kc("-n", CHART_NS, "delete", "pod", "pvc-binder", "--wait=true")
-    # Postgres row survives pod restart.
     pg_exec("create table t(v text); insert into t values ('before-restart');")
     before = kc("-n", CHART_NS, "get", "pod", f"{sts[0]}-0", "-o", "jsonpath={.metadata.uid}").stdout
     kc("-n", CHART_NS, "delete", "pod", f"{sts[0]}-0", "--wait=true")
     kc("-n", CHART_NS, "rollout", "status", f"sts/{sts[0]}", "--timeout=300s")
     assert kc("-n", CHART_NS, "get", "pod", f"{sts[0]}-0", "-o", "jsonpath={.metadata.uid}").stdout != before
     assert pg_exec("select v from t") == "before-restart"
-    # Quota rejection inside the chart namespace.
     over = kc("apply", "-f", "-", check=False, input=json.dumps(
         restricted_pod("over", "rancher/mirrored-library-busybox:1.36.1", "6Gi")))
     assert over.returncode != 0 and "exceeded quota" in over.stderr, over.stderr
@@ -267,7 +255,6 @@ def test_chart_workloads_ready_with_local_values():
     assert json.loads(helm("get", "values", REL, "-n", CHART_NS, "-o", "json").stdout)["replicas"] == 1
 
 
-# --- Bounded integration path: app + spark workloads -------------------
 def code_configmap_args():
     """Source bundle for the local-only probe entrypoints (the pinned app image does not contain src/)."""
     import io
@@ -305,7 +292,6 @@ def test_app_and_spark_workloads_run_bounded_roundtrips():
         kc(*code_configmap_args())
     for s in (f"{REL}-ton-sentinel-postgres", f"{REL}-ton-sentinel-kafka"):
         kc("-n", CHART_NS, "rollout", "status", f"sts/{s}", "--timeout=300s")
-    # App + spark Deployments must reach Ready (readiness = role finished its round-trip successfully).
     for name in ("ingestor", "api", "notifier", "spark"):
         kc("-n", CHART_NS, "rollout", "status", f"deploy/{REL}-ton-sentinel-{name}", "--timeout=420s")
         pods = json.loads(kc("-n", CHART_NS, "get", "pod", "-l", f"app.kubernetes.io/component={name}", "-o", "json").stdout)["items"]
@@ -315,21 +301,17 @@ def test_app_and_spark_workloads_run_bounded_roundtrips():
         assert cs["command"][0] != "/bin/false"
         assert cs["securityContext"]["readOnlyRootFilesystem"] is True
         assert cs["securityContext"]["capabilities"]["drop"] == ["ALL"]
-    # Postgres write/read through ton_sentinel.db (ingestor) and the API read path.
-    by_token = lambda rows: sorted(rows, key=lambda r: r["token"])  # DB collation order differs from literal order
+    by_token = lambda rows: sorted(rows, key=lambda r: r["token"])
     assert by_token(probe_result("ingestor", "ingestor")["features"]) == by_token(k3s_probe.sample_features())
     assert sorted(f["token"] for f in probe_result("api", "api")["features"]) == ["TON", "jetton:A"]
     assert pg_exec("select token||':'||coalesce(input_raw::text,'-')||':'||coalesce(output_raw::text,'-') "
                    "from served_features order by token collate \"C\"") == "TON:1000:-\njetton:A:-:250"
-    # Kafka produce/consume round-trip against the in-cluster broker.
     recs = probe_result("notifier", "notifier")["records"]
     assert [r[1]["n"] for r in recs] == [0, 1, 2] and len({r[1]["run"] for r in recs}) == 1
-    # One bounded Spark job over literal local data.
     got = probe_result("spark", "spark")["features"]
     assert got == sorted(f"{k}={v}" for k, v in k3s_probe.SPARK_EXPECTED.items())
 
 
-# --- Bounded Kafka -> Spark streaming -> PostgreSQL path -----------------
 APP_IMAGE_REF = "ton-sentinel@" + APP_SPARK_IMAGES["ton-sentinel:local"][1]
 
 
@@ -410,7 +392,6 @@ def test_kafka_spark_postgres_bounded_stream_lands_expected_rows():
     assert phase == "Succeeded", f"phase={phase}; logs tail:\n{logs[-3000:]}"
     ok = [l for l in logs.splitlines() if l.startswith("PROBE_OK role=stream ")]
     assert ok, f"no PROBE_OK for stream; logs tail:\n{logs[-3000:]}"
-    # Independent read-back from the chart PostgreSQL (not the pod's own report).
     rows = pg_exec("select token||'|'||swaps||'|'||coalesce(input_raw::text,'-')||'|'||coalesce(output_raw::text,'-') "
                    "from served_features order by token collate \"C\"")
     assert rows == "JETTON:CANONICAL|2|-|96\nTON|2|320|-"

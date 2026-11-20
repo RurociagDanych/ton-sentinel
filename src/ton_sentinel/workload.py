@@ -1,18 +1,4 @@
-"""Local envelope workload measurement (one level per invocation).
-
-Runs ONLY inside the compose ``app`` container of ``ton-sentinel-local`` (guarded by
-TON_SENTINEL_LOCAL_FIXTURE=1, probe_<hex> identifiers, /runtime and /evidence paths). Event
-payloads are generated locally and deterministically at the envelope level's rate and
-cardinality; there is no live TON source read and no network egress (internal fixture network).
-The path is real: Kafka -> stateful Spark (dedup + 5-minute windows, exact distinct traders) ->
-PostgreSQL, with an explicit zero grid at full retained cardinality, an injected consumer outage,
-catch-up from durable checkpoints, reconciliation walks, corrections with 7-day baseline rescoring
-and one serialized (advisory-lock fenced) retention/VACUUM maintenance slot.
-
-Pure functions (phase_plan, event_payload, due_events, derive_coverage, summarize_level, ...) are
-stdlib-only so the host runner can import them. The harness never claims what it did not measure:
-coverage is derived from the evidence present.
-"""
+"""Local envelope workload measurement (one level per invocation)."""
 from __future__ import annotations
 
 import argparse
@@ -27,7 +13,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ton_sentinel.feasibility import local_dsn  # password from TON_SENTINEL_PG_PASSWORD (.env)
+from ton_sentinel.feasibility import local_dsn
 
 WINDOW_SECONDS = 300
 WINDOWS_PER_DAY = 86400 // WINDOW_SECONDS
@@ -243,7 +229,6 @@ def summarize_level(raw: list, harness: dict, *, level: dict, target_id: str, ar
     }
 
 
-# --------------------------------------------------------------------------- in-container harness
 
 def _guard(config):
     if os.environ.get("TON_SENTINEL_LOCAL_FIXTURE") != "1":
@@ -452,7 +437,7 @@ def run_level(config: dict) -> dict:  # pragma: no cover - exercised only agains
                 history = c.execute(S("SELECT swaps, unique_traders FROM {s}.features WHERE token_id = %s "
                                       "AND window_start >= %s - interval '7 days' AND window_start < %s "
                                       "ORDER BY window_start"), (token, ws, ws)).fetchall()
-            for column in (0, 1):  # rescore both detectors: median/MAD over the baseline
+            for column in (0, 1):
                 values = [h[column] for h in history]
                 if values:
                     med = statistics.median(values)

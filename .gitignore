@@ -1,5 +1,3 @@
-# Internal project briefs, research, specifications, and working notes.
-/docs/
 .env
 .env.*
 !.env.example

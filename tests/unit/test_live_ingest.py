@@ -1,13 +1,5 @@
-"""The production path accepts only live-normalized real records.
+"""The production path accepts only live-normalized real records."""
 
-The recorded window is public on-chain data of one live window W
-(tests/fixtures/live/g3_window.json, built by
- from
- No request is made and no file outside the tracked tree is read. The
-key-scan test takes the key and the keyed host from the environment (``TONCENTER_API_KEY``,
-``TONCENTER_BASE_URL``, for example exported from the local ``.env``) and skips when they are
-unset; it never prints the values.
-"""
 import base64
 import copy
 import json
@@ -71,7 +63,6 @@ def _all_pages(pages, start, end, size=100):
             return out
 
 
-# --- synthetic input is refused in the production path ----------------------------------------
 
 def test_synthetic_payload_is_refused_by_normalize_in_the_production_path(production):
     with pytest.raises(SyntheticInputRefused, match='synthetic-v1 .*test-only'):
@@ -89,7 +80,7 @@ def test_synthetic_v1_action_contract_is_refused_in_the_production_path(producti
     monkeypatch.setenv(SYNTHETIC_FIXTURE_ENV, 'test-only')
     encoded = Action(*args).to_json()
     monkeypatch.delenv(SYNTHETIC_FIXTURE_ENV)
-    with pytest.raises(SyntheticInputRefused):   # canonical/broker JSON of a fixture action
+    with pytest.raises(SyntheticInputRefused):
         Action.from_json(encoded)
 
 
@@ -122,12 +113,11 @@ def test_fixture_switch_is_set_only_by_the_test_suite_and_the_probe_harness():
 def test_live_pages_refuse_a_synthetic_payload(production, monkeypatch):
     with pytest.raises(SyntheticInputRefused):
         LivePages(LiveBatch(payloads=(_synthetic(),), unsupported=(), unresolved=()))
-    monkeypatch.setenv(SYNTHETIC_FIXTURE_ENV, 'test-only')   # even in fixture mode: live only
+    monkeypatch.setenv(SYNTHETIC_FIXTURE_ENV, 'test-only')
     with pytest.raises(SyntheticInputRefused):
         LivePages(LiveBatch(payloads=(_synthetic(),), unsupported=(), unresolved=()))
 
 
-# --- live records are accepted ------------------------------------------------------------------
 
 def test_recorded_window_yields_only_live_swap_records(production, window):
     batch = _batch(window)
@@ -148,7 +138,7 @@ def test_live_pages_serve_eligible_final_records_and_account_for_exclusions(prod
     served = _all_pages(pages, w0, w1)
     assert len(served) == 475
     assert all(normalize(p, EPOCH).eligible for p in served)
-    assert _all_pages(pages, w0, w1, size=7) == served          # deterministic paging
+    assert _all_pages(pages, w0, w1, size=7) == served
     reasons = Counter(tuple(r) for _t, _a, r in pages.excluded(EPOCH, w0, w1))
     assert reasons == {('status_not_success',): 86,
                        ('status_not_success', 'route_not_proven'): 2,
@@ -178,10 +168,9 @@ def test_live_batch_refuses_conflicting_duplicates(production, window):
         _batch(window, actions=responses)
     same = copy.deepcopy(window['action_responses'])
     same[-1]['actions'].append(copy.deepcopy(same[0]['actions'][0]))
-    assert len(_batch(window, actions=same).payloads) == 575   # exact replay is one record
+    assert len(_batch(window, actions=same).payloads) == 575
 
 
-# --- DeDust recognizer output reaches the product contract -------------------------------------
 
 def test_dedust_recognizer_output_reaches_the_product_contract(production, window):
     batch = _batch(window)
@@ -207,7 +196,7 @@ def test_recognizer_skips_swaps_the_indexer_already_reports(production, window):
     for p in batch.payloads:
         if p['protocol'] == 'DeDust':
             dedust[p['trace_id']].append((p['input']['asset'], p['input']['raw_amount']))
-    assert all(len(v) == len(set(v)) for v in dedust.values())      # no double count per trace
+    assert all(len(v) == len(set(v)) for v in dedust.values())
 
 
 def test_recorded_window_matches_the_closure_truth_agreement(production, window):
@@ -239,10 +228,9 @@ def test_recorded_window_matches_the_closure_truth_agreement(production, window)
            for x in truth['window_aggregates_all_dex']}
     mine = {k: (None if v[3] is None else str(v[3]), None if v[4] is None else str(v[4]))
             for k, v in feats.items()}
-    assert mine == raw                                   # exact raw sums on every key
+    assert mine == raw
 
 
-# --- keys never in payloads, logs or evidence ---------------------------------------------------
 
 def test_source_url_secrets_never_reach_live_payloads_or_logs(production, window, caplog):
     secret = 'not-a-real-key-task16-0123456789'

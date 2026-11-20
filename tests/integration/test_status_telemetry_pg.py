@@ -1,5 +1,5 @@
-"""/status storage and last-recorded-activity telemetry on real PostgreSQL,
-over HTTP, through sentinel_reader."""
+"""/status storage and last-recorded-activity telemetry on real PostgreSQL, over HTTP, through sentinel_reader."""
+
 import json
 import threading
 from urllib.request import urlopen

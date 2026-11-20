@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL over HTTP, through the sentinel_reader login."""
+
 import json
 import os
 import threading
@@ -20,7 +21,7 @@ from tests.integration.test_revisions import db  # noqa: F401
 NET = "testnet"
 T0 = 1_700_000_100 - (1_700_000_100 % 300)
 HOSTILE = "jetton:<img onerror=alert(1)>é\u202e日本"
-GAPS = {2, 3, 7}  # window offsets never written for token A (gaps must stay absent)
+GAPS = {2, 3, 7}
 
 
 def _insert(db, network, start, token, swaps=1):
@@ -39,9 +40,9 @@ def seeded(db):  # noqa: F811
     for i in range(0, 12, 2):
         _insert(db, NET, T0 + 300 * i, "jetton:B")
         _insert(db, NET, T0 + 300 * i, HOSTILE)
-    _insert(db, NET, T0 + 300 * 20, "jetton:late")        # outside the main range
-    _insert(db, "mainnet", T0, "jetton:A")                # other network
-    for i in (0, 1):  # qualification recorded for two windows only
+    _insert(db, NET, T0 + 300 * 20, "jetton:late")
+    _insert(db, "mainnet", T0, "jetton:A")
+    for i in (0, 1):
         db.execute(
             "INSERT INTO action_window_qualification (network, window_start, window_end, mode,"
             " mapping_version, delta_seconds, trace_ranges, source_epoch, synthetic,"
@@ -110,7 +111,7 @@ def test_series_pages_every_row_exactly_once_ascending_without_gap_fill(base):
     paged = walk(base, "/v1/series", "series", {**q, "limit": 3})
     assert paged == full
     starts = [p["window_start"] for p in full]
-    assert starts == [T0 + 300 * i for i in range(12) if i not in GAPS]  # gaps stay absent
+    assert starts == [T0 + 300 * i for i in range(12) if i not in GAPS]
     assert starts == sorted(set(starts))
 
 
@@ -131,7 +132,7 @@ def test_series_marks_unrecorded_qualification_as_null_not_live(base):
 def test_series_range_is_half_open_and_network_scoped(base):
     _, body = get(base, "/v1/series", {"network": NET, "token": "jetton:A",
                                        "from": T0 + 300, "to": T0 + 900})
-    assert [p["window_start"] for p in body["series"]] == [T0 + 300]  # offsets 2,3 are gaps
+    assert [p["window_start"] for p in body["series"]] == [T0 + 300]
     _, body = get(base, "/v1/series", {"network": "mainnet", "token": "jetton:A", **RANGE})
     assert [p["window_start"] for p in body["series"]] == [T0]
     _, body = get(base, "/v1/series", {"network": NET, "token": "jetton:none", **RANGE})
@@ -144,7 +145,6 @@ def test_series_hostile_token_roundtrips_through_cursor_inert(base):
     assert status == 200 and len(page["series"]) == 2 and page["token"] == HOSTILE
     items = walk(base, "/v1/series", "series", q)
     assert [p["window_start"] for p in items] == [T0 + 300 * i for i in range(0, 12, 2)]
-    # tampering with the token while reusing the cursor is refused
     status, body = get(base, "/v1/series", {**q, "token": "jetton:B", "cursor": page["next_cursor"]})
     assert status == 400 and body == {"error": "invalid_query"}
 
@@ -164,8 +164,8 @@ def test_tokens_keyset_pagination_complete_and_disjoint(base):
     paged = walk(base, "/v1/tokens", "tokens", {**q, "limit": 1})
     names = [t["token"] for t in paged]
     assert paged == full and len(names) == len(set(names))
-    assert names == sorted(names, key=lambda t: t.encode("utf-8"))  # bytewise order
-    assert set(names) == {"jetton:A", "jetton:B", HOSTILE}  # jetton:late is out of range
+    assert names == sorted(names, key=lambda t: t.encode("utf-8"))
+    assert set(names) == {"jetton:A", "jetton:B", HOSTILE}
     a = next(t for t in full if t["token"] == "jetton:A")
     assert a["feature_rows"] == 9 and a["window_count"] == 9
     assert a["first_window_start"] == T0 and a["latest_window_end"] == T0 + 300 * 12

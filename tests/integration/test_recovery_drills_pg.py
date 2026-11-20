@@ -1,17 +1,5 @@
-"""Recovery drills on real Spark, Kafka and PostgreSQL (app container).
+"""Recovery drills on real Spark, Kafka and PostgreSQL (app container)."""
 
-* checkpoint loss with pending and ambiguous sends: pause, cut, resume, and a new Spark lineage
-  that starts exactly at the cut's end offsets E;
-* Kafka expiry: the normal query stops first, a new cut recovers from canonical truth;
-* real process kills: Spark driver (SIGKILL of the whole driver process group), Spark executor
-  (SIGKILL of the executor JVM in ``local-cluster`` mode) and the maintenance sweeper;
-* PostgreSQL outage mid-batch and mid-sweep: the server backend serving the writer is
-  terminated (``pg_terminate_backend``) inside the open promotion.
-
-Every scenario ends on the same oracle: per window and token, served ``swaps`` equal the
-number of active canonical actions, and a full replay of the whole retained log in an
-independent lineage reproduces the served rows byte for byte.
-"""
 from __future__ import annotations
 
 import json
@@ -235,20 +223,18 @@ def test_checkpoint_loss_pending_and_ambiguous(drill, tmp_path, monkeypatch):
     run_consumer(drill.config(cp_a, "epoch-a"))
     assert drill.served() == {(300, t): 1 for t in TOKENS}
     e2 = drill.accept(2)
-    assert drill.publish() == (e2,)            # acknowledged below E; the consumer lags
+    assert drill.publish() == (e2,)
     e3 = drill.accept(3)
-    drill.make_ambiguous()                     # e3: the broker outcome is unknown
-    e4 = drill.accept(4)                       # e4: a pending intent
+    drill.make_ambiguous()
+    e4 = drill.accept(4)
     with drill.connect() as c:
         pause = pause_for_recovery(c, "recovery")
     served, batches, done = drill.served_rows(), drill.batches(), commits(cp_a)
-    # Consumer callbacks and maintenance are fenced by the durable pause.
     with pytest.raises(Exception, match="paused for a recovery cut"):
         run_consumer(drill.config(cp_a, "epoch-a"))
     with pytest.raises(Exception, match="paused for a recovery cut"):
         sweep_once(drill)
     assert (drill.served_rows(), drill.batches(), commits(cp_a)) == (served, batches, done)
-    # Those callbacks took the slot; the durable pause is retaken with its original epoch.
     with drill.connect() as c:
         again = pause_for_recovery(c, "recovery")
         assert (again.pause_id, again.recovery_epoch, again.resumed) == (
@@ -256,39 +242,35 @@ def test_checkpoint_loss_pending_and_ambiguous(drill, tmp_path, monkeypatch):
         cut = capture_recovery_cut(c, again.lease, again.pause_id, drill.reader)
         point = claim_recovery_point(c, cut.cut_id, drill.reader)
     end = cut.manifest["kafka"]["end_offsets"]
-    assert sum(end.values()) == 2                                   # e1, e2 below E
+    assert sum(end.values()) == 2
     members = {m[0]: m[3] for m in cut.manifest["outbox"]["members"]}
     assert members == {e1: "acknowledged", e2: "acknowledged", e3: "ambiguous", e4: "pending"}
-    assert len(cut.manifest["snapshot"]["contributions"]) == 4      # one per accepted event
-    # The superseded producer's in-flight send of e3 lands after the cut.
+    assert len(cut.manifest["snapshot"]["contributions"]) == 4
     with drill.connect() as c:
         envelope = c.execute("SELECT delivery_envelope FROM outbox WHERE event_id=%s",
                              (e3,)).fetchone()[0]
     landed = drill.producer.send(drill.topic, key=e3.encode(), value=wire_value(envelope)).get(15)
     assert landed.offset >= end[str(landed.partition)]
-    shutil.rmtree(cp_a)                                             # Spark checkpoint lost
+    shutil.rmtree(cp_a)
     resumed, sent = drill.resume(point, "pe-resumed")
     assert resumed.resolutions == {e3: (landed.partition, landed.offset)}
-    assert sent == (e4,)                                            # e3 deduplicated, not resent
+    assert sent == (e4,)
     cp_r = tmp_path / "cp-resumed"
     config = resumed_consumer_config(drill.config(cp_r, "epoch-a"), resumed)
-    # Explicit coordinates are refused unless they are the durable resumption's exact E.
     with pytest.raises(ValueError, match="durable recovery resumption"):
         run_consumer(replace(config, pipeline_epoch="pe-guessed"))
     with pytest.raises(ValueError, match="differ"):
         run_consumer(replace(config, starting_offsets=json.dumps({drill.topic: {"0": 0, "1": 0}})))
-    assert not cp_r.exists()                                       # no lineage was bound
-    # Batches handed to the callback so far: e1 (committed) and e2 (refused while paused).
+    assert not cp_r.exists()
     assert [k for batch in seen for *_, k in batch] == [e1, e2]
     seen.clear()
     run_consumer(config)
     applied = [item for batch in seen for item in batch]
-    assert sorted(k for *_, k in applied) == sorted([e3, e4])       # each once, nothing below E
+    assert sorted(k for *_, k in applied) == sorted([e3, e4])
     assert all(o >= end[str(p)] for p, o, _ in applied)
     assert {b[0] for b in drill.batches()} == {"epoch-a", "pe-resumed"}
     assert all(o["offset"] >= end[str(o["partition"])]
                for b in drill.batches("pe-resumed") for o in b[2])
-    # e2 lies below E and was never consumed: the canonical sweeper closes its window.
     assert (600, "TON") not in drill.served()
     report = sweep_once(drill)
     assert [(k.window_start, r) for k, r in report.repaired] == [(600, "idle")]
@@ -311,17 +293,16 @@ def test_expired_offsets_stop_the_query_and_a_new_cut_recovers_from_canonical_tr
     drill.accept(3)
     drill.publish()
     ends = {int(p): v["end"] for p, v in drill.reader(drill.topic)["partitions"].items()}
-    # Kafka expiry of the isolated test topic: e2/e3 are deleted before the consumer read them.
     drill.admin.delete_records({TopicPartition(drill.topic, p): e for p, e in ends.items() if e})
     served = drill.served_rows()
-    with pytest.raises(Exception, match=DATA_LOSS):                # the normal query stops first
+    with pytest.raises(Exception, match=DATA_LOSS):
         run_consumer(drill.config(cp_a, "epoch-a"))
     assert drill.served_rows() == served == drill.served_rows()
     assert drill.served() == {(300, t): 1 for t in TOKENS}
     _pause, cut, point = drill.cut()
     end = cut.manifest["kafka"]["end_offsets"]
     assert {int(p): e for p, e in end.items()} == ends
-    assert cut.manifest["kafka"]["log_start_offsets"] == end           # nothing retained below E
+    assert cut.manifest["kafka"]["log_start_offsets"] == end
     resumed, sent = drill.resume(point, "pe-resumed")
     assert resumed.resolutions == {} and sent == ()
     seen.clear()
@@ -329,12 +310,10 @@ def test_expired_offsets_stop_the_query_and_a_new_cut_recovers_from_canonical_tr
     config = resumed_consumer_config(drill.config(cp_r, "epoch-a"), resumed)
     run_consumer(config)
     assert [item for batch in seen for item in batch] == []
-    # The expired windows are recovered from canonical truth, not from the lost records.
     report = sweep_once(drill)
     assert sorted((k.window_start, r) for k, r in report.repaired) == [(600, "idle"),
                                                                         (900, "idle")]
     assert drill.served() == drill.oracle()
-    # The resumed lineage then continues normally from its own checkpoint.
     e4 = drill.accept(4)
     assert drill.publish() == (e4,)
     seen.clear()
@@ -356,7 +335,7 @@ def _cli(drill, checkpoint: Path, epoch: str, *, max_offsets=2) -> list:
 
 
 def _env(drill, **extra) -> dict:
-    return {**os.environ, "TON_SENTINEL_DSN": drill.dsn, **extra}   # DSN via env, not argv
+    return {**os.environ, "TON_SENTINEL_DSN": drill.dsn, **extra}
 
 
 def _live_members(pgid: int) -> list:
@@ -369,7 +348,7 @@ def _live_members(pgid: int) -> list:
             stat = (proc / "stat").read_text()
         except OSError:
             continue
-        fields = stat[stat.rindex(")") + 2:].split()       # state, ppid, pgrp, ...
+        fields = stat[stat.rindex(")") + 2:].split()
         if int(fields[2]) == pgid and fields[0] != "Z":
             live.append(int(proc.name))
     return live
@@ -400,7 +379,7 @@ def test_spark_driver_kill_mid_stream_restarts_from_checkpoint_to_the_oracle(dri
         assert proc.poll() is None, "driver ended before the kill"
         assert time.time() < deadline
         time.sleep(0.2)
-    os.killpg(proc.pid, signal.SIGKILL)                    # driver Python + its Spark JVM
+    os.killpg(proc.pid, signal.SIGKILL)
     assert proc.wait(timeout=60) == -signal.SIGKILL
     _wait_gone(proc.pid)
     at_kill = len(drill.batches("epoch-driver"))
@@ -408,8 +387,7 @@ def test_spark_driver_kill_mid_stream_restarts_from_checkpoint_to_the_oracle(dri
     restarted = subprocess.run(_cli(drill, checkpoint, "epoch-driver"), env=_env(drill),
                                stdout=log, stderr=subprocess.STDOUT, timeout=600)
     assert restarted.returncode == 0
-    assert len(drill.batches("epoch-driver")) > at_kill          # the kill was mid-stream
-    # Every retained record is applied by exactly one committed batch; nothing doubles.
+    assert len(drill.batches("epoch-driver")) > at_kill
     assert offsets_of(drill.batches("epoch-driver")) == log_offsets(drill)
     assert drill.served() == drill.oracle() == {(window(k), t): 1 for k in range(1, 11)
                                                 for t in TOKENS}
@@ -459,12 +437,12 @@ def test_spark_executor_kill_is_retried_without_a_driver_restart(drill, tmp_path
             assert time.time() < deadline
             time.sleep(0.2)
         (victim,) = _executors(proc.pid)
-        os.kill(victim, signal.SIGKILL)                      # the executor JVM only
+        os.kill(victim, signal.SIGKILL)
         replacement = []
         while proc.poll() is None and time.time() < deadline:
             replacement = [p for p in _executors(proc.pid) if p != victim] or replacement
             time.sleep(0.2)
-        assert proc.wait(timeout=600) == 0                   # the same driver finished the run
+        assert proc.wait(timeout=600) == 0
     finally:
         if proc.poll() is None:
             os.killpg(proc.pid, signal.SIGKILL)
@@ -489,7 +467,7 @@ def test_postgres_backend_lost_mid_batch_retries_to_the_oracle(drill, tmp_path, 
     original, killed = streaming.replace_features, []
 
     def terminate_then_replace(connection, *args, **kwargs):
-        if not killed:                       # inside the open promotion transaction
+        if not killed:
             killed.append(connection.info.backend_pid)
             _terminate(drill, connection)
         return original(connection, *args, **kwargs)
@@ -500,7 +478,7 @@ def test_postgres_backend_lost_mid_batch_retries_to_the_oracle(drill, tmp_path, 
     assert len(killed) == 1
     assert drill.served_rows() == [] and drill.batches() == [] and commits(checkpoint) == set()
     monkeypatch.setattr(streaming, "replace_features", original)
-    run_consumer(config)                     # same lineage, same checkpoint
+    run_consumer(config)
     assert offsets_of(drill.batches("epoch-pg")) == log_offsets(drill)
     assert drill.served() == drill.oracle()
     drill.full_replay_matches(tmp_path / "cp-oracle")
@@ -509,11 +487,11 @@ def test_postgres_backend_lost_mid_batch_retries_to_the_oracle(drill, tmp_path, 
 @pytest.mark.integration
 def test_postgres_backend_lost_mid_sweep_leaves_work_open_and_sweeps_once(drill):
     for k in (1, 2):
-        drill.accept(k)                      # canonical truth only; no stream ever ran
+        drill.accept(k)
     killed, sweeper = [], {}
 
     def terminate_then_compute(spark, frozen):
-        if not killed:                       # frozen work is durable; promotion not yet run
+        if not killed:
             killed.append(frozen.work_id)
             _terminate(drill, sweeper["connection"])
         return work_module.compute_replacement(spark, frozen)
@@ -534,7 +512,7 @@ def test_postgres_backend_lost_mid_sweep_leaves_work_open_and_sweeps_once(drill)
         assert sorted((k.window_start, r) for k, r in report.repaired) == [(300, "idle"),
                                                                             (600, "idle")]
         assert drill.served() == drill.oracle()
-        assert drill.sweep(spark).repaired == ()             # closed once
+        assert drill.sweep(spark).repaired == ()
         assert drill.query("SELECT count(*) FROM repair_promotions") == [(2,)]
     finally:
         spark.stop()
@@ -569,7 +547,6 @@ def test_sweeper_process_kill_mid_sweep_then_restart_sweeps_once(drill):
                                     RD_NOW=str(SWEEP_NOW)))
     assert child.returncode == -signal.SIGKILL, child.stderr[-2000:]
     assert "frozen" in child.stdout and "UNREACHABLE" not in child.stdout
-    # Durable work is not falsely complete: nothing promoted, served or closed.
     assert drill.served_rows() == []
     assert drill.query("SELECT count(*) FROM repair_promotions") == [(0,)]
     assert drill.query("SELECT count(*) FROM window_sweep_closures") == [(0,)]

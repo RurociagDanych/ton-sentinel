@@ -1,9 +1,4 @@
-"""Bounded reader for TON bag-of-cells message bodies (DeDust trace recognizer).
-
-Supports what swap-message layouts need: ordinary cells, uint/int fields, Coins
-(VarUInteger 16), refs and MsgAddress (std / none / extern). Anything else raises ValueError.
-Input is untrusted: the BOC size, cell count and ref targets are bounded and checked.
-"""
+"""Bounded reader for TON bag-of-cells message bodies (DeDust trace recognizer)."""
 from __future__ import annotations
 
 import base64

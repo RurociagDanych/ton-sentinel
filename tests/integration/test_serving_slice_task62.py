@@ -1,7 +1,5 @@
-"""Persisted replacement features served through the read-only HTTP slice.
+"""Persisted replacement features served through the read-only HTTP slice."""
 
-Real Spark -> real PostgreSQL -> real HTTP. Synthetic provisional fixtures only.
-"""
 import json
 import threading
 import uuid
@@ -50,10 +48,8 @@ def test_api_serves_exact_persisted_spark_features_with_pagination(spark, databa
             served = json.load(response)["features"]
         by_key = lambda rows: {(r["window_start"], r["token"]): r for r in rows}  # noqa: E731
         assert by_key(served) == by_key(stored) and len(served) == len(stored) == len(expected)
-        # Exact identifiers and quantities (decimal strings, directions preserved).
         assert by_key(served)[(0, "TON")]["input_raw"] == "1000000000"
         assert by_key(served)[(0, "jetton:A")]["output_raw"] == "250"
-        # Pagination returns the same set, one row per page, without duplicates.
         pages, query = [], {"network": "testnet", "limit": "1"}
         while True:
             with urlopen(base + "/v1/features?" + urlencode(query)) as response:
@@ -85,7 +81,7 @@ def test_audit_identity_uses_pipeline_epoch_and_batch_id_and_status_states_limit
         audit = connection.execute(
             "SELECT pipeline_epoch, batch_id FROM stream_batches ORDER BY pipeline_epoch").fetchall()
         assert audit == [("pe-a", 0), ("pe-b", 0)]
-        assert _stored(connection) == reference  # business results unchanged by the epoch
+        assert _stored(connection) == reference
         with pytest.raises(psycopg.errors.UniqueViolation):
             connection.execute(
                 "INSERT INTO stream_batches (environment_id,query_id,pipeline_epoch,batch_id,topic,"

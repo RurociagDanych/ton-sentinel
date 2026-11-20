@@ -1,4 +1,5 @@
 """Durable real-PostgreSQL corroboration of complete mutable-source walks."""
+
 import base64
 import os
 import uuid
@@ -125,7 +126,6 @@ def test_partial_walk_is_not_empty_and_cannot_be_used_as_a_match(db):
 
 
 def test_all_pass_budgets_are_cumulative_and_persisted(db):
-    """The group counters must reflect every request, byte, page, action, and elapsed unit."""
     transport = FullWalks([[action(1)], [action(1)]])
     constrained = ScanPolicy(start=10, end=20, page_size=1, max_pages=3,
                              max_actions=3, max_bytes=100_000, max_seconds=30,
@@ -245,7 +245,6 @@ def test_accept_scan_never_promotes_an_unlinked_complete_walk(db):
 
 
 def test_database_rejects_fabricated_single_walk_terminal_proof(db):
-    """Flags and a JSON key set cannot substitute for adjacent persisted observations."""
     import dataclasses
     import json
 

@@ -1,8 +1,5 @@
-"""Frozen repair inputs, atomic fenced promotion, stale rejection.
+"""Frozen repair inputs, atomic fenced promotion, stale rejection."""
 
-Fixture setup reuses the revision World (corroborated walks, grants). The assertions read the
-database directly and never call product helpers to decide expected values.
-"""
 import json
 import os
 import threading
@@ -20,9 +17,9 @@ from tests.integration.test_revisions import (  # noqa: F401  (fixture + helpers
     A, B, X, World, db, eid, mono, revise,
 )
 
-W0 = WindowKey("testnet", 0, 300)       # X = A lands here
-W1 = WindowKey("testnet", 600, 900)     # X = B lands here
-BASE = WindowKey("testnet", 300, 600)    # trailing baseline of W1
+W0 = WindowKey("testnet", 0, 300)
+W1 = WindowKey("testnet", 600, 900)
+BASE = WindowKey("testnet", 300, 600)
 
 
 def freeze(db, *args, **kw):
@@ -81,7 +78,6 @@ def seeded_baseline(db, lease):
     db.commit()
 
 
-# ------------------------------------------------------------------------------- freezing
 def test_freeze_pins_current_inputs_epoch_fence_and_dirty_state(db):
     world, evidence, auth = world_with_correction(db)
     lease = acquire_transition(db, "repair")
@@ -98,7 +94,6 @@ def test_frozen_inputs_cannot_change_under_a_repair(db):
     lease = acquire_transition(db, "repair")
     frozen = freeze(db, lease, [W0])
     digest, inputs = frozen.input_digest, frozen.inputs
-    # a correction moves X out of window 0 while the repair "computes"
     decide_revision(db, lease, evidence, auth)
     db.commit()
     assert db.execute("SELECT accepted_generation FROM canonical_current").fetchone()[0] == 2
@@ -106,7 +101,7 @@ def test_frozen_inputs_cannot_change_under_a_repair(db):
     assert [(i[0], i[1]) for i in frozen.inputs] == [(eid(X), 1)]
     fresh = freeze(db, lease, [W0])
     assert fresh.inputs == () and fresh.epoch == 1 and fresh.input_digest != digest
-    assert freeze(db, lease, [W1]).inputs[0][1] == 2      # new value lives in window 600
+    assert freeze(db, lease, [W1]).inputs[0][1] == 2
     with pytest.raises(Exception):
         frozen.inputs = ()
 
@@ -120,11 +115,10 @@ def test_freeze_with_stale_lease_is_rejected_without_writes(db):
         freeze(db, old, [W0])
 
 
-# ------------------------------------------------------------------------------ promotion
 def test_promote_replaces_windows_atomically_and_closes_the_pinned_dirty_rows(db):
     world, evidence, auth = world_with_correction(db)
     lease = acquire_transition(db, "repair")
-    decide_revision(db, lease, evidence, auth)           # dirties windows 0 and 600
+    decide_revision(db, lease, evidence, auth)
     db.commit()
     frozen = freeze(db, lease, [W0, W1])
     assert {r[3] for r in dirty(db)} == {"pending"}
@@ -153,7 +147,7 @@ def test_promote_failure_after_every_write_leaves_no_partial_promotion(db):
     with pytest.raises(RuntimeError):
         promote_idle(db, lease, frozen, [feature(W1, "TON", 1)], commit_check=boom)
     assert (served(db), dirty(db), promotions(db)) == before
-    assert promote_idle(db, lease, frozen, [feature(W1, "TON", 1)]) is True       # retry works
+    assert promote_idle(db, lease, frozen, [feature(W1, "TON", 1)]) is True
 
 
 def test_duplicate_retry_of_a_promoted_work_writes_nothing(db):
@@ -178,12 +172,10 @@ def test_empty_or_zero_result_promotion_clears_stale_rows_for_the_window(db):
     assert served(db) == []
 
 
-# ------------------------------------------------------------------------ stale rejection
 def test_stale_baseline_rejected(db):
     world, evidence, auth = world_with_correction(db)
     lease = acquire_transition(db, "repair")
     seeded_baseline(db, lease)
-    # control: unchanged baseline promotes
     control = freeze(db, lease, [W1])
     assert promote_idle(db, lease, control, [feature(W1, "TON", 1)]) is True
     replace_features(db, lease, [], windows=[W1])
@@ -204,7 +196,7 @@ def test_correction_during_paused_computation_makes_promotion_stale(db):
     lease = acquire_transition(db, "repair")
     seeded_baseline(db, lease)
     frozen = freeze(db, lease, [W0])
-    decide_revision(db, lease, evidence, auth)          # same lease: only the epoch tells
+    decide_revision(db, lease, evidence, auth)
     db.commit()
     before = served(db)
     assert promote_idle(db, lease, frozen, [feature(W0, "TON", 1)]) is False
@@ -230,7 +222,6 @@ def test_coverage_or_universe_change_during_paused_computation_makes_promotion_s
     assert served(db) == [] and promotions(db) == 0
 
 
-# --------------------------------------------------------------------------------- fencing
 def test_repair_fencing_superseded_or_expired_lease_cannot_promote(db):
     world, _, _ = world_with_correction(db)
     lease = acquire_transition(db, "repair")
@@ -257,7 +248,7 @@ def test_repair_fencing_racing_writer_waits_for_promotion_then_redirties(db):
     def writer():
         with connect(db) as conn:
             inside.wait(20)
-            decide_revision(conn, lease, evidence, auth)        # same lease token
+            decide_revision(conn, lease, evidence, auth)
             order.append("writer-committed")
 
     thread = threading.Thread(target=writer)
@@ -268,7 +259,7 @@ def test_repair_fencing_racing_writer_waits_for_promotion_then_redirties(db):
     promoter.start()
     assert inside.wait(20)
     time.sleep(1.0)
-    assert order == []                                           # writer is fenced out
+    assert order == []
     order.append("promotion-releasing")
     release.set()
     promoter.join(20)
@@ -278,7 +269,7 @@ def test_repair_fencing_racing_writer_waits_for_promotion_then_redirties(db):
     assert db.execute("SELECT epoch FROM dependency_epoch").fetchone()[0] == 1
     db.commit()
     states = {(r[0], r[1], r[2]): r[3] for r in dirty(db)}
-    assert states[("TON", 0, "target")] == "pending"            # the late correction re-dirties it
+    assert states[("TON", 0, "target")] == "pending"
 
 
 def test_two_racing_promotions_of_the_same_work_promote_once(db):

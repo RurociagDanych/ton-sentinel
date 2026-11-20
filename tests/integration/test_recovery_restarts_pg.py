@@ -1,18 +1,5 @@
-"""Broker restart and PostgreSQL restart drills (host-driven, real docker).
+"""Broker restart and PostgreSQL restart drills (host-driven, real docker)."""
 
-The host restarts real containers between and during phases that run inside the app
-container (``docker exec``): the project's Kafka broker (``docker restart``, data on its
-volume) and a disposable PostgreSQL 18.6 container created for this test on the fixture
-network. The shared compose PostgreSQL is never stopped.
-
-* broker + PG restart between cut and resume: the durable pause and cut survive, the broker
-  keeps its cluster id, topic id and offsets, the claim and resume succeed, the resumed
-  consumer starts at E, and served rows equal the canonical oracle;
-* PG restart in the middle of a running resumed consumer: the consumer fails, a rerun of the
-  same lineage applies every record above E exactly once and reaches the same oracle.
-
-Skipped where no docker CLI exists (inside the app container); run it on the host.
-"""
 from __future__ import annotations
 
 import json
@@ -36,7 +23,6 @@ PYTHONPATH = ("/workspace/src:/opt/probe/deps:/opt/spark/python:"
               "/opt/spark/python/lib/py4j-0.10.9.9-src.zip:/workspace")
 
 
-# ------------------------------------------------------------------ phases (app container)
 
 def _drill(create: bool = False):
     import psycopg
@@ -99,14 +85,14 @@ def _phase_b(drill) -> dict:
     e1, e2, e3, e4 = before["events"]
     live = drill.reader(drill.topic)
     assert (live["cluster_id"], live["topic_id"]) == (before["cluster_id"], before["topic_id"])
-    with drill.connect() as c:                            # after the PG restart
+    with drill.connect() as c:
         assert c.execute("SELECT released_at FROM recovery_pauses WHERE pause_id=%s",
                          (before["pause_id"],)).fetchone() == (None,)
         c.commit()
         point = claim_recovery_point(c, before["cut_id"], drill.reader)
     assert {str(p): e for p, e in point.end_offsets.items()} == before["end"]
     resumed, sent = drill.resume(point, "pe-restart")
-    assert resumed.resolutions == {e3: None}              # never landed: redelivered once
+    assert resumed.resolutions == {e3: None}
     assert sorted(sent) == sorted([e3, e4])
     run_consumer(resumed_consumer_config(drill.config(_base() / "cp-resumed", "epoch-a"),
                                          resumed))
@@ -114,7 +100,7 @@ def _phase_b(drill) -> dict:
     assert [(k.window_start, r) for k, r in report.repaired] == [(600, "idle")]
     assert drill.served() == drill.oracle() == {(window(k), t): 1 for k in (1, 2, 3, 4)
                                                 for t in TOKENS}
-    for k in range(5, 11):                                # backlog for the mid-run restart
+    for k in range(5, 11):
         drill.accept(k)
     assert len(drill.publish()) == 6
     return {"start": spark_starting_offsets(resumed), "batches": len(drill.batches("pe-restart")),
@@ -124,7 +110,7 @@ def _phase_b(drill) -> dict:
 def _phase_c(drill) -> dict:
     from ton_sentinel.stream_cli import run_consumer
 
-    run_consumer(_resumed_config(drill, max_offsets=2))  # PostgreSQL is restarted meanwhile
+    run_consumer(_resumed_config(drill, max_offsets=2))
     return {"completed": True}
 
 
@@ -136,7 +122,7 @@ def _phase_d(drill) -> dict:
     end = {int(p): e for p, e in json.loads(os.environ["RS_START"])[drill.topic].items()}
     sample = drill.reader(drill.topic)["partitions"]
     above_e = sorted((int(p), o) for p, v in sample.items() for o in range(end[int(p)], v["end"]))
-    assert offsets_of(drill.batches("pe-restart")) == above_e  # each record above E once
+    assert offsets_of(drill.batches("pe-restart")) == above_e
     assert drill.served() == drill.oracle() == {(window(k), t): 1 for k in range(1, 11)
                                                 for t in TOKENS}
     drill.full_replay_matches(_base() / "cp-oracle")
@@ -163,7 +149,6 @@ def phase() -> None:
     print("RESULT " + json.dumps(result), flush=True)
 
 
-# ------------------------------------------------------------------------- host side
 
 def _docker(*args, check=True, timeout=180, **kwargs):
     return subprocess.run(["docker", *args], check=check, timeout=timeout, text=True,
@@ -229,14 +214,12 @@ def test_broker_and_postgres_restarts_preserve_the_cut_and_converge_to_the_oracl
     try:
         _wait(lambda: _pg_ready(pg), "disposable PostgreSQL")
         before = _run_phase(env, "a", log)
-        # Restart the real broker and the disposable PostgreSQL between cut and resume.
         _docker("restart", KAFKA, timeout=300)
         timings["kafka_restart_to_healthy_s"] = round(_wait(_kafka_healthy, "Kafka healthy", 300), 1)
         _docker("restart", pg, timeout=120)
         timings["pg_restart_to_ready_s"] = round(_wait(lambda: _pg_ready(pg), "PG ready"), 1)
         resumed = _run_phase({**env, "RS_BEFORE": json.dumps(before)}, "b", log)
         env["RS_START"] = resumed["start"]
-        # Restart PostgreSQL while the resumed consumer is running batch by batch.
         sql = "SELECT count(*) FROM stream_batches WHERE pipeline_epoch='pe-restart'"
         consumer = subprocess.Popen(_exec_args({**env, "RS_PHASE": "c"}), text=True,
                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -258,7 +241,7 @@ def test_broker_and_postgres_restarts_preserve_the_cut_and_converge_to_the_oracl
     finally:
         try:
             _run_phase(env, "cleanup", log, timeout=120)
-        except Exception as exc:  # cleanup must not hide the drill result
+        except Exception as exc:
             log.write(f"cleanup failed: {exc}\n")
         _docker("rm", "-f", pg, check=False)
         log.close()

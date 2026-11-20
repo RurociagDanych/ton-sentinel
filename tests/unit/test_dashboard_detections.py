@@ -1,4 +1,5 @@
 """Dashboard API unit tests: /v1/detections/range and /v1/detections/revisions (no database)."""
+
 import json
 from unittest.mock import patch
 
@@ -80,13 +81,12 @@ RANGE = "/v1/detections/range"
 REVS = "/v1/detections/revisions"
 
 
-# ---- validation and bounds -------------------------------------------------------------
 @pytest.mark.parametrize("over", [
-    {"token": None},                    # test_detection_range_requires_token
+    {"token": None},
     {"token": ""}, {"network": None}, {"network": "devnet"},
     {"from": None}, {"to": None},
-    {"to": T0}, {"to": T0 - 300},       # empty or inverted range
-    {"to": T0 + 604800 + 300},          # span above seven days
+    {"to": T0}, {"to": T0 - 300},
+    {"to": T0 + 604800 + 300},
     {"from": T0 + 1}, {"to": T0 + 3601}, {"from": "-300"}, {"from": "abc"},
     {"limit": 0}, {"limit": 1001}, {"limit": "x"},
 ])
@@ -132,7 +132,6 @@ def test_revisions_pass_exact_key_to_reader():
     assert kw["after"] is None and kw["fetch_extra"] is True and kw["limit"] == 100
 
 
-# ---- stale / pending / retracted labelling ---------------------------------------------
 def test_result_revisions_show_stale_flag_and_current_pointer():
     rows = [revision(1), revision(2, is_current=True, stale=False, label="current",
                                   triggered=True),
@@ -147,7 +146,6 @@ def test_result_revisions_show_stale_flag_and_current_pointer():
     assert all(set(r) >= {"is_current", "stale", "label"} for r in got)
 
 
-# ---- cursor binding ---------------------------------------------------------------------
 def test_range_cursor_bound_to_filters_and_issues_only_when_truncated():
     rows = [detection(T0), detection(T0, OTHER), detection(T0 + 300)]
     q = range_query(limit=2)
@@ -203,7 +201,6 @@ def test_cursors_are_not_interchangeable_between_detection_endpoints():
                "read_result_revisions")[0] == "400 Bad Request"
     assert run(RANGE, range_query(limit=1) + f"&cursor={rev_cursor}", [],
                "read_detection_range")[0] == "400 Bad Request"
-    # and with the existing /v1/detections view
     assert run("/v1/detections", f"network=testnet&limit=1&cursor={range_cursor}", [],
                "read_detector_results")[0] == "400 Bad Request"
 
@@ -218,7 +215,6 @@ def test_unicode_token_cursor_roundtrip():
     assert status == "200 OK" and mock.call_args.kwargs["token"] == token
 
 
-# ---- provenance + safety ----------------------------------------------------------------
 def test_new_responses_carry_provenance_and_banner():
     status, body, _ = run(RANGE, range_query(), [detection(T0)], "read_detection_range")
     assert status == "200 OK" and body["provenance"] == PROV

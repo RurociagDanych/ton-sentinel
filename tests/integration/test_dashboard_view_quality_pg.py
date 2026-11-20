@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL over HTTP (sentinel_reader login): the endpoints the quality view uses."""
+
 import json
 import threading
 from pathlib import Path

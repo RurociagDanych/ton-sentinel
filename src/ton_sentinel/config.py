@@ -1,5 +1,4 @@
 """Explicit, deterministic policy selection for normalized observations."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -105,8 +104,6 @@ def evaluate_action_window_policy(
     return result
 
 
-# --------------------------------------------------------------------------------------------
-# Fixed detector policy identity and action-window coverage qualification.
 from ton_sentinel.contracts import (  # noqa: E402  (kept beside the policy it serves)
     DETECTOR_IDS, QUALIFIED_MODES, WINDOW_SECONDS, DetectorPolicy,
 )

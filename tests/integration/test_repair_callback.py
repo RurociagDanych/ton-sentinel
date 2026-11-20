@@ -1,9 +1,5 @@
-"""The canonical microbatch callback hands over to the fenced
-freeze_work -> compute_replacement -> promote path (real PostgreSQL + real Spark).
+"""The canonical microbatch callback hands over to the fenced freeze_work -> compute_replacement -> promote path (real PostgreSQL + real Spark)."""
 
-Expected values are read from the database or derived from the fixture action values;
-they are never produced by the product functions under test.
-"""
 import json
 
 import pytest
@@ -52,7 +48,6 @@ def test_callback_serves_corrected_current_not_first_acceptance_through_promotio
     world, evidence, auth = world_with_correction(db)
     lease = acquire_transition(db, "callback")
     record, _, incarnation = trigger_of(db, eid(X))
-    # Control: before any correction X = A (action_end 11) is served in window [0, 300).
     assert run(db, lease, spark, record, incarnation) == 2
     assert [(r[0], r[1], r[3]) for r in served(db)] == [(0, "TON", 1), (0, "jetton:A", 1)]
     assert promoted_windows(db) == [[["testnet", 0, 300]]]
@@ -61,11 +56,11 @@ def test_callback_serves_corrected_current_not_first_acceptance_through_promotio
     decide_revision(db, lease, evidence, auth)
     db.commit()
     assert run(db, lease, spark, record, incarnation) == 0
-    assert served(db) == []                                  # stale X=A withdrawn from window 0
+    assert served(db) == []
     assert promoted_windows(db) == [[["testnet", 0, 300]], [["testnet", 0, 300]]]
     states = {(r[0], r[1], r[2]): r[3] for r in dirty(db)}
     assert states[("TON", 0, "target")] == states[("jetton:A", 0, "target")] == "done"
-    assert states[("TON", 600, "target")] == "pending"       # other side awaits its own repair
+    assert states[("TON", 600, "target")] == "pending"
     assert states[("TON", 0, "baseline_dependents")] == "pending"
 
 
@@ -78,14 +73,14 @@ def test_callback_requeues_fresh_inputs_when_a_correction_lands_during_computati
 
     def paused(session, frozen):
         calls.append(len(frozen.inputs))
-        if len(calls) == 1:                    # a prior correction commits while we compute
+        if len(calls) == 1:
             with connect(db) as other:
                 decide_revision(other, lease, evidence, auth)
         return original(session, frozen)
 
     monkeypatch.setattr(streaming, "compute_replacement", paused)
     assert run(db, lease, spark, record, incarnation) == 0
-    assert calls == [1, 0]                     # stale frozen inputs, then fresh inputs
+    assert calls == [1, 0]
     assert served(db) == [] and promotions(db) == 1
 
 

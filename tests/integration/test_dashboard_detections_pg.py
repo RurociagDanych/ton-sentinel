@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL over HTTP, through the sentinel_reader login."""
+
 import json
 import threading
 from urllib.error import HTTPError
@@ -81,13 +82,11 @@ def test_range_returns_current_results_with_provenance_and_half_open_bounds(serv
     assert body["provenance"]["qualification_class"] != "unavailable"
     assert body["honesty_banner"] == dashboard_payload.HONESTY_BANNER
     assert "lease_owner" not in json.dumps(body)
-    # half-open: `to` is exclusive, `from` inclusive
     assert get(base, "/v1/detections/range", rng(**{"to": SCORED}))[1]["detections"] == []
     assert len(get(base, "/v1/detections/range",
                    rng(**{"from": SCORED, "to": SCORED + 300}))[1]["detections"]) == 2
     assert get(base, "/v1/detections/range",
                rng(**{"from": SCORED + 300, "to": SCORED + 600}))[1]["detections"] == []
-    # other token / other network match nothing
     assert get(base, "/v1/detections/range", rng(token="jetton:none"))[1]["detections"] == []
     assert get(base, "/v1/detections/range", rng(network="mainnet"))[1]["detections"] == []
 
@@ -119,7 +118,7 @@ def test_range_pages_each_row_once_and_cursor_is_bound(served):
 def test_detection_range_still_hides_stale_and_pending_real_data(served):
     db, base = served
     lease = promote_first(db)
-    promote_rows(db, lease, SCORED, [row(SCORED, TOK, 2, 2, 0)])  # correction: results go stale
+    promote_rows(db, lease, SCORED, [row(SCORED, TOK, 2, 2, 0)])
     db.commit()
     assert get(base, "/v1/detections/range", rng())[1]["detections"] == []
     assert rescore_stale(db, lease, network=NET) == [(NET, TOK, SCORED)]
@@ -127,7 +126,6 @@ def test_detection_range_still_hides_stale_and_pending_real_data(served):
     now = get(base, "/v1/detections/range", rng())[1]["detections"]
     assert {d["detector"] for d in now} == {COUNT, WALLETS}
     assert all(d["triggered"] is False for d in now)
-    # a pointer at a pending result row is hidden too
     db.execute(
         "INSERT INTO detector_results(network,token,direction,window_start,detector_id,"
         "result_revision,input_digest,policy_id,dependency_epoch,status,triggered,score,result,"
@@ -154,7 +152,6 @@ def test_revisions_listing_labels_stale_current_and_superseded(served):
     assert only["is_current"] is True and only["stale"] is False and only["label"] == "current"
     assert only["status"] == "scored" and only["triggered"] is True and only["alert_state"]
     assert only["input_digest"].startswith("sha256:") and only["promoted_at"].endswith("Z")
-    # a correction marks the current pointer stale: still current, but labelled stale
     promote_rows(db, lease, SCORED, [row(SCORED, TOK, 2, 2, 0)])
     db.commit()
     only = get(base, "/v1/detections/revisions", rev())[1]["revisions"][0]
@@ -190,7 +187,6 @@ def test_revisions_ordered_cursor_bound_and_validated(served):
     assert get(base, "/v1/detections/revisions", rev(WALLETS, limit=1, cursor=cursor))[0] == 400
     assert get(base, "/v1/detections/revisions", rev(limit=1, cursor=cursor,
                                                       window_start=SCORED + 300))[0] == 400
-    # unknown key: empty, not an error; the other detector has its own history
     assert get(base, "/v1/detections/revisions", rev(window_start=SCORED + 300))[1][
         "revisions"] == []
     assert [r["result_revision"] for r in get(base, "/v1/detections/revisions",

@@ -21,20 +21,20 @@ spec:
       serviceAccountName: {{ include "sentinel.name" $root }}
       automountServiceAccountToken: false
       nodeSelector: {kubernetes.io/hostname: {{ $root.Values.admission.nodeName | quote }}, kubernetes.io/arch: {{ include "sentinel.arch" $root }}}
-      securityContext: {runAsNonRoot: true, runAsUser: {{ if and (eq $name "spark") (include "sentinel.localK3s" $root) }}185{{ else }}10001{{ end }}, runAsGroup: {{ if and (eq $name "spark") (include "sentinel.localK3s" $root) }}185{{ else }}10001{{ end }}, fsGroup: 10001, seccompProfile: {type: RuntimeDefault}}
       # Local K3s spark: the pinned spark image's own non-root uid (185) has a passwd entry; Hadoop's login fails for uid 10001.
+      securityContext: {runAsNonRoot: true, runAsUser: {{ if and (eq $name "spark") (include "sentinel.localK3s" $root) }}185{{ else }}10001{{ end }}, runAsGroup: {{ if and (eq $name "spark") (include "sentinel.localK3s" $root) }}185{{ else }}10001{{ end }}, fsGroup: 10001, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: {{ $name }}
           image: {{ if eq $name "spark" }}{{ $root.Values.images.spark | quote }}{{ else }}{{ $root.Values.images.app | quote }}{{ end }}
           imagePullPolicy: Never
-          # Explicit refusal, NOT a fabricated Python module or Spark submit script.
-          # Replacement and readiness probes belong to application/ARM qualification.
           {{- if include "sentinel.localK3s" $root }}
           # Local K3s only: bounded probe over existing project code (ton_sentinel.k3s_probe). The source is
           # delivered by the test-created ConfigMap `<name>-code` (the pinned app image does not contain src/).
           command: ["python3", "-c", "import sys,tarfile; tarfile.open('/code/src.tgz').extractall('/tmp/code'); sys.path.insert(0,'/tmp/code/src'); from ton_sentinel.k3s_probe import main; sys.exit(main(sys.argv[1:]))", {{ $name | quote }}]
           readinessProbe: {exec: {command: ["test", "-f", "/tmp/ready"]}, periodSeconds: 3, failureThreshold: 200}
           {{- else }}
+          # Explicit refusal, NOT a fabricated Python module or Spark submit script.
+          # Replacement and readiness probes belong to application/ARM qualification.
           command: ["/bin/false"]
           {{- end }}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}

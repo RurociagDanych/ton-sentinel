@@ -1,9 +1,4 @@
-"""Versioned delivery envelope persisted with each canonical change.
-
-Version 2 carries the canonical accepted generation. Version 1 is the
-pre-generation contract: it is still validated for intents bound before
-migration 016 but is never written for a new acceptance.
-"""
+"""Versioned delivery envelope persisted with each canonical change."""
 import json
 
 

@@ -1,4 +1,5 @@
 """Scoring after a promotion (bounded, non-fatal) and the opt-in score schedule."""
+
 import inspect
 import subprocess
 import sys
@@ -52,7 +53,6 @@ def base_config(**extra):
     return ConsumerConfig(**base)
 
 
-# ---- hook: scoring is invoked after a successful promotion, within budget -------------------
 def test_promotion_callback_scores_new_windows_within_budget():
     score = recorder()
     report = hook(Conn(), score, promoted=2, limit=25)
@@ -73,15 +73,14 @@ def test_disabled_hook_makes_no_scoring_call():
     assert score.calls == []
 
 
-# ---- a scoring failure never propagates and never touches the promotion --------------------
 @pytest.mark.parametrize("exc", [RuntimeError("boom postgresql://u:secret@h/db"),
                                  LeaseRejected("superseded"), ValueError("x")])
 def test_scoring_failure_does_not_roll_back_feature_promotion(exc):
     conn = Conn()
     report = hook(conn, recorder(exc=exc))
-    assert report == {"status": "failed", "error": type(exc).__name__}   # class only, no text
+    assert report == {"status": "failed", "error": type(exc).__name__}
     assert "secret" not in repr(report)
-    assert conn.calls[-1] == "rollback"      # only the scoring transaction is abandoned
+    assert conn.calls[-1] == "rollback"
 
 
 def test_lease_acquisition_failure_is_also_contained():
@@ -119,7 +118,6 @@ def test_failed_promotion_schedules_nothing():
     assert score.calls == []
 
 
-# ---- config: scoring.limit_per_cycle ---------------------------------------------------------
 def test_score_limit_defaults_to_a_small_bound_and_validates():
     assert base_config().score_limit_per_cycle == 50
     assert base_config(score_limit_per_cycle=None).score_limit_per_cycle is None

@@ -1,4 +1,5 @@
 """Request boundary of the detector/alert read views, no database needed."""
+
 import json
 from unittest.mock import patch
 

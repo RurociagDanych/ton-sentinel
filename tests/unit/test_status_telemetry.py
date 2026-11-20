@@ -1,4 +1,5 @@
 """State rules and shape of the /status telemetry block (fake connection)."""
+
 import json
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -20,7 +21,6 @@ class _Result:
 
 class _Connection:
     """Routes a statement to canned rows by a substring; a value of Exception fails it."""
-
     def __init__(self, routes):
         self.routes = routes
         self.statements = []
@@ -136,8 +136,8 @@ def test_kafka_spark_and_disk_stay_unmeasured_with_precise_reasons():
     assert t["disk"] == {
         "status": "not_measured", "value": None, "reason": "database_volume_not_mounted",
         "provenance": "not queried"}
-    assert t["maintenance"]["status"] == "none_recorded"  # the fake has no retention_runs rows
-    assert t["rates"]["status"] == "unavailable"  # the fake does not answer the rates query
+    assert t["maintenance"]["status"] == "none_recorded"
+    assert t["rates"]["status"] == "unavailable"
 
 
 def test_no_zero_values_for_unmeasured_and_no_forbidden_content():

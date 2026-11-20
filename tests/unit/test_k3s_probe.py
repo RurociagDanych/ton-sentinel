@@ -1,4 +1,5 @@
 """Focused unit tests for the bounded local-K3s probe entrypoints (no services needed)."""
+
 import json
 
 import pytest

@@ -436,8 +436,6 @@ def read_coverage(connection, *, network, token, window_from, window_to, limit, 
     return result
 
 
-# --------------------------------------------------------------------------------------------
-# Current detector results and alert state (read-only).
 def _detector_filters(network, token, window_start, prefix="c."):
     if network not in ("mainnet", "testnet"):
         raise ValueError("network must be mainnet or testnet")

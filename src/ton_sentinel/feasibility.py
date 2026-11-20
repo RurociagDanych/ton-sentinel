@@ -1,9 +1,4 @@
-"""Bounded synthetic Kafka → stateful Spark → PG probe.
-
-Not canonical ingestion, economic normalization, repair, or deployment. All endpoints
-are hardcoded fixture services. Each phase starts a fresh Python/JVM process using
-one durable checkpoint, so open-state restoration is exercised, not simulated.
-"""
+"""Bounded synthetic Kafka → stateful Spark → PG probe."""
 from __future__ import annotations
 
 import argparse

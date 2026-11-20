@@ -104,7 +104,6 @@ def test_envelope_validation_rejects_any_drift_from_persisted_columns(mutate):
                                    replay_epoch=3, action={"epoch": {"network": "testnet"}, "x": 1})
 
 
-# Canonical accepted generation
 
 def test_generation_envelope_is_version_2_and_carries_accepted_generation():
     assert _envelope(accepted_generation=5) == {

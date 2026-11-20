@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL over HTTP, through the sentinel_reader login: GET /v1/baseline."""
+
 import json
 import threading
 from fractions import Fraction
@@ -47,7 +48,6 @@ def get(base, query, path="/v1/baseline"):
 
 
 def _strings(value):
-    """Every string key and value anywhere in a JSON document."""
     if isinstance(value, dict):
         return [s for k, v in value.items() for s in [k, *_strings(v)]]
     if isinstance(value, list):
@@ -122,7 +122,6 @@ def test_response_has_digest_cells_states_counts_policy_and_provenance(served):
     assert counts["eligible"] == pin["eligible_count"]
     assert pin["current_cell"]["window_start"] == SCORED
     assert pin["status"] in ("ready", "cold_start", "pending", "missing")
-    # selecting by the window key finds the same pin
     status, by_key = get(base, {"network": NET, "token": TOK, "window_start": SCORED})
     assert status == 200 and digest in [p["input_digest"] for p in by_key["baselines"]]
 
@@ -157,7 +156,7 @@ def test_absent_pin_is_explicit_404_and_bad_selectors_are_400(served):
     assert get(base, {"network": NET, "input_digest": absent}) == (
         404, {"error": "baseline_not_found"})
     assert get(base, {"network": "mainnet", "input_digest": published(db, COUNT)[
-        "input_digest"]})[0] == 404  # digest exists, but not on this network
+        "input_digest"]})[0] == 404
     assert get(base, {"network": NET, "token": "jetton:none", "window_start": SCORED})[0] == 404
     assert get(base, {"network": NET, "token": TOK, "window_start": SCORED + 300})[0] == 404
     for bad in ({"network": NET}, {"network": NET, "input_digest": "sha256:xyz"},
@@ -172,7 +171,7 @@ def test_repin_after_correction_lists_each_pin_newest_first_within_limit(served)
     db, base, _ = served
     lease = promote_first(db)
     first = published(db, COUNT)["input_digest"]
-    promote_rows(db, lease, SCORED, [row(SCORED, TOK, 2, 2, 0)])  # correction moves the input
+    promote_rows(db, lease, SCORED, [row(SCORED, TOK, 2, 2, 0)])
     db.commit()
     assert rescore_stale(db, lease, network=NET) == [(NET, TOK, SCORED)]
     db.commit()
@@ -187,7 +186,6 @@ def test_repin_after_correction_lists_each_pin_newest_first_within_limit(served)
     status, body = get(base, {**query, "limit": 1})
     assert [p["input_digest"] for p in body["baselines"]] == [second]
     assert body["truncated"] is True and body["limit"] == 1
-    # the older pin stays readable by its digest
     assert get(base, {"network": NET, "input_digest": first})[0] == 200
 
 

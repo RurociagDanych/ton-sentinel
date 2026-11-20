@@ -1,6 +1,5 @@
-// Token and window explorer: token list, per-token window series chart (SVG built in code),
-// window detail with its coverage state. Every value carries a provenance badge; a response
-// without provenance blocks the view. Gaps are drawn as hatched "no row" areas, never as zero.
+// Token and window explorer view. Gaps are drawn as hatched "no row" areas, never as zero;
+// a response without provenance blocks the view.
 import { ApiError, ProvenanceError, getChecked } from "./client.js";
 import { badge } from "./states.js";
 import { CHART_LEGEND, DEFAULT_PRESET, PRESETS, SERIES_PAGE_LIMIT, WINDOW_SECONDS, buildGrid, chartModel,

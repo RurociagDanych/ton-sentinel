@@ -1,12 +1,5 @@
-"""DeDust swaps recognized from complete TON Center v3 traces.
+"""DeDust swaps recognized from complete TON Center v3 traces."""
 
-The indexer classifier emits no DeDust CPMM v2 action and misses some CPMM v1 routes
-(16 of 87 DeDust truth records). The product therefore also reads DeDust swaps from the
-message BOCs of complete traces and fills only the gaps the indexer left.
-
-Fixture: tests/fixtures/live/dedust_traces.json, public on-chain data trimmed from
-raw trace captures. Expected values are hand-ruled truth records.
-"""
 import base64
 import copy
 import json
@@ -89,7 +82,7 @@ def test_hops_the_indexer_covers_are_not_emitted_twice_and_agree_with_it():
     q = toncenter_swap_payload(indexed, network='mainnet', metadata=item['metadata'])
     covered = frozenset({(q['input']['asset'], q['input']['raw_amount'])})
     assert recognize(item, covered=covered).payloads == ()
-    (p,) = recognize(item).payloads          # cross-check against the indexer classifier
+    (p,) = recognize(item).payloads
     assert p['route'] == q['route'] == ['native', p['route'][1], USDT, 'native']
     for side in ('input', 'output'):
         assert p[side] == q[side]

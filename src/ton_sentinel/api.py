@@ -35,7 +35,7 @@ MAX_CURSOR_LENGTH = 4096
 STATEMENT_TIMEOUT = "3000ms"
 SERIES_MAX_SPAN = dashboard_payload.LIMITS["time_range_seconds_max"]
 SERIES_DEFAULT_LIMIT = 288
-WINDOWS_MAX_FIELDS = 7  # network, window_start, window_end, token, limit, from, to
+WINDOWS_MAX_FIELDS = 7
 MAX_STATE_GROUPS = 50
 _LOG = logging.getLogger("ton_sentinel.api")
 _CSP_BASE = ("default-src 'none'; script-src 'self'; style-src {style}; img-src 'self' data:; "
@@ -256,7 +256,6 @@ METRICS_ROW_SERIES = ("stream_records", "stream_batches", "outbox_rows")
 _METRICS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 _PROCESS_START = time.time()
 _P = "ton_sentinel_"
-# name -> (type, help). Order is the catalogue order of the monitoring plan (section 3).
 _METRIC_FAMILIES = {
     "http_requests_total": ("counter", "HTTP requests by known route, method class and status class (2xx includes 3xx)."),
     "http_request_duration_seconds": ("histogram", "Wall time spent serving a request, by known route."),
@@ -303,7 +302,6 @@ def _metric_route(path):
 
 class _MetricsRegistry:
     """In-process request counters; bounded because every label is a closed enum."""
-
     def __init__(self):
         self._lock = threading.Lock()
         self.requests = {}
@@ -361,7 +359,6 @@ def _iso_seconds(text):
 
 class _MetricsCollector:
     """Cached, single-flight DB snapshot: one connection, one read-only transaction."""
-
     def __init__(self, dsn, probes=None):
         self._dsn = dsn
         self._probes = probes
@@ -951,7 +948,6 @@ def _parse_query(raw_query, allowed):
 
 
 def _query_range(query):
-    """Validated ``(from, to)`` window_start range, or ``(None, None)`` when neither is given."""
     window_from, window_to = _query_int(query, "from"), _query_int(query, "to")
     if window_from is None and window_to is None:
         return None, None
@@ -971,7 +967,6 @@ def _encode_endpoint_cursor(endpoint, filters, key):
 
 
 def _decode_endpoint_cursor(cursor, endpoint, filters):
-    """Return the key list of a cursor issued by ``endpoint`` for exactly these filters."""
     if (type(cursor) is not str or not cursor or len(cursor) > MAX_CURSOR_LENGTH
             or re.fullmatch(r"[A-Za-z0-9_-]+", cursor) is None):
         raise ValueError("invalid cursor")
@@ -1000,7 +995,6 @@ def _page_limit(query, default):
 
 
 def _read_tokens_api(dsn, raw_query):
-    """GET /v1/tokens: token index with activity counts for a network and bounded range."""
     query = _parse_query(raw_query, {"network", "from", "to", "limit", "cursor"})
     if query is None or query.get("network") not in ("mainnet", "testnet"):
         return "400 Bad Request", {"error": "invalid_query"}
@@ -1091,7 +1085,6 @@ def _read_series_api(dsn, raw_query):
 
 
 def _read_coverage_api(dsn, raw_query):
-    """GET /v1/coverage: per-window coverage state of one token over a bounded range."""
     query = _parse_query(raw_query, {"network", "token", "from", "to", "limit", "cursor"})
     if (query is None or query.get("network") not in ("mainnet", "testnet")
             or not query.get("token") or _echo_refused(query.get("token"))):
@@ -1133,7 +1126,6 @@ def _read_coverage_api(dsn, raw_query):
 
 
 def _read_quality_api(dsn, raw_query):
-    """GET /v1/quality: bounded data-quality counters for one network over a range."""
     query = _parse_query(raw_query, {"network", "from", "to"})
     if query is None or query.get("network") not in ("mainnet", "testnet"):
         return _BAD
@@ -1154,7 +1146,6 @@ def _read_quality_api(dsn, raw_query):
 
 
 def _read_pipeline_api(dsn, raw_query, probes=None):
-    """GET /v1/pipeline: read-only pipeline status for one network (outbox, backlog, stream)."""
     query = _parse_query(raw_query, {"network"})
     if query is None or query.get("network") not in ("mainnet", "testnet"):
         return _BAD
@@ -1177,7 +1168,6 @@ def _read_pipeline_api(dsn, raw_query, probes=None):
 
 
 def _read_detection_range_api(dsn, raw_query):
-    """GET /v1/detections/range: current fresh results of one token over a bounded range."""
     query = _parse_query(raw_query, {"network", "token", "from", "to", "limit", "cursor"})
     if (query is None or query.get("network") not in ("mainnet", "testnet")
             or not query.get("token") or _echo_refused(query.get("token"))):
@@ -1222,7 +1212,6 @@ def _read_detection_range_api(dsn, raw_query):
 
 
 def _read_result_revisions_api(dsn, raw_query):
-    """GET /v1/detections/revisions: all result revisions of one key, ascending and labelled."""
     query = _parse_query(raw_query, {"network", "token", "window_start", "detector", "limit",
                                      "cursor"})
     if query is None or query.get("network") not in ("mainnet", "testnet") \
@@ -1269,7 +1258,6 @@ _FEED_TIME = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\
 
 
 def _read_alert_feed_api(dsn, raw_query):
-    """GET /v1/alerts/feed: global alert revisions of one network over a bounded range."""
     query = _parse_query(raw_query, {"network", "from", "to", "limit", "cursor"})
     if query is None or query.get("network") not in ("mainnet", "testnet"):
         return _BAD
@@ -1380,7 +1368,6 @@ def _safe(payload):
 
 
 def _read_policy_api(dsn, raw_query):
-    """GET /v1/policy[?policy_id=]: policy identity, banner and fixed limits, from the server."""
     pairs = parse_qsl(raw_query, keep_blank_values=True, strict_parsing=True,
                       errors="strict") if raw_query else []
     if len(raw_query) > MAX_QUERY_LENGTH or len(pairs) > 1 or any(k != "policy_id" for k, _ in pairs):
@@ -1403,7 +1390,6 @@ def _read_policy_api(dsn, raw_query):
 
 
 def _read_status(dsn, probes=None):
-    """Read the single authoritative status view used by both renderings."""
     try:
         with psycopg.connect(dsn, connect_timeout=3) as connection:
             with connection.transaction():
@@ -1521,7 +1507,6 @@ def _gates():
 
 
 def _render_demo(payload):
-    """Render status as HTML, escaping every interpolated value."""
     payload = redact(payload)
     qualification = payload["qualification"]
     served = payload.get("served_data") or {}

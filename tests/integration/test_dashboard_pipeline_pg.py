@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL over HTTP, through sentinel_reader (seeded known backlog counts)."""
+
 import json
 import threading
 from urllib.error import HTTPError
@@ -53,7 +54,7 @@ def seed(db):
 def test_backlog_counts_never_scored_and_stale(served):
     db, base = served
     lease = seed(db)
-    promote_rows(db, lease, SCORED, [row(SCORED, TOK, 2, 2, 0)])   # correction: result goes stale
+    promote_rows(db, lease, SCORED, [row(SCORED, TOK, 2, 2, 0)])
     db.commit()
     status, body = get(base, {"network": NET})
     assert status == 200, body

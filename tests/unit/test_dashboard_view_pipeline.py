@@ -1,4 +1,5 @@
-"""Pipeline status view. Static checks of served files and node logic."""
+"""Pipeline status view."""
+
 import json
 import re
 import shutil
@@ -30,7 +31,6 @@ def node_json(tmp_path, body):
     return json.loads(result.stdout)
 
 
-# ---- static -----------------------------------------------------------------------------------------
 
 def test_pipeline_modules_are_allowlisted_packaged_and_served():
     for name in NEW_JS:
@@ -112,7 +112,6 @@ def test_harness_has_pipeline_scenarios():
         assert needle in source, needle
 
 
-# ---- logic ------------------------------------------------------------------------------------------
 
 PIPE = """
 const prov = {source_kind: "unverified_origin", certification_state: "not_certified", coverage_state: "unrecorded",
@@ -142,7 +141,7 @@ console.log(JSON.stringify({panel, both, omitted}));""")
     assert items["unscored_served_windows"]["text"] == "7" and items["unscored_served_windows"]["state"] == "observed"
     stale = items["stale_results"]
     assert stale["state"] == "unavailable" and stale["text"] == "unavailable" and stale["detail"] == "query_failed"
-    assert "total" not in out["panel"] and all("7" not in str(i["text"]) for i in [stale])  # never summed
+    assert "total" not in out["panel"] and all("7" not in str(i["text"]) for i in [stale])
     for item in out["both"]["items"]:
         assert item["state"] == "unavailable" and item["text"] != "0" and item["detail"] == "query_failed"
     om = {i["key"]: i for i in out["omitted"]["items"]}
@@ -162,7 +161,7 @@ console.log(JSON.stringify({ok, lying}));""")
     assert items["ingestion_freshness"]["text"] == "not measured"
     assert items["ingestion_freshness"]["detail"] == "no_ingestion_clock_recorded"
     assert items["kafka_lag"]["detail"] == "kafka_not_queried_by_reader"
-    for item in out["lying"]["items"]:  # anything but not_measured fails closed to unavailable, never a number
+    for item in out["lying"]["items"]:
         assert item["state"] == "unavailable" and item["text"] not in ("3", "0")
 
 
@@ -178,7 +177,7 @@ console.log(JSON.stringify({tiles: P.tiles(pipe), empty: P.tiles({})}));""")
     assert "42" in stream["text"] and "2026-01-01T00:00:00Z" in stream["text"]
     assert "topic" not in stream["text"] and "offset" not in stream["text"]
     assert "9" not in stream["text"].replace("2026-01-01T00:00:00Z", "").replace("42", "")
-    for tile in out["empty"]:  # omitted sections are unavailable, never zero
+    for tile in out["empty"]:
         assert tile["state"] == "unavailable" and tile["text"] != "0"
 
 

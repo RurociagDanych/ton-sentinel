@@ -1,4 +1,5 @@
-"""Redaction of nested/error/status payloads. Business identifiers stay exact."""
+"""Redaction of nested/error/status payloads."""
+
 import json
 
 import pytest

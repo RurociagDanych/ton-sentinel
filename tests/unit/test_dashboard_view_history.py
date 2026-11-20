@@ -1,4 +1,5 @@
-"""Alert history and revisions view. Static checks of served files and node logic."""
+"""Alert history and revisions view."""
+
 import json
 import re
 import shutil
@@ -37,7 +38,6 @@ const A = (token, detector, rev, state, label, at, over) => Object.assign({token
 """
 
 
-# ---- static: files are served, packaged, and obey the shell rules ----------------------------------
 
 def test_history_modules_are_allowlisted_packaged_and_served():
     for name in NEW_JS:
@@ -112,7 +112,6 @@ def test_harness_has_history_scenarios():
         assert needle in source, needle
 
 
-# ---- logic: grouping, filtering, timeline, cap -----------------------------------------------------
 
 @needs_node
 def test_timeline_orders_revisions_and_labels_retracted_pending(tmp_path):
@@ -130,8 +129,7 @@ console.log(JSON.stringify(H.timeline(rows)));""")
     assert by[3]["alert_state"] == "retracted" and by[3]["alert_known"] is True
     assert by[2]["alert_state"] == "pending" and by[2]["label"] == "pending"
     assert by[1]["alert_state"] == "active" and by[1]["label"] == "superseded"
-    assert by[4]["alert_state"] == "no_record" and by[4]["alert_known"] is True  # never "inactive"
-    # the highlight is derived from the stored revisions only: the highest result_revision
+    assert by[4]["alert_state"] == "no_record" and by[4]["alert_known"] is True
     assert [r["result_revision"] for r in out["rows"] if r["latest"]] == [4]
     assert out["latest_revision"] == 4
 
@@ -149,8 +147,8 @@ console.log(JSON.stringify({t, desc: H.LABELS}));""")
     assert stale["label"] == "stale" and stale["current"] is False and stale["label_known"] is True
     assert "not current" in stale["label_text"].lower() or "stale" in stale["label_text"].lower()
     weird = [r for r in out["t"]["rows"] if r["result_revision"] == 0][0]
-    assert weird["label_known"] is False and weird["current"] is False   # fails closed
-    assert weird["alert_known"] is False and weird["alert_state"] == "unknown"  # never shown as active
+    assert weird["label_known"] is False and weird["current"] is False
+    assert weird["alert_known"] is False and weird["alert_state"] == "unknown"
     assert set(out["desc"]) >= {"current", "stale", "superseded", "pending"}
 
 
@@ -177,7 +175,7 @@ const items = [
 ];
 const groups = H.groupFeed(items);
 console.log(JSON.stringify(groups));""")
-    assert [g["token"] for g in out] == ["jetton:B", "jetton:A"]  # newest latest-record first
+    assert [g["token"] for g in out] == ["jetton:B", "jetton:A"]
     a = out[1]
     assert [r["alert_revision"] for r in a["revisions"]] == [1, 2, 3]
     assert a["latest"]["alert_revision"] == 3 and a["latest"]["state"] == "pending"
@@ -201,7 +199,7 @@ console.log(JSON.stringify({
   noteCut: H.filterNote(3, 1, {token: "jetton:A", detector: ""}, true),
   noteOff: H.filterNote(3, 3, {token: "", detector: ""}, false),
   detectors: H.detectorsOf(items)}));""")
-    assert out["token"] == ["jetton:A"]  # exact, not a prefix
+    assert out["token"] == ["jetton:A"]
     assert out["det"] == ["jetton:A", "jetton:B"] and out["both"] == 0 and out["none"] == 3
     assert "client-side" in out["noteOn"].lower() and "loaded" in out["noteOn"].lower() and "1 of 3" in out["noteOn"]
     assert "not searched" in out["noteCut"].lower() or "more" in out["noteCut"].lower()

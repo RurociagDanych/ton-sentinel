@@ -1,6 +1,5 @@
-"""Dashboard API on real PostgreSQL: the post-promotion hook scores promoted windows; a failed
-promotion schedules nothing; a scoring failure leaves the promoted features served.
-SYNTHETIC grid (behaviour check, not quality)."""
+"""Dashboard API on real PostgreSQL: the post-promotion hook scores promoted windows; a failed promotion schedules nothing; a scoring failure leaves the promoted features served."""
+
 import pytest
 
 from ton_sentinel.db.fencing import LeaseRejected, acquire_transition
@@ -21,7 +20,7 @@ def test_promoted_window_is_scored_by_the_post_promotion_hook(db):
     real = real_windows()
     holder = {}
 
-    def promote():                                     # the real fenced promotion path
+    def promote():
         holder["lease"], holder["tokens"] = build(db, real, {})
         db.commit()
         return 25 * len(holder["tokens"])
@@ -41,7 +40,7 @@ def test_promoted_window_is_scored_by_the_post_promotion_hook(db):
     assert report["remaining_unscored"] == 0
     db.commit()
     docs = read_detector_results(db, network=NET, token=holder["tokens"][0], window_start=SCORED)
-    assert COUNT in {d["detector"] for d in docs}     # current detections without manual calls
+    assert COUNT in {d["detector"] for d in docs}
 
 
 def test_hook_is_bounded_by_the_configured_limit(db):
@@ -67,7 +66,7 @@ def test_failed_promotion_schedules_nothing(db):
     lease, tokens = build(db, real, {})
     db.commit()
     stale = lease
-    acquire_transition(db, "newer-owner", 300)          # supersedes ``stale``
+    acquire_transition(db, "newer-owner", 300)
     before_served, before_counts = served(db), counts(db)
     spy = []
 
@@ -90,11 +89,11 @@ def test_scoring_failure_leaves_the_promotion_served(db):
     before = served(db)
 
     def broken(connection, lease, *, network, limit):
-        connection.execute("SELECT 1")                 # open a transaction, then fail
+        connection.execute("SELECT 1")
         raise RuntimeError("scoring blew up")
 
     report = score_after_promotion(db, 1, limit=10, owner="stream-test", score=broken)
     assert report == {"status": "failed", "error": "RuntimeError"}
-    assert served(db) == before > 0                    # features still served
-    assert counts(db)[1:3] == (0, 0)                   # backlog visible, nothing half-written
+    assert served(db) == before > 0
+    assert counts(db)[1:3] == (0, 0)
     assert db.info.transaction_status.name in ("IDLE", "INTRANS")

@@ -1,11 +1,5 @@
-"""Admit whole windows only when retained context and resource
-bounds suffice; refuse otherwise with a durable missing/unrepairable record, never partially.
+"""Admit whole windows only when retained context and resource bounds suffice; refuse otherwise with a durable missing/unrepairable record, never partially."""
 
-Clock and admission contract: spec section 9.  Expected values are written by hand or read
-directly from the tables; product helpers only build fixtures.
-Fixture world: event X = A ends at action time 11 (window 0); the authorized
-correction moves it to window 600.
-"""
 import psycopg
 import pytest
 
@@ -21,7 +15,7 @@ from tests.integration.test_repair_fencing import (  # noqa: F401  (fixture + he
 from tests.integration.test_revisions import A, X, Z, World, eid
 
 DAY = 86400
-NOW = 7 * DAY                         # C_event = 0 with seven-day retention
+NOW = 7 * DAY
 POLICY = {"event_retention_seconds": 7 * DAY, "repair_margin_seconds": 0,
           "baseline_lookback_seconds": 600, "derived_retention_seconds": 30 * DAY,
           "max_windows": 4, "max_actions": 10, "max_input_bytes": 100_000,
@@ -80,12 +74,10 @@ def x_bytes(db):
     return value
 
 
-# ----------------------------------------------------------------------- whole admission
 def test_whole_window_margin(db):
-    """Whole closed windows at/after C_repair are admitted with pins; nothing is written."""
     world_with_correction(db)
     before = work_state(db)
-    policy = dict(POLICY, repair_margin_seconds=600)       # C_repair = ceil(0 + 600) = 600
+    policy = dict(POLICY, repair_margin_seconds=600)
     inside = admit_work(db, (W3,), NOW, policy)
     assert (inside.admitted, inside.status) == (False, "unrepairable")
     assert inside.reasons == ((W3, "inside_repair_margin"),)
@@ -105,22 +97,20 @@ def test_whole_window_margin(db):
     assert work_state(db) == before and refusals(db) == []
 
 
-# -------------------------------------------------------------- retained context refusals
 def test_refuses_when_target_payload_is_not_retained_and_records_it_durably(db):
     world_with_correction(db)
     lease = acquire_transition(db, "repair")
     db.commit()
-    set_horizon(db, "canonical_payload", 300)              # window 0 payload deleted
+    set_horizon(db, "canonical_payload", 300)
     before = work_state(db)
     admission = admit_windows(db, lease, (W0,), NOW, POLICY)
     assert (admission.admitted, admission.status) == (False, "unrepairable")
     assert admission.reasons == ((W0, "payload_not_retained"),)
-    assert work_state(db) == before                         # only the refusal row is new
+    assert work_state(db) == before
     assert refusals(db) == [("testnet", 0, 300, "unrepairable", ["payload_not_retained"],
                              [["testnet", 0, 300]], NOW, 0, 0, 0, "repair", lease.fence)]
     with pytest.raises(ValueError, match="not admitted"):
         freeze_work(db, lease, admission)
-    # a window whose payload is still retained passes the same horizon
     assert admit_work(db, (W3,), NOW, POLICY).admitted is True
 
 
@@ -146,16 +136,15 @@ def test_refuses_leading_context_beyond_derived_retention(db):
     # T = 30 days + 600, derived retention 30 days: context must start at or after 600
     at = 30 * DAY + 600
     policy = dict(POLICY, event_retention_seconds=31 * DAY)
-    old = admit_windows(db, lease, (W6,), at, policy)       # span starts at 0
+    old = admit_windows(db, lease, (W6,), at, policy)
     assert (old.status, old.reasons) == ("missing", ((W6, "baseline_context_expired"),))
     young = admit_work(db, (win(7 * DAY + 600),), at, policy)
-    assert young.admitted is True                           # span starts at 600
+    assert young.admitted is True
     assert [(r[1], r[3]) for r in refusals(db)] == [(600, "missing")]
 
 
-# --------------------------------------------------------------------- resource bounds
 def test_refuses_oversize_work_at_the_exact_resource_bound(db):
-    World(db).seed({X: A, Z: A})                            # two actions in window 0
+    World(db).seed({X: A, Z: A})
     lease = acquire_transition(db, "repair")
     replace_features(db, lease, [feature(W3, "TON", 9, "base"),
                                  feature(W3, "jetton:A", 9, "base")], windows=[W3])
@@ -180,7 +169,7 @@ def test_refuses_oversize_work_at_the_exact_resource_bound(db):
                                    (W6, "over_budget:" + dimension))
         expected += [(0, "unrepairable", ["over_budget:" + dimension]),
                      (600, "unrepairable", ["over_budget:" + dimension])]
-    assert work_state(db) == before                         # refusals change no work state
+    assert work_state(db) == before
     assert sorted((r[1], r[3], r[4]) for r in refusals(db)) == sorted(expected)
 
 
@@ -191,7 +180,7 @@ def test_inputs_that_grow_after_admission_are_refused_at_freeze_before_any_write
     admission = admit_work(db, (W6,), NOW, dict(POLICY, max_baseline_rows=1))
     assert admission.admitted is True and dict(admission.usage)["baseline_rows"] == 0
     replace_features(db, lease, [feature(W3, "TON", 9, "a"), feature(W3, "jetton:A", 2, "a")],
-                     windows=[W3])                          # leading context grows to 2 rows
+                     windows=[W3])
     db.commit()
     before = work_state(db)
     with pytest.raises(ValueError, match="exceeds the admitted resource budget"):
@@ -202,22 +191,21 @@ def test_inputs_that_grow_after_admission_are_refused_at_freeze_before_any_write
     assert work_state(db) == before
 
 
-# --------------------------------------------------------------- no partial admission
 def test_move_across_cutoff_is_not_partial(db):
     world, evidence, auth = world_with_correction(db)
     lease = acquire_transition(db, "repair")
-    decide_revision(db, lease, evidence, auth)              # X moves from window 0 to 600
+    decide_revision(db, lease, evidence, auth)
     db.commit()
-    set_horizon(db, "canonical_payload", 300)              # old side's payload is gone
+    set_horizon(db, "canonical_payload", 300)
     before = work_state(db)
     pending = db.execute("SELECT count(*) FROM dirty_windows WHERE status='pending'").fetchone()[0]
     db.commit()
     move = admit_windows(db, lease, (W6, W0), NOW, POLICY)
     assert (move.admitted, move.status) == (False, "unrepairable")
-    assert move.reasons == ((W0, "payload_not_retained"),)  # new side alone would pass
+    assert move.reasons == ((W0, "payload_not_retained"),)
     with pytest.raises(ValueError, match="not admitted"):
         repair_windows(db, lease, None, move, compute=lambda *_: pytest.fail("computed"))
-    assert work_state(db) == before                         # no served row, promotion, epoch
+    assert work_state(db) == before
     assert db.execute("SELECT count(*) FROM dirty_windows WHERE status='pending'"
                       ).fetchone()[0] == pending > 0
     db.commit()
@@ -226,10 +214,9 @@ def test_move_across_cutoff_is_not_partial(db):
         (0, "unrepairable", ["payload_not_retained"], [["testnet", 0, 300], ["testnet", 600, 900]]),
         (600, "unrepairable", ["work_unit_refused"], [["testnet", 0, 300], ["testnet", 600, 900]]),
     ]
-    assert {r[9] for r in rows} == {1}                      # dependency epoch at the decision
+    assert {r[9] for r in rows} == {1}
 
 
-# ------------------------------------------------------ durable, fenced, idempotent record
 def test_refusal_record_is_fenced_idempotent_and_immutable(db):
     world_with_correction(db)
     old = acquire_transition(db, "old")
@@ -242,7 +229,7 @@ def test_refusal_record_is_fenced_idempotent_and_immutable(db):
         record_refusal(db, old, refused)
     assert refusals(db) == []
     assert record_refusal(db, lease, refused) is True
-    assert record_refusal(db, lease, refused) is False      # same decision: no second row
+    assert record_refusal(db, lease, refused) is False
     assert len(refusals(db)) == 1
     with pytest.raises(psycopg.errors.RaiseException):
         db.execute("UPDATE window_admission_refusals SET status='missing'")
@@ -270,12 +257,6 @@ def test_retained_horizon_only_moves_forward(db):
     db.commit()
 
 
-# =============================================================================================
-# Bounded retention deletes only proven-covered data, advances the
-# retained horizon in the same transaction, never deletes what admitted or pending work needs,
-# and retires identity guards only after proven coverage. #  Fixture world: X ends at 11 (window 0), Z at 311
-# (window 300), Q at 611 (window 600). At T_PAYLOAD whole windows 0 and 300 are past the
-# seven-day cutoff; window 600 is not.
 import os  # noqa: E402
 import threading  # noqa: E402
 import time  # noqa: E402
@@ -382,7 +363,7 @@ def pending_dirty(db, window_start, status="pending"):
 
 
 def test_retention_refuses_expired_windows_whose_coverage_is_not_proven(db):
-    lease = covered_world(db, close_windows=(W3,))           # window 0 never closed
+    lease = covered_world(db, close_windows=(W3,))
     before = retention_state(db)
     plan = plan_retention(db, T_PAYLOAD, RPOLICY)
     section = payload(plan)
@@ -392,8 +373,7 @@ def test_retention_refuses_expired_windows_whose_coverage_is_not_proven(db):
     assert section["cutoff"] == 600 and plan["now"] == T_PAYLOAD
     result = apply_retention(db, lease, plan)
     assert result["status"] == "nothing_to_delete"
-    assert retention_state(db) == before                    # nothing deleted, no horizon, no run
-    # a closure on inputs that are no longer current is not proof either
+    assert retention_state(db) == before
     close(db, lease, W0)
     db.execute("UPDATE window_sweep_closures SET fingerprint=%s WHERE window_start=0",
                ("sha256:" + "0" * 64,))
@@ -420,17 +400,15 @@ def test_covered_windows_are_deleted_with_their_horizon_in_one_audited_transacti
     assert section["events"] == sorted([eid(X), eid(Z)])
     result = apply_retention(db, lease, plan)
     assert result["status"] == "applied"
-    assert events(db) == [eid(Q)]                            # window 600 payload retained
+    assert events(db) == [eid(Q)]
     assert read(db, "SELECT event_id FROM outbox") == [(eid(Q),)]
     assert read(db, "SELECT event_id FROM scan_membership") == [(eid(Q),)]
     assert horizon(db) == 600
-    # payload expiry leaves compact identity guards with generation and digest
     assert sorted(read(db, "SELECT event_id, accepted_generation, semantic_digest "
                            "FROM event_identity_guards")) == expected_guards
     assert read(db, "SELECT event_id, window_start, last_window, disposition, eligible "
                     "FROM event_identity_guards ORDER BY window_start") == [
         (eid(X), 0, 0, "active", True), (eid(Z), 300, 300, "active", True)]
-    # audit: exact cutoff, bounds and before/after counts, written in the deleting transaction
     (run,) = read(db, "SELECT kind, network, now_at, cutoff, from_window, to_window, windows,"
                       " counts_before->>'canonical_actions', counts_after->>'canonical_actions',"
                       " counts_after->>'event_identity_guards', lease_owner, lease_fence"
@@ -442,13 +420,11 @@ def test_covered_windows_are_deleted_with_their_horizon_in_one_audited_transacti
         "       r.txid %% 4294967296 = g.xmin::text::bigint "
         "FROM retention_runs r, retained_context_horizons h, event_identity_guards g "
         "WHERE h.data_class='canonical_payload' AND g.event_id=%s"), (eid(X),))
-    assert same == (True, True)                              # horizon, guards, run: one tx
-    # retained derived history stays queryable; admission now reads the real horizon
+    assert same == (True, True)
     assert read(db, "SELECT window_start, token, generation FROM served_features "
                     "ORDER BY window_start") == served_before
     refused = admit_work(db, (W0,), NOW, POLICY)
     assert refused.reasons == ((W0, "payload_not_retained"),)
-    # a retry of the same plan is idempotent: no second run, nothing else deleted
     after = retention_state(db)
     again = apply_retention(db, lease, plan)
     assert again["status"] == "already_applied" and again["runs"] == result["runs"]
@@ -464,7 +440,7 @@ def test_covered_windows_are_deleted_with_their_horizon_in_one_audited_transacti
     db.rollback()
     World(db).seed({X: A})
     World(db).seed({R: val(end=12)})
-    assert retention_state(db) == after                      # nothing new, nothing re-added
+    assert retention_state(db) == after
     assert [(e, w, r) for e, _, w, r in quarantined(db)] == sorted([
         (eid(X), 0, ["identity_guarded", "payload_expired"]),
         (eid(R), 0, ["payload_expired"])])
@@ -474,7 +450,6 @@ def test_a_failed_deletion_rolls_back_everything(db):
     lease = covered_world(db)
     plan = plan_retention(db, T_PAYLOAD, RPOLICY)
     before = retention_state(db)
-    # fail at the first guard write, in the middle of the deletion and at the horizon write
     for table, when in (("event_identity_guards", "BEFORE INSERT"),
                         ("canonical_actions", "BEFORE DELETE"),
                         ("retained_context_horizons", "BEFORE INSERT OR UPDATE")):
@@ -489,8 +464,8 @@ def test_a_failed_deletion_rolls_back_everything(db):
         db.execute(f"DROP TRIGGER injected_failure ON {table}")
         db.execute("DROP FUNCTION injected_failure()")
         db.commit()
-        assert retention_state(db) == before                 # no row, guard, run or horizon
-    assert apply_retention(db, lease, plan)["status"] == "applied"   # the retry succeeds
+        assert retention_state(db) == before
+    assert apply_retention(db, lease, plan)["status"] == "applied"
     assert events(db) == [eid(Q)] and horizon(db) == 600
 
 
@@ -510,13 +485,13 @@ def test_pending_repair_blocks_deletion_of_its_window(db):
 
 
 def test_quarantine_and_unacknowledged_delivery_block_deletion(db):
-    world, evidence, _ = world_with_correction(db)           # X = A in window 0
+    world, evidence, _ = world_with_correction(db)
     lease = acquire_transition(db, "maintenance", ttl_seconds=300)
     close(db, lease, W0)
     unacked = payload(plan_retention(db, T_PAYLOAD, RPOLICY))
     assert (unacked["to"], unacked["blocked"]) == (0, [0, ["unacknowledged_delivery"]])
     acknowledge(db)
-    decide_revision(db, lease, evidence)                     # unauthorized change: quarantine
+    decide_revision(db, lease, evidence)
     db.commit()
     before = retention_state(db)
     plan = plan_retention(db, T_PAYLOAD, RPOLICY)
@@ -528,10 +503,10 @@ def test_quarantine_and_unacknowledged_delivery_block_deletion(db):
 
 def test_admitted_work_holds_its_context_until_released(db):
     lease = covered_world(db)
-    admission = admit_work(db, (W3,), NOW, POLICY)           # leading context clipped at 0
+    admission = admit_work(db, (W3,), NOW, POLICY)
     assert admission.admitted
     hold = hold_admission(db, lease, admission)
-    assert hold_admission(db, lease, admission) == hold     # idempotent
+    assert hold_admission(db, lease, admission) == hold
     assert read(db, "SELECT network, hold_from, hold_until, released_at IS NULL "
                     "FROM retention_holds") == [("testnet", 0, 600, True)]
     before = retention_state(db)
@@ -541,11 +516,10 @@ def test_admitted_work_holds_its_context_until_released(db):
     assert apply_retention(db, lease, plan)["status"] == "nothing_to_delete"
     assert retention_state(db) == before
     assert release_hold(db, lease, admission) is True
-    assert release_hold(db, lease, admission) is False      # already released
+    assert release_hold(db, lease, admission) is False
     assert apply_retention(db, lease, plan_retention(db, T_PAYLOAD, RPOLICY))["status"] \
         == "applied"
     assert horizon(db) == 600
-    # work admitted before the deletion can no longer take a hold on deleted context
     with pytest.raises(ValueError, match="no longer retained"):
         hold_admission(db, lease, admission)
     with pytest.raises(psycopg.errors.RaiseException):
@@ -564,7 +538,7 @@ def test_concurrent_fenced_work_is_serialized_and_makes_the_plan_stale(db):
             other.execute(f'SET search_path TO "{db.schema_name}"')
             other.commit()
             with other.transaction():
-                validate_transition(other, lease)            # holds the shared slot row
+                validate_transition(other, lease)
                 other.execute(
                     "INSERT INTO dirty_windows(network,token,window_start,role,window_end,"
                     "covers_start,covers_end,dependency_epoch,reason,cause_event_id) VALUES "
@@ -576,10 +550,10 @@ def test_concurrent_fenced_work_is_serialized_and_makes_the_plan_stale(db):
     thread = threading.Thread(target=worker)
     thread.start()
     assert locked.wait(10)
-    result = apply_retention(db, lease, plan)                # waits for the slot, then re-checks
+    result = apply_retention(db, lease, plan)
     finished = time.monotonic()
     thread.join(10)
-    assert finished >= results["releasing_at"]              # retention waited for the slot
+    assert finished >= results["releasing_at"]
     assert result["status"] == "stale"
     assert events(db) == sorted([eid(X), eid(Z), eid(Q)]) and horizon(db) is None
     changed = retention_state(db)
@@ -603,10 +577,8 @@ def test_guards_retire_only_after_proven_coverage_and_stay_fenced_after(db):
     lease = covered_world(db)
     assert apply_retention(db, lease, plan_retention(db, T_PAYLOAD, RPOLICY))["status"] \
         == "applied"
-    # guards outlive the payload: nothing retires before the 30-day guard cutoff
     young = guards(plan_retention(db, T_PAYLOAD + DAY, RPOLICY))
     assert (young["from"], young["to"], young["windows"]) == (0, 0, [])
-    # proven coverage is the closure on exactly the guarded identities; a stale one blocks
     (fp0,) = read(db, "SELECT fingerprint FROM window_sweep_closures WHERE window_start=0")[0]
     db.execute("UPDATE window_sweep_closures SET fingerprint=%s WHERE window_start=0",
                ("sha256:" + "1" * 64,))
@@ -615,10 +587,9 @@ def test_guards_retire_only_after_proven_coverage_and_stay_fenced_after(db):
     plan = plan_retention(db, T_GUARD, RPOLICY)
     assert (guards(plan)["to"], guards(plan)["blocked"]) == (0, [0, ["coverage_not_current"]])
     assert apply_retention(db, lease, plan)["status"] == "nothing_to_delete"
-    assert retention_state(db) == before                    # both guards kept, no boundary
+    assert retention_state(db) == before
     db.execute("UPDATE window_sweep_closures SET fingerprint=%s WHERE window_start=0", (fp0,))
     db.commit()
-    # pending repair of window 300 keeps Z's guard; X's retires with the fenced boundary
     pending_dirty(db, 300)
     plan = plan_retention(db, T_GUARD, RPOLICY)
     assert (guards(plan)["from"], guards(plan)["to"], guards(plan)["windows"],
@@ -636,15 +607,13 @@ def test_guards_retire_only_after_proven_coverage_and_stay_fenced_after(db):
         == "applied"
     assert read(db, "SELECT count(*) FROM event_identity_guards") == [(0,)]
     assert read(db, "SELECT retired_before FROM identity_guard_horizons") == [(600,)]
-    # after retirement the identity is still not new: its window is behind both boundaries
     with pytest.raises(psycopg.errors.RaiseException, match="no longer retained"):
         raw_insert(db, X, A)
     db.rollback()
-    World(db).seed({X: A})                                   # re-delivery: quarantined
+    World(db).seed({X: A})
     assert events(db) == [eid(Q)]
     assert [(e, w, r) for e, _, w, r in quarantined(db)] == [
         (eid(X), 0, ["guard_retired", "payload_expired"])]
-    # guards and boundaries are not editable outside a retention run
     with pytest.raises(psycopg.errors.RaiseException):
         db.execute("UPDATE identity_guard_horizons SET retired_before=0")
     db.rollback()
@@ -653,11 +622,6 @@ def test_guards_retire_only_after_proven_coverage_and_stay_fenced_after(db):
     db.rollback()
 
 
-# =============================================================================================
-# The named Step 1 tests, 30-day derived-history expiry under
-# holds and pending repair context, late deliveries routed to quarantine (never new), the
-# fenced maintenance cycle (logical vs physical bytes, bounded plain VACUUM, 20% free
-# low-water pause of ingestion) and its CLI. # 
 import io  # noqa: E402
 import json  # noqa: E402
 from contextlib import redirect_stdout  # noqa: E402
@@ -691,7 +655,7 @@ DPOLICY = {"derived_retention_seconds": 30 * DAY, "max_windows": 10}
 CPOLICY = {"event_retention_seconds": 7 * DAY, "guard_retention_seconds": 30 * DAY,
            "derived_retention_seconds": 30 * DAY, "max_windows": 10, "vacuum_max_tables": 20,
            "vacuum_max_bytes": 1 << 34, "storage_budget_bytes": 1 << 34, "min_free_percent": 20}
-CUT = "sha256:" + "c" * 64          # a recovery-cut style holder of retained context
+CUT = "sha256:" + "c" * 64
 _DERIVED_TABLES = ("served_features", "baseline_inputs", "detector_results", "detector_current",
                    "alert_revisions")
 # Level-1 serialized maintenance budget accepted in
@@ -815,49 +779,39 @@ class BrokerBatch:
         return self.rows
 
 
-# ------------------------------------------------------------------- Step 1 named tests
 def test_action_trace_clocks(db):
-    """Action-end and trace-completion clocks decide independently; a late observation
-    never renews an event's analytical age."""
-    lease = covered_world(db)                    # X@0 (end 11), Z@300, Q@600; 0 and 300 closed
-    # action-end clock at T = 7 days + 300 s: C_event = 300
+    lease = covered_world(db)
     at = 7 * DAY + 300
     just_before = admit_work(db, (W0,), at, POLICY)
     assert (just_before.admitted, just_before.event_cutoff) == (False, 300)
     assert just_before.reasons == ((W0, "before_event_cutoff"),)
-    assert admit_work(db, (W3,), at, POLICY).admitted is True        # window start == C_event
-    # trace-completion clock: a zero needs trace ranges swept to window_end + delta (H);
-    # existing payload alone (Q in window 600) never certifies coverage
+    assert admit_work(db, (W3,), at, POLICY).admitted is True
     world = World(db)
     with pytest.raises(ValueError, match="cover"):
-        qualify(db, lease, world, 600, ranges=[[600, 920]])           # H stops before 960
+        qualify(db, lease, world, 600, ranges=[[600, 920]])
     assert read(db, "SELECT count(*) FROM action_window_qualification") == [(0,)]
     unqualified = dict(canonical=True, qualified=False, pending=False, touched=True,
                        in_universe=True)
     assert grid_cell_state(feature_swaps=1, **unqualified) == "partial"
     assert grid_cell_state(feature_swaps=None, **dict(unqualified, touched=False)) == "missing"
-    no_mapping = evaluate_action_window_policy(None, 600, 900)        # no supported delta
+    no_mapping = evaluate_action_window_policy(None, 600, 900)
     assert (no_mapping["eligible_zero"], no_mapping["reason"]) == (False, "mapping_unavailable")
-    # an action before C_event whose trace completes inside H is still expired
-    assert qualify(db, lease, world, 0) is True                       # trace side is fine...
-    assert admit_work(db, (W0,), at, POLICY).admitted is False        # ...the action is not
+    assert qualify(db, lease, world, 0) is True
+    assert admit_work(db, (W0,), at, POLICY).admitted is False
     db.execute("UPDATE dirty_windows SET status='done' WHERE status='pending'")
     db.commit()
     # analytical age is the action-end clock: X and Z were observed today, still expire
     assert apply_retention(db, lease, plan_retention(db, T_PAYLOAD, RPOLICY))["status"] \
         == "applied"
     assert events(db) == [eid(Q)]
-    # a newly observed old action (trace complete, action before the horizon) is quarantined
     World(db).seed({R: val(end=12)})
     assert events(db) == [eid(Q)]
     assert [(e, w, r) for e, _, w, r in quarantined(db)] == [(eid(R), 0, ["payload_expired"])]
 
 
 def test_holds_and_leading_context(db):
-    """Pinned admitted input and its leading context survive expiry; admission checks the
-    actual retained payload and leading context, not dates alone."""
     lease = covered_world(db)
-    admission = admit_work(db, (W3,), NOW, POLICY)   # target 300, leading context from 0
+    admission = admit_work(db, (W3,), NOW, POLICY)
     assert admission.admitted is True
     hold_admission(db, lease, admission)
     pinned_payload_ids = {eid(X), eid(Z)}
@@ -884,8 +838,6 @@ def test_holds_and_leading_context(db):
 
 
 def test_expired_delivery_never_new(db):
-    """After payload expiry a re-delivered or newly seen old identity is quarantined, never
-    counted new; a broker replay of its old envelope is rejected; admit_delivery agrees."""
     lease = covered_world(db)
     (x_envelope,) = read(db, "SELECT delivery_envelope FROM outbox WHERE event_id=%s",
                          (eid(X),))[0]
@@ -897,9 +849,8 @@ def test_expired_delivery_never_new(db):
         == "applied"
     guards_before = read(db, "SELECT * FROM event_identity_guards ORDER BY event_id")
     (generation_before,) = read(db, "SELECT generation FROM canonical_generation")[0]
-    # one corroborated range: X re-delivered, R new but old, S new and retained
     World(db).seed({X: A, R: val(end=12), S: val(end=911)})
-    assert events(db) == sorted([eid(Q), eid(S)])                   # only S is new
+    assert events(db) == sorted([eid(Q), eid(S)])
     assert read(db, "SELECT event_id FROM outbox ORDER BY event_id") == sorted(
         [(eid(Q),), (eid(S),)])
     assert sorted(r[0] for r in read(db, "SELECT event_id FROM scan_membership")) == sorted(
@@ -911,18 +862,15 @@ def test_expired_delivery_never_new(db):
                       " lease_owner FROM delivery_quarantine WHERE event_id=%s", (eid(X),))
     assert row == (True, World(db).digest(X, A), "11", "seed")
     assert read(db, "SELECT * FROM event_identity_guards ORDER BY event_id") == guards_before
-    # only S consumed an accepted generation: the refused identities were never counted new
     assert read(db, "SELECT generation FROM canonical_generation") == [(generation_before + 1,)]
     assert read(db, "SELECT accepted_generation FROM canonical_actions WHERE event_id=%s",
                 (eid(S),)) == [(generation_before + 1,)]
-    # the quarantine is an immutable audit record
     with pytest.raises(psycopg.errors.RaiseException):
         db.execute("UPDATE delivery_quarantine SET reasons='[]'::jsonb")
     db.rollback()
     with pytest.raises(psycopg.errors.RaiseException):
         db.execute("DELETE FROM delivery_quarantine")
     db.rollback()
-    # admit_delivery reads the same retained state, without writing
     before = retention_state(db)
     x_change = Change("revision", eid(X), "redelivery", x_generation,
                       (Cell("testnet", "TON", 0),), ())
@@ -932,7 +880,6 @@ def test_expired_delivery_never_new(db):
     s_change = Change("revision", eid(S), "redelivery", 9, (Cell("testnet", "TON", 900),), ())
     assert admit_delivery(db, s_change).admitted is True
     assert retention_state(db) == before
-    # a broker replay of X's old envelope is rejected before any serving write
     batch = BrokerBatch([{"key": eid(X).encode(), "value": json.dumps(x_envelope).encode()}])
     stream = acquire_transition(db, "stream")
     before = retention_state(db)
@@ -944,21 +891,17 @@ def test_expired_delivery_never_new(db):
 
 
 def test_guard_expiry_retires_epochs(db):
-    """Payload expiry preserves guards; a pending/ambiguous send blocks expiry of its event
-    and a recovery-style hold keeps the guards it references; after retirement the old
-    identity is refused (backfill only) by admit_delivery and by ingestion."""
     lease = covered_world(db, close_windows=(W0, W3, W6))
     db.execute("UPDATE outbox SET publication_state='ambiguous', acknowledged_at=NULL, "
                "published_at=NULL, publication_attempts=1 WHERE event_id=%s", (eid(Q),))
     db.commit()
     assert apply_retention(db, lease, plan_retention(db, T_GUARD, RPOLICY))["status"] \
         == "applied"
-    assert events(db) == [eid(Q)]                     # Q's ambiguous send keeps its payload
-    assert guard_ids(db) == {eid(X), eid(Z)}          # payload expiry preserved both guards
+    assert events(db) == [eid(Q)]
+    assert guard_ids(db) == {eid(X), eid(Z)}
     assert horizon(db) == 600
-    # a hold (as a recovery cut takes) on window 300 references Z's guard
     assert hold_context(db, lease, CUT, "testnet", 300, 600) is True
-    assert hold_context(db, lease, CUT, "testnet", 300, 600) is False     # idempotent
+    assert hold_context(db, lease, CUT, "testnet", 300, 600) is False
     pending_replay_guard_ids = {eid(Z)}
     plan = plan_retention(db, T_GUARD, RPOLICY)
     assert (guards(plan)["from"], guards(plan)["to"], guards(plan)["blocked"]) == (
@@ -968,7 +911,6 @@ def test_guard_expiry_retires_epochs(db):
     assert pending_replay_guard_ids <= remaining_guard_ids == {eid(Z)}
     assert eid(Q) not in remaining_guard_ids and eid(Q) in events(db)
     assert read(db, "SELECT retired_before FROM identity_guard_horizons") == [(300,)]
-    # a hold can never resurrect a retired identity
     with pytest.raises(ValueError, match="no longer retained"):
         hold_context(db, lease, "sha256:" + "d" * 64, "testnet", 0, 300)
     assert release_context(db, lease, CUT) is True
@@ -977,7 +919,6 @@ def test_guard_expiry_retires_epochs(db):
         == "applied"
     assert guard_ids(db) == set()
     assert read(db, "SELECT retired_before FROM identity_guard_horizons") == [(600,)]
-    # after epoch retirement the old identity is never new
     retired_epoch_change = Change("revision", eid(X), "replay", 1, (Cell("testnet", "TON", 0),),
                                   ())
     refused = admit_delivery(db, retired_epoch_change)
@@ -990,16 +931,15 @@ def test_guard_expiry_retires_epochs(db):
         (eid(Z), 300, ["guard_retired", "payload_expired"])])
 
 
-# ------------------------------------------------------------------ revision late delivery
 def test_revision_into_an_expired_window_is_quarantined_not_raised(db):
     lease = covered_world(db)
     assert apply_retention(db, lease, plan_retention(db, T_PAYLOAD, RPOLICY))["status"] \
         == "applied"
     world = World(db)
-    evidence = world.candidate({Q: val(end=12)}, {6: {7}})   # Q would move to window 0
+    evidence = world.candidate({Q: val(end=12)}, {6: {7}})
     auth = world.authorization(mono(revise(Q, val(end=12), src=2, prev=1)))
     before = retention_state(db)
-    decide_revision(db, lease, evidence, auth)               # no raw database exception
+    decide_revision(db, lease, evidence, auth)
     db.commit()
     assert read(db, "SELECT subject, scope, reason, status FROM revision_quarantine") == [
         (eid(Q), "event", "expired_identity", "open")]
@@ -1011,7 +951,6 @@ def test_revision_into_an_expired_window_is_quarantined_not_raised(db):
     assert read(db, "SELECT action->>'action_end' FROM canonical_actions") == [("611",)]
 
 
-# ------------------------------------------------------------------- derived history expiry
 def test_derived_history_expires_after_30_days_behind_the_payload(db):
     _, lease = derived_world(db)
     detector_before = read(db, "SELECT window_start, detector_id, result_revision, stale "
@@ -1019,7 +958,6 @@ def test_derived_history_expires_after_30_days_behind_the_payload(db):
     alerts_before = read(db, "SELECT window_start, detector_id, alert_revision, state "
                              "FROM alert_revisions ORDER BY 1, 2, 3")
     assert detector_before and alerts_before
-    # a score of window 7500 is computed now and promoted only after the retention run
     paused_baseline, paused_results = score_window(db, "testnet", TOK, SCORED + 300)
     db.commit()
     # whole windows only: at 30 days + 299 s window 0 has not fully aged out
@@ -1053,7 +991,6 @@ def test_derived_history_expires_after_30_days_behind_the_payload(db):
                        "retention_runs r, retained_context_horizons h WHERE r.kind='derived' "
                        "AND h.data_class='derived_features'")
     assert same == (True,)
-    # retained scores and alerts stay exactly as they were (not silently invalidated) ...
     assert read(db, "SELECT window_start, detector_id, result_revision, stale "
                     "FROM detector_current ORDER BY 1, 2") == detector_before
     assert read(db, "SELECT window_start, detector_id, alert_revision, state "
@@ -1065,11 +1002,9 @@ def test_derived_history_expires_after_30_days_behind_the_payload(db):
     with pytest.raises(psycopg.errors.RaiseException, match="no longer retained"):
         rescore_window(db, lease, "testnet", TOK, SCORED)
     db.rollback()
-    # the score paused before the retention run is rejected when it is promoted after it
     assert promote_scores(db, lease, paused_baseline, paused_results) is False
     assert derived_rows(db) == dict(counts_before,
                                     served_features=counts_before["served_features"] - 1)
-    # expired derived history never re-enters as new rows
     with pytest.raises(psycopg.errors.RaiseException, match="no longer retained"):
         replace_features(db, lease, [grid_row(0, TOK, 1)], windows=[W0])
     db.rollback()
@@ -1078,7 +1013,6 @@ def test_derived_history_expires_after_30_days_behind_the_payload(db):
     assert (later["derived"][0]["from"], later["derived"][0]["to"]) == (600, 600)
     assert apply_derived_retention(db, lease, later)["status"] == "nothing_to_delete"
     assert apply_derived_retention(db, lease, plan)["status"] == "already_applied"
-    # detector configuration is preserved: policies are never expired or deleted
     assert read(db, "SELECT count(*) FROM detector_policies") == [(1,)]
     assert read(db, "SELECT count(*) FROM active_detector_policy") == [(1,)]
     with pytest.raises(psycopg.errors.RaiseException):
@@ -1102,7 +1036,6 @@ def test_derived_expiry_never_deletes_held_or_pending_repair_context(db):
     assert apply_derived_retention(db, lease, plan)["status"] == "nothing_to_delete"
     assert derived_rows(db) == before
     assert release_context(db, lease, CUT) is True
-    # unadmitted pending repair of window 7200 needs its leading baseline context from 0
     dirty(db, SCORED, token=TOK, cause=eid(EV0))
     plan = plan_derived_retention(db, T_DERIVED, DPOLICY)
     assert (plan["derived"][0]["to"], plan["derived"][0]["blocked"]) == (
@@ -1116,7 +1049,6 @@ def test_derived_expiry_never_deletes_held_or_pending_repair_context(db):
     assert feature_windows(db) == [SCORED, SCORED + 300]
 
 
-# --------------------------------------------------------------------- the maintenance cycle
 def test_cycle_reports_logical_and_physical_bytes_separately_and_vacuums_within_budget(db):
     covered_world(db)
     report = run_retention_cycle(db, "maintenance", T_PAYLOAD, dict(CPOLICY,
@@ -1156,7 +1088,7 @@ def test_cycle_reports_logical_and_physical_bytes_separately_and_vacuums_within_
 def test_low_free_space_pauses_ingestion_until_retention_recovers(db):
     covered_world(db)
     used = run_retention_cycle(db, "maintenance", T_PAYLOAD, CPOLICY)["storage"]["used_bytes"]
-    tight = dict(CPOLICY, storage_budget_bytes=used * 10 // 9)      # ~10% free < 20%
+    tight = dict(CPOLICY, storage_budget_bytes=used * 10 // 9)
     report = run_retention_cycle(db, "maintenance", T_PAYLOAD + 300, tight)
     assert report["storage"]["status"] == "low_water" and report["ingestion"] == "paused"
     (pause,) = read(db, "SELECT reason, budget_bytes, released_at IS NULL FROM ingestion_pauses")
@@ -1166,7 +1098,6 @@ def test_low_free_space_pauses_ingestion_until_retention_recovers(db):
         World(db).seed({S: val(end=911)})
     db.rollback()
     assert retention_state(db) == before
-    # still low: the same pause stays (no second row); room again: ingestion resumes
     run_retention_cycle(db, "maintenance", T_PAYLOAD + 600, tight)
     assert len(read(db, "SELECT 1 FROM ingestion_pauses")) == 1
     resumed = run_retention_cycle(db, "maintenance", T_PAYLOAD + 900, CPOLICY)
@@ -1197,8 +1128,6 @@ def test_maintenance_cli_runs_one_fenced_cycle(db, tmp_path):
 
 
 def test_cycle_under_backlog_stays_bounded_within_the_maintenance_budget(db):
-    """24 expired, covered windows in backlog; max_windows 8 per cycle: three bounded cycles
-    clear it, each within the measured level-1 maintenance budget."""
     world = World(db)
     backlog = {(20 + i, 60 + i): val(end=i * 300 + 5) for i in range(24)}
     world.seed(dict(list(backlog.items())[:12]))

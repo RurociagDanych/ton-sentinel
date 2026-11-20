@@ -1,4 +1,5 @@
 """Real PostgreSQL behavior for restarting an interrupted bounded scan."""
+
 import base64
 import json
 import os

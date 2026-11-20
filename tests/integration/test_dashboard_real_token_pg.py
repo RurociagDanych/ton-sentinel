@@ -1,8 +1,5 @@
-"""Dashboard API on real PostgreSQL over HTTP (reader login): routes that carry a REAL recorded
-jetton token identifier (tests/fixtures/live/g3_window.json) answer 200 with provenance.
+"""Dashboard API on real PostgreSQL over HTTP (reader login): routes that carry a REAL recorded jetton token identifier (tests/fixtures/live/g3_window.json) answer 200 with provenance."""
 
-Only the token identifiers and the window grid come from the recording; the served rows are
-written by the series helper (behaviour check, not a quality claim)."""
 import json
 from pathlib import Path
 
@@ -58,8 +55,8 @@ def test_detection_routes_serve_results_that_name_a_recorded_token(base, seeded)
     assert report["first_scored"] == len(TOKENS) * len(range(W0, W1, 300))
     status, body = get(base, "/v1/detections/range", {"network": NET, "token": TOKENS[0], **RANGE})
     assert status == 200 and "provenance" in body
-    assert body["detections"] == []  # these rows only yield pending results, hidden by design
+    assert body["detections"] == []
     status, body = get(base, "/v1/detections/revisions", {
         "network": NET, "token": TOKENS[0], "window_start": W0, "detector": "swap_count_spike.v1"})
     assert status == 200 and "provenance" in body and len(body["revisions"]) == 1
-    assert TOKENS[0] in json.dumps(body["revisions"][0])  # explanation names the real token
+    assert TOKENS[0] in json.dumps(body["revisions"][0])

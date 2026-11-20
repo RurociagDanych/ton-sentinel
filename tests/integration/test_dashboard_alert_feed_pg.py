@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL over HTTP, through the sentinel_reader login: /v1/alerts/feed."""
+
 import json
 import threading
 from urllib.error import HTTPError
@@ -108,7 +109,6 @@ def test_feed_lists_every_revision_across_tokens_with_required_fields_and_proven
     assert body["honesty_banner"] == dashboard_payload.HONESTY_BANNER
     blob = json.dumps(body)
     assert "lease_owner" not in blob and "lease_fence" not in blob
-    # a correction adds pending then retracted revisions; older ones are labelled superseded
     correct_and_rescore_b(db, lease)
     items = get(base, q())[1]["alerts"]
     b = [i for i in items if i["token"] == TOK_B and i["detector"] == COUNT]
@@ -117,7 +117,6 @@ def test_feed_lists_every_revision_across_tokens_with_required_fields_and_proven
     a = [i for i in items if i["token"] == TOK_A and i["detector"] == COUNT]
     assert sorted((i["alert_revision"], i["state"], i["label"]) for i in a) == [
         (1, "active", "superseded"), (2, "pending", "superseded"), (3, "active", "current")]
-    # the window correction touched both tokens: 3 revisions x 2 tokens x 2 detectors
     assert len(items) == 12 and {i["state"] for i in items} == {"active", "pending", "retracted"}
     assert sum(i["label"] == "current" for i in items) == 4
 

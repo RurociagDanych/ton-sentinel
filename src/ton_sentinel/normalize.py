@@ -1,16 +1,4 @@
-"""Swap payload -> ``Action``: reviewed ``live_swap`` adapter output, or test-only synthetic_swap v1.
-
-Production accepts only ``live_swap`` (source/toncenter_swaps.py, source/dedust_trace.py); a
-``synthetic_swap`` payload raises ``SyntheticInputRefused`` unless the test-only fixture switch is
-set.
-
-Required: schema_version=1, kind=synthetic_swap, synthetic=true; exact identity,
-protocol/version, action_end (UTC integer seconds), status, route (2..64 ordered
-opaque asset IDs), input/output {asset,raw_amount,decimals,decimal_provenance}.
-Optional eligibility/grouping/trader assertions default unavailable (fail closed).
-Only metadata is cosmetic and ignored. Raw amounts admit 0..10**38-1, decimals
-0..38 with explicit provenance, never assumed. No USD or cross-unit arithmetic.
-"""
+"""Swap payload -> ``Action``: reviewed ``live_swap`` adapter output, or test-only synthetic_swap v1."""
 from dataclasses import asdict
 import hashlib
 import json

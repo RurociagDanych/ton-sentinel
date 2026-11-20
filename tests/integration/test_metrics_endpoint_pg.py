@@ -1,4 +1,5 @@
 """GET /metrics over HTTP on real PostgreSQL through the reader role, incl. unreadable sources."""
+
 import threading
 from urllib.request import urlopen
 from wsgiref.simple_server import make_server
@@ -22,7 +23,7 @@ def _serve(dsn):
 
 @pytest.fixture
 def served(db, reader_dsn):  # noqa: F811
-    assert "user=rdr_" in reader_dsn  # a member of sentinel_reader, never the admin role
+    assert "user=rdr_" in reader_dsn
     server, thread, base = _serve(reader_dsn)
     try:
         yield db, base

@@ -12,7 +12,7 @@ services:
     command: [postgres, -c, shared_buffers=64MB, -c, max_connections=20, -c, fsync=on, -c, synchronous_commit=on, -c, full_page_writes=on]
     # docker-init is PID 1 and reaps orphans. Without it the postmaster is PID 1: a timed-out
     # CMD-SHELL healthcheck leaves pg_isready orphaned, its exit 2 ("no response") is reaped as an
-    # "untracked child process" and the postmaster crash-restarts every backend (V1b evidence).
+    # "untracked child process" and the postmaster crash-restarts every backend.
     init: true
     volumes: ['pgdata:/var/lib/postgresql']
     networks: [fixture]

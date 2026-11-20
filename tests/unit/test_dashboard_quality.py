@@ -1,4 +1,5 @@
 """Dashboard API unit tests: /v1/quality validation, response shape, unavailable-not-zero, safety filter."""
+
 import json
 import re
 from unittest.mock import patch
@@ -75,7 +76,6 @@ def run(query, quality):
     return status, body, mock
 
 
-# ---- validation and bounds ---------------------------------------------------------------
 @pytest.mark.parametrize("over", [
     {"to": T0}, {"to": T0 - 300}, {"to": T0 + 604800 + 300}, {"from": T0 + 1}, {"to": T0 + 3601},
     {"from": None}, {"to": None}, {"network": None}, {"network": "devnet"}, {"from": "-300"},
@@ -112,7 +112,6 @@ def test_read_quality_validates_before_querying(over):
     assert conn.sql == []
 
 
-# ---- response shape ----------------------------------------------------------------------
 def test_response_shape_carries_provenance_banner_and_label():
     status, body, _ = run(q(), quality_value())
     assert status == "200 OK"
@@ -145,7 +144,6 @@ def test_empty_observed_tables_are_observed_zero_not_unavailable():
     assert result["served_windows"] == {"status": "observed", "value": 0}
 
 
-# ---- unavailable rule --------------------------------------------------------------------
 def test_each_counter_unavailable_independently():
     rows = {"revision_quarantine": [(4,)], "delivery_quarantine": [(2,)]}
     conn = Conn(fail=["dirty_windows"], rows=rows)
@@ -213,7 +211,6 @@ def test_unavailable_counter_survives_in_http_payload():
     assert body["quality"]["delivery_quarantine"]["status"] == "unavailable"
 
 
-# ---- safety filter and reader tables -----------------------------------------------------
 def test_forbidden_keys_are_stripped_and_forbidden_values_refused():
     dirty = quality_value(extra={"status": "observed", "value": 1, "lease_owner": "w1",
                                  "wallet": "EQ"})

@@ -1,4 +1,5 @@
 """Offline regressions for operational safety; no Docker transport."""
+
 import importlib.machinery
 import importlib.util
 import json
@@ -232,7 +233,7 @@ def test_r2_foreign_volume_refused_before_helper_create(tmp_path, monkeypatch):
 
 def test_heavy_delegate_budget_extension_is_ten_attempts():
     m = runner()
-    assert m.MAX_RUNS >= 10  # budget is a local runaway guard, not a cost cap
+    assert m.MAX_RUNS >= 10
 
 
 def test_workload_mode_uses_larger_but_finite_run_growth(tmp_path, monkeypatch):

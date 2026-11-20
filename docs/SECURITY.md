@@ -1,5 +1,15 @@
 # Security
 
+> Purpose: List the security controls of the local stack and the guards that enforce them.
+> Audience: reviewers, operators
+> Last reviewed: 2026-11-20
+
+Sections:
+
+- Controls
+
+## Controls
+
 - **Network:** the API, dashboard, Prometheus, Grafana and Alertmanager bind to loopback only.
   The API is GET-only.
 - **Database access:** the API reads through a least-privilege database role.

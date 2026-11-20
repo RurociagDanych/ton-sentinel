@@ -1,8 +1,5 @@
-"""Stale/cross-target evidence rejection and the offline decision artifact.
+"""Stale/cross-target evidence rejection and the offline decision artifact."""
 
-Synthetic inputs only; a 'locally_verified' decision is evaluator consistency, never
-ARM64/live/security/load qualification of any target.
-"""
 from copy import deepcopy
 import json
 import subprocess
@@ -33,7 +30,6 @@ def run_cli(tmp_path, report, requested=None, out=None):
     return subprocess.run(args, capture_output=True, text=True)
 
 
-# ---- stale / cross-target evidence: all rejected dimensions reported together ----
 
 def test_every_stale_gate_and_dimension_is_reported_in_one_evaluation():
     report = supplied_report()
@@ -77,7 +73,6 @@ def test_report_for_another_target_is_rejected_for_requested_evaluation(field):
     assert all(row['status'] == 'BLOCKED' for row in result.services)
 
 
-# ---- decision artifact content ----
 
 def test_decision_for_complete_consistent_evidence_is_locally_verified_without_qualification_claims():
     decision = decide(supplied_report())
@@ -160,7 +155,6 @@ def test_decision_is_deterministic_and_has_no_clock_or_host_data():
         assert forbidden not in set(decide(report))
 
 
-# ---- reviewability: CLI output and written file ----
 
 def test_cli_writes_canonical_decision_file_matching_stdout(tmp_path):
     out = tmp_path / 'decision.json'

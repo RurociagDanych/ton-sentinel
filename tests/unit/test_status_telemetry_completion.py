@@ -1,6 +1,5 @@
-"""Kafka lag, Spark progress, database-volume space, maintenance,
-rates and ingestion freshness in the /status telemetry block and /metrics (fake connection,
-fake broker, fake statvfs). Unmeasured items stay explicit and are never zero."""
+"""Kafka lag, Spark progress, database-volume space, maintenance, rates and ingestion freshness in the /status telemetry block and /metrics (fake connection, fake broker, fake statvfs)."""
+
 import json
 import os
 from types import SimpleNamespace
@@ -37,7 +36,6 @@ def _telemetry(**overrides):
     return serving.read_telemetry(_Connection(_routes(**overrides)))
 
 
-# --- PostgreSQL-derived sections -------------------------------------------------------------
 
 def test_spark_progress_is_the_audited_position_per_query_with_provenance():
     progress = _telemetry()["spark_progress"]
@@ -104,7 +102,6 @@ def test_rates_are_trailing_window_counts_not_extrapolated():
     assert malformed["status"] == "unavailable" and malformed["value"] is None
 
 
-# --- probes: Kafka end offsets and database-volume statvfs ------------------------------------
 
 class _Broker:
     def __init__(self, ends=None, error=None):
@@ -126,7 +123,7 @@ def _probes(broker=None, volume=None, statvfs=None, ismount=lambda p: True):
 def test_kafka_lag_is_log_end_minus_audited_next_offset():
     broker = _Broker({"topic-a": {0: 12, 1: 5}})
     lag = _probes(broker).apply(_telemetry())["kafka_lag"]
-    assert broker.calls == [("topic-a",)]  # only audited queries are asked for
+    assert broker.calls == [("topic-a",)]
     assert lag["status"] == "observed"
     assert lag["semantics"] == "log_end_offset_minus_next_offset_after_newest_audited_record"
     assert "no consumer group" in lag["provenance"] and "no credentials" in lag["provenance"]
@@ -235,7 +232,7 @@ def test_kafka_reader_uses_plaintext_no_group_no_commit():
     assert seen["security_protocol"] == "PLAINTEXT" and seen["closed"] is True
     assert seen["allow_auto_create_topics"] is False
     assert not {k for k in seen if "sasl" in k or "ssl" in k}
-    from kafka import KafkaConsumer as RealConsumer  # every option must be a real client option
+    from kafka import KafkaConsumer as RealConsumer
     assert set(seen) - {"closed"} <= set(RealConsumer.DEFAULT_CONFIG)
 
 
@@ -250,7 +247,6 @@ def test_no_zero_for_unmeasured_states_with_probes_applied():
                 assert node.get(key) is None
 
 
-# --- /status and /metrics --------------------------------------------------------------------
 
 def _status_with(probes, routes):
     harness_routes = dict(ROUTES, **routes)

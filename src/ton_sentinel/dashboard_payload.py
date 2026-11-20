@@ -1,9 +1,4 @@
-"""Dashboard payload honesty: provenance block, safety filter and fixed limits.
-
-Computed server-side so the client only maps given states to badges (plan DD3). The payload
-never carries wallet addresses, raw source URLs, lease owners, DSNs, request logs or lineage
-(plan DD4); anything forbidden is stripped, and a value that still looks forbidden is refused.
-"""
+"""Dashboard payload honesty: provenance block, safety filter and fixed limits."""
 from __future__ import annotations
 
 import json
@@ -42,13 +37,14 @@ FORBIDDEN_KEYS = frozenset({
 _FORBIDDEN_VALUE = re.compile(
     r"postgres(?:ql)?://|password|api[_-]?key|https?://"
     # a raw address is refused unless it is the address part of a ``jetton:`` token identifier
-    # (public jetton master, DD4), which values and detector explanations name verbatim
+    # (public jetton master), which values and detector explanations name verbatim
     r"|(?<!jetton:)(?<!jetton:-)\b-?[01]:[0-9a-fA-F]{64}\b|\b[EU]Q[A-Za-z0-9_-]{46}\b",
     re.IGNORECASE)
 
 
 class UnsafePayload(ValueError):
     """The payload cannot be served: forbidden content remains or it exceeds the cap."""
+    pass
 
 
 def _origin_counts(origins):

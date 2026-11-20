@@ -1,11 +1,4 @@
-"""Offline v1 identity/serialization profile, not a deployed-source adapter.
-
-The logical key is (network, trace_id, action_id); provenance is separate.
-This profile admits mainnet/testnet and canonical padded standard-base64
-32-byte IDs only. Other source representations require a reviewed versioned
-adapter, never implicit rewriting. Fingerprints are opaque, exact strings:
-no classifier/build identity or source completeness is inferred here.
-"""
+"""Offline v1 identity/serialization profile, not a deployed-source adapter."""
 import base64
 import binascii
 from dataclasses import asdict, dataclass, fields
@@ -91,7 +84,6 @@ class _Versioned:
 @dataclass(frozen=True)
 class SourceEpoch(_Versioned):
     """Exact source/filter/build/action-policy provenance, not business identity."""
-
     _kind: ClassVar[str] = "source_epoch"
     network: str
     source_fingerprint: str
@@ -109,7 +101,6 @@ class SourceEpoch(_Versioned):
 @dataclass(frozen=True)
 class ActionIdentity(_Versioned):
     """One source action within a trace and network; no amount/symbol keying."""
-
     _kind: ClassVar[str] = "action_identity"
     network: str
     trace_id: str
@@ -144,7 +135,6 @@ MAX_EVENT_TIME = 253402300799
 # adapter ton_sentinel.source.toncenter_swaps; anything else stays unsupported.
 LIVE_PROTOCOL_VERSIONS = {'toncenter-v3/stonfi': 'STON.fi', 'toncenter-v3/stonfi_v2': 'STON.fi',
                           'toncenter-v3/dedust': 'DeDust', 'toncenter-v3/dedust_v2': 'DeDust',
-                          # DeDust trace recognizer
                           'toncenter-v3-trace/dedust': 'DeDust',
                           'toncenter-v3-trace/dedust_cpmm_v2': 'DeDust'}
 
@@ -159,6 +149,7 @@ _SYNTHETIC_FIXTURE_VALUE = 'test-only'
 
 class SyntheticInputRefused(ValueError):
     """A synthetic-v1 fixture reached the production path (it accepts only live_swap records)."""
+    pass
 
 
 def synthetic_fixtures_allowed() -> bool:
@@ -189,7 +180,6 @@ def _optional_bool(value):
 @dataclass(frozen=True)
 class Endpoint(_Versioned):
     """Exact synthetic asset/unit and explicitly declared decimal provenance."""
-
     _kind: ClassVar[str] = 'synthetic_endpoint'
     asset: str
     raw_amount: str
@@ -224,7 +214,6 @@ class Action(_Versioned):
     only explicit route_proven permits endpoint grouping. Trader attribution is
     separately qualified and is never inferred from sender/router/recipient.
     """
-
     _kind: ClassVar[str] = 'synthetic_action'
     identity: ActionIdentity
     epoch: SourceEpoch
@@ -308,7 +297,6 @@ class Action(_Versioned):
 @dataclass(frozen=True)
 class Contribution(_Versioned):
     """One endpoint asset per routed event; directions never netted or summed."""
-
     _kind: ClassVar[str] = 'synthetic_contribution'
     event_id: str
     token: str
@@ -361,7 +349,6 @@ class Contribution(_Versioned):
 @dataclass(frozen=True)
 class Lease:
     """Database-issued fencing token for one transition owner."""
-
     owner: str
     fence: int
     expires_at: datetime
@@ -374,9 +361,6 @@ class Lease:
             raise ValueError('lease expiry must be timezone-aware')
 
 
-# --------------------------------------------------------------------------
-# Revision authorization and decision outcomes (pure values).
-# --------------------------------------------------------------------------
 WINDOW_SECONDS = 300
 CONTRACTS = ("source_monotonic_revision", "owner_resolution")
 GRANT_ACTIONS = ("revise", "add", "retract")
@@ -385,6 +369,7 @@ CHANGE_KINDS = ("revision", "retraction", "quarantine", "cleared")
 
 class RevisionRejected(ValueError):
     """Revision input is malformed or unprovable; nothing was admitted."""
+    pass
 
 
 def _plain_int(value, minimum=None) -> bool:
@@ -394,7 +379,6 @@ def _plain_int(value, minimum=None) -> bool:
 @dataclass(frozen=True)
 class RevisionPolicy:
     """Trailing-baseline lookback: whole five-minute windows, default seven days."""
-
     baseline_lookback_seconds: int = 7 * 86400
 
     def __post_init__(self):
@@ -406,7 +390,6 @@ class RevisionPolicy:
 @dataclass(frozen=True)
 class WindowKey:
     """One half-open five-minute UTC window of one token on one network."""
-
     network: str
     token: str
     window_start: int
@@ -431,7 +414,6 @@ class WindowKey:
 @dataclass(frozen=True)
 class Change:
     """One durable decision: an admitted revision/retraction or a quarantine disposition."""
-
     kind: str
     event_id: str
     reason: str
@@ -457,7 +439,6 @@ class Grant:
 @dataclass(frozen=True)
 class Authorization:
     """Audited authority to admit specific candidate digests; never inferred."""
-
     contract: str
     authority_id: str
     epoch: SourceEpoch
@@ -550,9 +531,7 @@ def parse_authorization(raw) -> "Authorization | None":
     return Authorization(raw["contract"], authority.strip(), epoch, parsed, trace_sets)
 
 
-# --------------------------------------------------------------------------------------------
 # Exact qualified baseline grid and detector input contract.
-#
 # A grid cell is one (network, token, direction, five-minute window). Only ``observed`` and
 # ``zero`` cells are baseline-eligible. A zero needs qualified action-window coverage and a
 # token already admitted to the data-derived universe; an absent row without that evidence is
@@ -593,7 +572,6 @@ class DetectorPolicy:
     formatting. Any changed value is a different policy with a different ``identity``;
     only registered identities (table ``detector_policies``) can be pinned.
     """
-
     version: str = "detector-policy.v1"
     window_seconds: int = WINDOW_SECONDS
     lookback_seconds: int = 7 * 86400
@@ -695,7 +673,6 @@ _CELL_VALUE_FIELDS = ("swaps", "known_traders", "unknown_count")
 @dataclass(frozen=True)
 class GridCell:
     """One pinned baseline grid cell; values must agree with ``state``."""
-
     network: str
     token: str
     direction: str
@@ -800,7 +777,6 @@ class BaselineInput:
     ``digest`` are derived and re-checked on construction, so they cannot be forged.
     Build it with ``BaselineInput.create`` (or ``from_record`` for a stored pin).
     """
-
     network: str
     token: str
     direction: str
@@ -861,7 +837,6 @@ class BaselineInput:
         if self.digest != _canonical_digest(self._body()):
             raise ValueError("baseline input digest does not match its pins")
 
-    # -- derivation -----------------------------------------------------------------
     def eligible_cells(self) -> tuple:
         return tuple(cell for cell in self.cells if cell.state in ELIGIBLE_GRID_STATES)
 
@@ -925,7 +900,6 @@ class BaselineInput:
         return cls(**draft, status=status, eligible_count=eligible,
                    certification=certification, digest=_canonical_digest(probe._body()))
 
-    # -- persistence ----------------------------------------------------------------
     def to_record(self) -> dict:
         """Column values of table ``baseline_inputs`` (cells run-length encoded)."""
         return {"input_digest": self.digest, **self._header(), "status": self.status,

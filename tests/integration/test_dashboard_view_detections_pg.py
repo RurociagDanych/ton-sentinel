@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL over HTTP (sentinel_reader login): the endpoints the detections view uses."""
+
 import json
 import threading
 from fractions import Fraction

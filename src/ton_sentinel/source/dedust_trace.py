@@ -1,28 +1,4 @@
-"""DeDust swaps from complete TON Center v3 traces -> product ``live_swap`` payloads.
-
-Why: the indexer's action classifier emits no DeDust CPMM v2 action and misses some CPMM v1 routes
-(16 of 87 DeDust truth records). This recognizer reads the DeDust messages of a
-complete trace (BOC bodies, ``source/boc.py``) and is used to fill only the gaps the indexer left:
-callers pass the (input asset, input raw amount) pairs of the indexer's DeDust actions for the same
-trace as ``covered``.
-
-Policy (fail closed):
-- CPMM v1 (``TRACE_V1``): a hop is a pool transaction whose in-message is ``swap_external`` or
-  ``swap_peer`` and that emits exactly one ``swap`` event log with compute exit 0. Hops chain by
-  message link (a ``swap_peer`` out-message is the next hop's in-message). ``route_proven`` only if
-  every link matches by exact asset and amount and the last hop pays out exactly the event amount
-  once. Hops without an event (rejected swaps) are not emitted; the indexer reports them.
-- CPMM v2 (``TRACE_V2``): one hop per ``swap`` event log; assets come from the payment and payout
-  messages and the indexer's jetton-wallet metadata. Never route-proven (no independent second
-  source qualifies it), never trader-attributed. Hops whose assets cannot be resolved are returned
-  in ``unresolved``, never guessed.
-- Trader (both): the DEX-facing payer (event sender / initiator); unambiguous only for a proven v1
-  chain whose payer is the same on every hop and receives the payout.
-- Status: ``success`` only for a complete trace whose transactions are all finalized and not
-  emulated; otherwise ``pending`` and not eligible.
-- Window time: the latest ``now`` of the hop transactions. Identity: the trace ID and the hash of
-  the last hop transaction.
-"""
+"""DeDust swaps from complete TON Center v3 traces -> product ``live_swap`` payloads."""
 from __future__ import annotations
 
 import base64
@@ -41,7 +17,7 @@ JETTON_NOTIFY, JETTON_TRANSFER = 0x7362d09c, 0x0f8a7ea5
 
 class TraceRecognition(NamedTuple):
     payloads: tuple
-    unresolved: tuple          # last-hop tx hashes (base64) of DeDust swaps not resolvable
+    unresolved: tuple
 
 
 def _op(msg):
@@ -50,7 +26,7 @@ def _op(msg):
         return None, None
     try:
         s = body_slice(body)
-    except ValueError:              # not an ordinary-cell body: cannot be a DeDust swap message
+    except ValueError:  # not an ordinary-cell body: cannot be a DeDust swap message
         return None, None
     if s.remaining() < 32:
         return None, None
@@ -64,7 +40,7 @@ def _dedust_asset(s: Slice):
     if tag == 1:
         wc = s.int(8)
         return f'jetton:{wc}:{s.uint(256):064x}'
-    return None                                     # extra currency or unknown: unsupported
+    return None  # extra currency or unknown: unsupported
 
 
 def _raw(addr):
@@ -110,7 +86,7 @@ def _v1_hops(txs):
                 events.append((a_in, a_out, amounts[0], amounts[1], os_.ref().address()))
             elif oop == PAY_OUT_FROM_POOL:
                 os_.uint(64)
-                os_.ref()                           # proof of the paying pool
+                os_.ref()
                 payouts.append((os_.coins(), os_.address()))
             elif oop == SWAP_PEER:
                 peers.append(out.get('hash'))
@@ -155,7 +131,7 @@ def _v2_trades(txs, metadata):
             oop, os_ = _op(out)
             if out.get('destination') is not None or oop != SWAP_EVENT_V2:
                 continue
-            os_.uint(1)                             # x_to_y
+            os_.uint(1)
             amount_in, amount_out = os_.coins(), os_.coins()
             initiator, recipient = os_.address(), os_.address()
             in_msg = tx.get('in_msg') or {}

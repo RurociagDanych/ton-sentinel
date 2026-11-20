@@ -1,30 +1,4 @@
-"""Live TON Center v3 ``jetton_swap`` action -> product swap payload (``live_swap`` v1).
-
-Reviewed versioned adapter. It maps one
-indexer action record to a payload with exactly the fields of the synthetic fixture
-(tests/fixtures/truth/actions.json), so ``normalize()`` builds the same ``Action`` contract.
-
-Policy (fail closed):
-- Only ``type == 'jetton_swap'`` from a known DEX label is in scope; anything else raises
-  ``UnsupportedRecord``. Malformed records raise ``ValueError``.
-- ``status``: ``pending`` unless ``finality == 'finalized'``; then ``success``/``failed``.
-- ``route_proven`` only for recognizers qualified against independent on-chain rules
-  (``QUALIFIED_DEX``) and only when the endpoints equal the DEX transfers and every peer swap links
-  to the next one by exact asset and amount. ``dedust_v2`` is recognized but not qualified.
-- Failed swaps keep the incoming transfer as input and the intended asset with raw amount 0 as
-  output (the refund is not an exchange). A failed record whose ``asset_out`` equals its input
-  asset (the indexer reported the refund) is not route-proven.
-- Trade boundary (custody rule): one action is one routed trade. Hops the DEX chains internally
-  (``peer_swaps``) form one trade; a leg paid out to the trader ends the trade, and a later leg the
-  trader pays again is a separate trade, even inside one trace.
-- Trader is the DEX-facing payer (action ``sender``) and is unambiguous only when that account
-  also receives the outgoing transfer; the external signer of the trace is not used; basechain
-  (workchain 0) accounts only.
-- Decimals come only from the response metadata (``jetton_masters.extra.decimals``) or the TON
-  protocol definition; never assumed. Configured pTON masters are TON (``native_aliases``).
-- Secrets: nothing from the request is copied except the redacted route path; ``redact_url``
-  masks ``api_key`` query values.
-"""
+"""Live TON Center v3 ``jetton_swap`` action -> product swap payload (``live_swap`` v1)."""
 from __future__ import annotations
 
 import base64
@@ -47,6 +21,7 @@ _AMOUNT = re.compile(r'^(0|[1-9][0-9]*)$')
 
 class UnsupportedRecord(ValueError):
     """The record is outside the adapter's scope (not a swap, or an unknown DEX)."""
+    pass
 
 
 def redact_url(url: str) -> str:

@@ -1,4 +1,5 @@
 """Demo and /status never inflate certification; gates need evidence; labels present."""
+
 import json
 import re
 from datetime import datetime, timezone
@@ -22,7 +23,6 @@ class _Result:
 
 class _Connection:
     """Answers by statement text, like the real tables would."""
-
     def __init__(self, groups=(), qualification=(), fail_qualification=False):
         self.groups, self.qualification = list(groups), list(qualification)
         self.fail_qualification = fail_qualification
@@ -65,7 +65,6 @@ def _status(connection):
 
 
 def _words(payload):
-    """Every string value and key anywhere in the payload."""
     if isinstance(payload, dict):
         for k, v in payload.items():
             yield k
@@ -87,7 +86,6 @@ def test_gates_without_evidence_are_not_qualified_and_nothing_says_passed():
     assert gates["live_source"]["evidence"] is None
     forbidden = {"passed", "pass", "certified", "qualified", "live_certified", "ok_certified"}
     assert not forbidden & {w.lower() for w in _words(payload["gates"])}
-    # the older interim limitation and the new gate must agree
     assert payload["interim_limitation"]["stateful_streaming"] == "not_qualified"
 
 
@@ -100,7 +98,6 @@ def test_qualification_records_are_labelled_synthetic_and_never_inflate_coverage
     assert q["bounded_observed_not_synthetic"] == 2
     assert q["certified_recorded"] == 1
     assert "synthetic" in q["label"] and "not verified" in q["label"]
-    # recorded counts do not move overall coverage, readiness or gates
     assert payload["coverage"]["status"] == "unknown"
     assert payload["readiness"] == "unknown"
     assert payload["gates"]["live_source"]["status"] == "not_qualified"

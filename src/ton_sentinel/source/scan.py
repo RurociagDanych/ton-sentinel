@@ -197,7 +197,7 @@ def _walk_range(connection, transport, epoch, policy, range_id):
                 try:
                     normalized_action = normalize(raw, epoch)
                 except SyntheticInputRefused:
-                    raise                   # An explicit error, never a quarantine row
+                    raise  # An explicit error, never a quarantine row
                 except (TypeError, ValueError) as exc:
                     rejected.append((ordinal + index, encoded, str(exc)))
                     continue

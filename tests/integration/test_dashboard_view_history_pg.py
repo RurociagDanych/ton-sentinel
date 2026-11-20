@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL over HTTP (sentinel_reader login): the endpoints the alert history view uses."""
+
 import json
 import threading
 from pathlib import Path
@@ -83,7 +84,6 @@ def test_feed_then_drilldown_chain_carries_provenance_and_known_labels(served):
         for rev in revisions:
             assert rev["label"] in LABELS
             assert rev["alert_state"] is None or rev["alert_state"] in STATES
-        # the result revision a feed item points at is one of the listed revisions of its key
         assert item["result_revision"] in {r["result_revision"] for r in revisions}
         seen += 1
     assert seen == len(feed["alerts"])

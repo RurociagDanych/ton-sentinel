@@ -1,10 +1,5 @@
-"""Recorded pending live records through production ingest on real PostgreSQL.
+"""Recorded pending live records through production ingest on real PostgreSQL."""
 
-Input: tests/fixtures/live/g3_pending.json (built from recorded keyless-toncenter pending polls and
-the recorded finalized versions of the same actions; no request is made). A range holding pending
-records must be paged, marked not successful, quarantined and never served or promoted; the same
-range is accepted only once the final versions are supplied.
-"""
 from __future__ import annotations
 
 import copy
@@ -125,7 +120,6 @@ def test_pending_range_is_quarantined_not_accepted_never_served_then_final_is_ac
         ).fetchone()[0]
         assert accepted_ranges == 0
         connection.commit()
-        # The same range with the recorded final versions is accepted.
         final = ingest_range(connection, _pages(fx, 'final_action_responses'), EPOCH,
                              _policy(fx), owner='v3-final', budget=_budget())
         assert final.accepted and final.status == 'accepted'

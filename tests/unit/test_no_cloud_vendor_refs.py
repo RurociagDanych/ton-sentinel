@@ -1,8 +1,5 @@
-"""Owner decision 2026-11-13: the project is local-first and the cloud target is
-not chosen. Product code, tests, deploy files and top-level docs must not depend on the
-dropped Oracle Cloud free tier (infra, entitlement gate, quota budgets or wording).
-Historical evidence directories are out of scope.
-"""
+"""Owner decision 2026-11-13: the project is local-first and the cloud target is not chosen."""
+
 from pathlib import Path
 import re
 

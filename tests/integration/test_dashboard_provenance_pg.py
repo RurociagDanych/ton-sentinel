@@ -1,4 +1,5 @@
 """Dashboard API over real HTTP + real PostgreSQL through the reader role: /v1/policy and payload safety."""
+
 import json
 import threading
 from urllib.error import HTTPError
@@ -57,7 +58,7 @@ def test_policy_works_through_reader_role(reader_served):
     prov = doc["provenance"]
     assert prov["certification_state"] == "not_certified"
     assert prov["qualification_class"] in ("unrecorded", "synthetic", "bounded_observed")
-    assert prov["qualification_class"] != "unavailable"  # reader role can read the source tables
+    assert prov["qualification_class"] != "unavailable"
 
 
 def test_policy_pinned_malformed_and_unknown(reader_served):

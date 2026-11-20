@@ -28,7 +28,6 @@ function textCell(value) {
   return cell("unavailable", "unavailable", "no value in response");
 }
 
-// Service status tiles from /status (unchanged endpoint). Anything missing becomes "unavailable".
 export function statusTiles(status) {
   const s = valueOr(status, {});
   const availability = valueOr(s.availability, {});
@@ -84,7 +83,6 @@ function scoped(c, section) {
   return c;
 }
 
-// Pipeline summary rows from /v1/pipeline.
 export function pipelineRows(payload) {
   const p = valueOr(isObject(payload) ? payload.pipeline : null, {});
   const backlog = valueOr(p.scoring_backlog, {});
@@ -109,7 +107,6 @@ export function pipelineRows(payload) {
   ];
 }
 
-// Data-quality headline rows from /v1/quality.
 export function qualityRows(payload) {
   const q = valueOr(isObject(payload) ? payload.quality : null, {});
   return [
@@ -125,7 +122,7 @@ export function qualityRows(payload) {
   ];
 }
 
-// Half-open [from, to) range aligned to 300 s; the server caps it at 7 days.
+/** Half-open [from, to) range aligned to 300 s; the server caps it at 7 days. */
 export function qualityRange(key, nowMs) {
   const seconds = Object.prototype.hasOwnProperty.call(RANGES, key) ? RANGES[key] : RANGES[DEFAULT_RANGE];
   const to = (Math.floor(nowMs / 1000 / 300) + 1) * 300;
@@ -141,7 +138,7 @@ export function provenanceRows(provenance) {
   ];
 }
 
-// Auto-refresh on a fixed interval, paused while the tab is hidden, one refresh on becoming visible.
+/** Auto-refresh on a fixed interval, paused while the tab is hidden, one refresh on becoming visible. */
 export function createRefresher({ intervalMs = REFRESH_MS, run, isHidden, setIntervalFn, clearIntervalFn, onVisibility }) {
   let timer = null;
   let unsubscribe = null;

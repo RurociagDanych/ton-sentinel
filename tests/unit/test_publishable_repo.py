@@ -1,9 +1,5 @@
-"""Publishable-repository guards: a clean clone must hold everything the tests need.
+"""Publishable-repository guards: a clean clone must hold everything the tests need."""
 
-docs/ and .env are git-ignored. No test may read them; files that tests need live in tracked,
-non-secret locations. Credentials come from the environment (.env, never committed);
-.env.example carries placeholders only. Recorded live fixtures carry no hosts or URLs.
-"""
 import ast
 import importlib.machinery
 import importlib.util
@@ -20,7 +16,7 @@ CHART = ROOT / 'deploy/helm/ton-sentinel'
 LOCAL_VALUES = ROOT / 'deploy/helm/local/values-local-k3s.yaml'
 ENVELOPE = ROOT / 'deploy/workload/acceptance.json'
 PG_VAR = 'TON_SENTINEL_PG_PASSWORD'
-IGNORED_PATH = re.compile(r'^(\.\./)*(docs(/|$)|\.env$)')
+IGNORED_PATH = re.compile(r'^(\.\./)*\.env$')
 
 
 def _string_constants(tree):
@@ -43,7 +39,7 @@ def _under_tmp(parent):
             and isinstance(parent.left, ast.Name) and parent.left.id == 'tmp_path')
 
 
-def test_no_test_reads_docs_or_dotenv():
+def test_no_test_reads_dotenv():
     offenders = []
     for path in sorted((ROOT / 'tests').rglob('*.py')):
         tree = ast.parse(path.read_text(), str(path))
@@ -143,7 +139,15 @@ def test_env_example_has_placeholders_only():
     for key, value in values.items():
         assert re.search(r'change-me|example', value), key
     gitignore = (ROOT / '.gitignore').read_text().splitlines()
-    assert '.env' in gitignore and '!.env.example' in gitignore and '/docs/' in gitignore
+    assert '.env' in gitignore and '!.env.example' in gitignore
+    assert not any(line.strip().lstrip('/').startswith('docs') for line in gitignore)
+
+
+def test_docs_directory_is_tracked():
+    import subprocess
+    tracked = subprocess.run(['git', 'ls-files', '--', 'docs'], cwd=ROOT, capture_output=True,
+                             text=True, check=True).stdout.split()
+    assert {'docs/OPERATIONS.md', 'docs/SECURITY.md'} <= set(tracked)
 
 
 def test_mit_license_and_pyproject_field():
@@ -163,7 +167,8 @@ def test_readme_is_short_honest_and_free_of_counts():
         assert word in text, word
     assert not re.search(r'\b\d[\d,]*\s+(passed|tests)\b', text)
     assert text.count('/v1/') <= 2
-    assert '](docs/' not in text
+    for target in re.findall(r'\]\((docs/[^)#\s]+)', text):
+        assert (ROOT / target).is_file(), target
     assert not re.search('[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]', text)
     assert len(text.splitlines()) <= 150
 
@@ -179,7 +184,7 @@ def test_local_check_takes_only_the_database_password_from_dotenv(tmp_path):
     runner.load_pg_password(kept, env_file)
     assert kept == {PG_VAR: 'example-already-set'}
     absent = {}
-    runner.load_pg_password(absent, tmp_path / 'absent.env')  # compose's own ${...:?} refuses
+    runner.load_pg_password(absent, tmp_path / 'absent.env')
     assert absent == {}
 
 

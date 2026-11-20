@@ -1,13 +1,4 @@
-"""Frozen repair inputs and fenced, atomic replacement promotion.
-
-``freeze_work`` pins, under the shared lease, everything a repair computation reads: the
-current canonical actions of the target windows, the dependency epoch, the coverage rows, the
-active source epoch (universe/config identity), the trailing-baseline feature rows and the
-pending dirty rows. The result is an immutable, digest-checked value; a computation runs on it
-outside any transaction. ``promote`` re-reads those pins inside one transaction that holds the
-lease row and the dependency-epoch row, and replaces the windows only if nothing moved.
-A stale, superseded or repeated promotion returns ``False`` and writes nothing.
-"""
+"""Frozen repair inputs and fenced, atomic replacement promotion."""
 from __future__ import annotations
 
 import hashlib
@@ -43,17 +34,16 @@ def _digest(owner, fence, epoch, targets, inputs, coverage, active_epoch, baseli
 @dataclass(frozen=True)
 class FrozenWork:
     """Immutable pins of one repair computation. Build it with ``freeze_work``."""
-
     work_id: str
     owner: str
     fence: int
     epoch: int
     targets: tuple
-    inputs: tuple          # (event_id, accepted_generation, semantic_digest, action json text)
+    inputs: tuple
     coverage: tuple
     active_epoch: str | None
     baseline: tuple
-    dirty: tuple           # (network, token, window_start, role, dirty_generation)
+    dirty: tuple
     lookback: int
     input_digest: str = field(default="")
 
@@ -162,7 +152,6 @@ class Admission:
     ``reasons`` holds sorted ``(WindowKey, reason)`` pairs; a set-level resource bound
     (``over_budget:<dimension>``) is reported for every window of the unit.
     """
-
     admitted: bool
     status: str
     reasons: tuple
@@ -175,9 +164,9 @@ class Admission:
     baseline_spans: tuple
     derived_cutoff: int = 0
     lookback_seconds: int = 0
-    context_horizons: tuple = ()     # (network, data_class, retained_from) read at admission
-    usage: tuple = ()                # sorted (dimension, value) actually measured
-    budget: tuple = ()               # sorted (dimension, limit) from the explicit policy
+    context_horizons: tuple = ()
+    usage: tuple = ()
+    budget: tuple = ()
 
     @property
     def digest(self) -> str:
@@ -264,7 +253,7 @@ def admit_work(connection, windows, now, policy) -> Admission:
     event_cutoff = at - retention
     repair_cutoff = -(-(event_cutoff + margin) // 300) * 300
     derived_cutoff = at - derived
-    with connection.transaction():          # read-only; a savepoint inside a caller's tx
+    with connection.transaction():  # read-only; a savepoint inside a caller's tx
         dependency_epoch = connection.execute(
             "SELECT epoch FROM dependency_epoch WHERE singleton").fetchone()[0]
         active = connection.execute(
@@ -407,7 +396,6 @@ def freeze_work(connection, lease: Lease, windows, *,
 @dataclass(frozen=True)
 class Replacement:
     """Feature rows computed from one ``FrozenWork`` (and only from it)."""
-
     work_id: str
     input_digest: str
     rows: tuple
@@ -522,12 +510,10 @@ def repair_windows(connection, lease: Lease, spark, work, *, max_attempts: int =
         if promote(connection, lease, frozen, result, stage=stage, writer=writer):
             return result
         with connection.transaction():
-            validate_transition(connection, lease)       # LeaseRejected: stop, do not retry
+            validate_transition(connection, lease)  # LeaseRejected: stop, do not retry
     raise RuntimeError("repair promotion stayed stale after %d fresh attempts" % max_attempts)
 
 
-# --------------------------------------------------------------------------------------------
-# Data-derived token universe, qualified coverage, exact baseline grid and inputs.
 def _admit_universe(connection, work_id: str, rows) -> None:
     """Admit, inside the promotion transaction, tokens first seen here with an eligible swap.
 
@@ -908,9 +894,6 @@ def _close_dependents_locked(connection, network: str, token: str, window_start:
     return True
 
 
-# --------------------------------------------------------------------------------------------
-# Fenced score promotion, revision-fenced alert state and score recomputation.
-#
 # A score is computed by ``detectors.score_baseline`` from one ``BaselineInput`` outside any
 # transaction (``score_window``). ``promote_scores`` then, in one transaction under the lease
 # and the dependency-epoch row lock, rebuilds the input, refuses (``False``, nothing written)
@@ -1060,7 +1043,7 @@ def _promote_result(connection, lease: Lease, baseline: BaselineInput, result: d
         "result_revision) WHERE " + " AND ".join(f"c.{n}=%s" for n in _DETECTOR_KEY)
         + " FOR UPDATE OF c", key).fetchone()
     if current is not None and not current[1] and current[2] == baseline.digest:
-        return                                     # unchanged, fresh input: nothing to do
+        return
     revision = connection.execute(
         "SELECT coalesce(max(result_revision), 0) + 1 FROM detector_results WHERE "
         + _KEY_WHERE, key).fetchone()[0]
@@ -1088,7 +1071,7 @@ def _promote_result(connection, lease: Lease, baseline: BaselineInput, result: d
     state = _alert_transition(result, None if latest is None else latest[1])
     if state is None:
         return
-    if state == "pending":                         # keeps the invalidated result as lineage
+    if state == "pending":  # keeps the invalidated result as lineage
         result_revision, digest = latest[2], latest[3]
     else:
         result_revision, digest = revision, baseline.digest
@@ -1113,7 +1096,7 @@ def rescore_window(connection, lease: Lease, network: str, token: str, window_st
         if promote_scores(connection, lease, baseline, results):
             return results
         with connection.transaction():
-            validate_transition(connection, lease)          # LeaseRejected: stop, no retry
+            validate_transition(connection, lease)  # LeaseRejected: stop, no retry
     raise RuntimeError("score promotion stayed stale after %d fresh attempts" % max_attempts)
 
 
@@ -1192,7 +1175,7 @@ def score_pending(connection, lease: Lease, *, network: str | None, limit: int) 
             first += 1
         except LeaseRejected:
             raise
-        except RuntimeError:                       # input kept moving: counted, left unscored
+        except RuntimeError:  # input kept moving: counted, left unscored
             refused += 1
     rescored = 0
     if limit - len(keys) > 0:

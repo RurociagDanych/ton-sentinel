@@ -1,9 +1,4 @@
-"""Offline robust anomaly scoring over provisional Spark feature mappings.
-
-``score_features`` is the legacy offline, provisional mechanics used by the CLI; it certifies
-nothing and is never persisted. ``score_baseline`` scores both v1 detectors from
-one pinned ``BaselineInput`` and is the only result shape ``db.work.promote_scores`` accepts.
-"""
+"""Offline robust anomaly scoring over provisional Spark feature mappings."""
 from __future__ import annotations
 
 import argparse
@@ -225,7 +220,6 @@ def _key(row: dict[str, Any]) -> dict[str, Any]:
             "generation": row["generation"]}
 
 
-# ------------------------------------------------------------------------------------------
 # The two v1 detectors over one pinned ``BaselineInput`` (spec 8.1/8.2).
 #
 # This is the only scoring path that may be persisted: ``db.work.promote_scores`` accepts
@@ -234,7 +228,6 @@ def _key(row: dict[str, Any]) -> dict[str, Any]:
 # the score threshold compares the published score, so the explanation states exactly the
 # numbers that decided the outcome. Attribution floors compare the exact ratio.
 _DETECTORS = (
-    # detector id, metric, unit, value field, policy floor field
     ("swap_count_spike.v1", "swap_count", "swaps", "swaps", "swap_floor"),
     ("active_wallets_spike.v1", "unique_traders", "wallets", "known_traders", "trader_floor"),
 )

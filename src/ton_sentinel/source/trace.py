@@ -8,7 +8,6 @@ from ton_sentinel.contracts import SourceEpoch
 @dataclass(frozen=True)
 class TraceLookup:
     """Evidence for one supplied trace ID; never certifies global coverage."""
-
     trace_id: str
     state: str
     action_keys: tuple[str, ...] | None

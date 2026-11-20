@@ -1,4 +1,5 @@
 """Structure of the Prometheus alert rules (promtool itself runs as an integration step)."""
+
 import re
 from pathlib import Path
 

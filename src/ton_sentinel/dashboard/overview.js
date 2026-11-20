@@ -1,5 +1,4 @@
-// Overview and health: service status, pipeline summary, data-quality headline, legend.
-// Every value carries its state badge; a response without provenance blocks the whole view.
+// Overview and health view. Every value carries its state badge; a response without provenance blocks the whole view.
 import { ApiError, ProvenanceError, getChecked, getJson } from "./client.js";
 import { STATE_LEGEND, badge } from "./states.js";
 import { DEFAULT_RANGE, RANGES, REFRESH_MS, createRefresher, pipelineLabel, pipelineRows,

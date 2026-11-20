@@ -1,14 +1,5 @@
-"""Both v1 detectors over the recorded real live window with
-injected anomalies, on real PostgreSQL.
+"""Both v1 detectors over the recorded real live window with injected anomalies, on real PostgreSQL."""
 
-What is real: the per-token swap and distinct-trader counts of the three 300 s windows in
-``tests/fixtures/live/g3_window.json`` (recorded public on-chain data).
-What is SYNTHETIC (and labelled so): the 24-window baseline is the three real windows repeated
-eight times (the recording is only 15 minutes long), coverage qualifications are synthetic
-bounded-observed, and the anomalies are injected values. No real labelled anomaly is used, so
-this proves behaviour (alert / explanation / control / fence / retraction) and says NOTHING about
-detector quality, precision or recall.
-"""
 import json
 import os
 from collections import defaultdict
@@ -30,8 +21,7 @@ from tests.integration.test_revisions import World, db, val  # noqa: F401
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "live" / "g3_window.json"
 SYNTHETIC = "SYNTHETIC"
-# real tokens of the recorded window, chosen by the data above
-TOK_COUNT = "jetton:0:e3a65933a97b5e4"     # prefix; resolved to the full asset id below
+TOK_COUNT = "jetton:0:e3a65933a97b5e4"
 TOK_WALLETS = "jetton:0:0d716e395b44e9f"
 TOK_CONTROL = "jetton:0:b113a994b5024a1"
 WINDOW0 = 1794559800
@@ -99,24 +89,20 @@ def build(db, real, injected):
 
 
 def test_synthetic_injected_anomalies_alert_with_pinned_explanations_control_stays_quiet(db):
-    """SYNTHETIC behaviour check; not a quality claim."""
     real = real_windows()
     t_count, t_wallets, t_control = (full(p, real) for p in (TOK_COUNT, TOK_WALLETS, TOK_CONTROL))
-    spike = {t_count: (60, real[t_count][0][1], real[t_count][0][2]),      # SYNTHETIC swaps spike
-             t_wallets: (18, 18, real[t_wallets][0][2])}  # SYNTHETIC wallets spike
+    spike = {t_count: (60, real[t_count][0][1], real[t_count][0][2]),
+             t_wallets: (18, 18, real[t_wallets][0][2])}
     lease, _ = build(db, real, spike)
     for token in (t_count, t_wallets, t_control):
         rescore_window(db, lease, NET, token, SCORED)
 
-    # (a) spiked windows alert; the control window does not
     got = {(a["token"], a["detector"]) for a in alerts(db)}
     assert got == {(t_count, COUNT), (t_wallets, WALLETS)}
     assert history(db, COUNT, t_control) == [] and history(db, WALLETS, t_control) == []
     control = current_results(db, t_control)
     assert [control[COUNT][0]["triggered"], control[WALLETS][0]["triggered"]] == [False, False]
 
-    # (b) explanations reproduce from the pinned input + stored policy alone (independent
-    # oracle), and the headline number equals the hand formula over the real-derived baseline
     for token, detector, index in ((t_count, COUNT, 0), (t_wallets, WALLETS, 1)):
         doc = current_results(db, token)[detector][0]
         both = oracle_for(db, doc["input_digest"])
@@ -132,7 +118,6 @@ def test_synthetic_injected_anomalies_alert_with_pinned_explanations_control_sta
 
 
 def test_synthetic_alert_is_revision_fenced_and_removing_the_injection_retracts_it(db):
-    """SYNTHETIC behaviour check; not a quality claim."""
     real = real_windows()
     t_count, t_wallets, t_control = (full(p, real) for p in (TOK_COUNT, TOK_WALLETS, TOK_CONTROL))
     spike = {t_count: (60, real[t_count][0][1], real[t_count][0][2]),
@@ -145,10 +130,8 @@ def test_synthetic_alert_is_revision_fenced_and_removing_the_injection_retracts_
     rescore_window(db, lease, NET, t_wallets, SCORED)
     assert history(db, WALLETS, t_wallets) == [(1, "active")]
 
-    # remove the injections: the real rows come back through the normal promote path
     promote_rows(db, lease, SCORED, [row(SCORED, t, *real[t][0])
                                      for t in (t_count, t_wallets, t_control)])
-    # dependency path: the alerts go pending at once, then are retracted by recomputation
     assert history(db, COUNT, t_count)[-1][1] == "pending" and alerts(db) == []
     assert sorted(rescore_stale(db, lease, network=NET)) == sorted(
         [(NET, t_count, SCORED), (NET, t_wallets, SCORED)])
@@ -159,7 +142,6 @@ def test_synthetic_alert_is_revision_fenced_and_removing_the_injection_retracts_
     assert retracted["triggered"] is False
     assert history(db, COUNT, t_control) == []
 
-    # fence: the old worker's triggered result cannot re-open the alert
     db.commit()
     assert promote_scores(db, lease, old, old_results) is False
     assert history(db, COUNT, t_count)[-1] == (3, "retracted")

@@ -1,4 +1,5 @@
 """Dashboard API unit tests: /v1/coverage validation, bounds, cursor binding, provenance, safety filter."""
+
 import json
 from unittest.mock import patch
 
@@ -66,7 +67,6 @@ def q(**over):
     return "&".join(f"{k}={v}" for k, v in base.items() if v is not None)
 
 
-# ---- validation and bounds ---------------------------------------------------------------
 @pytest.mark.parametrize("over", [
     {"to": T0}, {"to": T0 - 300}, {"to": T0 + 604800 + 300}, {"from": T0 + 1},
     {"to": T0 + 3601}, {"from": None}, {"to": None}, {"token": None}, {"network": None},
@@ -94,7 +94,6 @@ def test_coverage_only_get_is_served():
     assert status == "405 Method Not Allowed"
 
 
-# ---- cursor ----------------------------------------------------------------------------
 def test_cursor_issued_only_when_truncated_and_binds_filters():
     rows = [row(T0 + 300 * i) for i in range(3)]
     status, body, _ = run(q(limit=2), rows)
@@ -133,7 +132,6 @@ def test_unicode_token_roundtrips_through_cursor():
     assert body["token"] == token and "next_cursor" in body
 
 
-# ---- provenance and safety filter ----------------------------------------------------------
 def test_response_carries_provenance_banner_and_states():
     _, body, _ = run(q(), [row(T0)])
     assert body["provenance"] == PROV
@@ -152,7 +150,6 @@ def test_forbidden_keys_are_stripped_and_forbidden_values_refused():
     assert status == "503 Service Unavailable" and body == {"error": "unavailable"}
 
 
-# ---- state classification (gaps are missing, never filled) --------------------------------
 FACTS = dict(has_row=False, row_provisional=False, pending=False, swaps=None, qualified=False,
              in_universe=True, coverage_missing=False)
 
@@ -162,7 +159,7 @@ FACTS = dict(has_row=False, row_provisional=False, pending=False, swaps=None, qu
     ({"coverage_missing": True}, "missing"),
     ({"in_universe": False}, "pre_universe"),
     ({"in_universe": False, "qualified": True}, "pre_universe"),
-    ({"qualified": True}, "provisional"),            # a gap is never filled with a zero
+    ({"qualified": True}, "provisional"),
     ({"pending": True}, "provisional"),
     ({"has_row": True, "swaps": 4, "qualified": True}, "observed"),
     ({"has_row": True, "swaps": 0, "qualified": True}, "zero"),
@@ -194,7 +191,6 @@ def test_coverage_state_rejects_bad_facts():
         coverage_state(**{**FACTS, "has_row": True, "swaps": None})
 
 
-# ---- reader function validation ------------------------------------------------------------
 @pytest.mark.parametrize("over", [
     {"network": "devnet"}, {"token": ""}, {"token": None}, {"window_from": None},
     {"window_from": T0 + 1}, {"window_to": T0}, {"window_to": T0 + 604800 + 300},

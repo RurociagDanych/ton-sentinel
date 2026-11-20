@@ -1,4 +1,5 @@
 """READER_TABLES is the exact allowlist and covers every SQL the API readers run."""
+
 import ast
 import re
 from pathlib import Path

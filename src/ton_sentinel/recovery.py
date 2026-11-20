@@ -1,30 +1,4 @@
-"""Paused, fenced recovery cut: snapshot + outbox + Kafka offsets.
-
-``pause_for_recovery`` takes the shared transition slot (superseding every earlier writer's
-lease), waits for admitted writer transactions to finish and persists a recovery pause with a
-new recovery epoch. While it is active the database refuses writes to every table of the cut
-(migration 026) and ``accept_scan``/``ingest_range`` refuse with ``IngestionPaused``.
-
-``capture_recovery_cut`` records, in one REPEATABLE READ transaction validated under one lease
-fence at start and end, the PostgreSQL snapshot manifest at canonical generation G, the exact
-outbox membership/status and the Kafka cluster/topic incarnation with every partition's
-exclusive end offset E. The offsets are sampled before and after the snapshot reads and must
-be identical, otherwise nothing is recorded. Any failure rolls the whole cut back.
-
-``claim_recovery_point`` re-reads a durable cut and refuses incomplete, stale or mismatched
-metadata before naming a recovery point.
-
-``resume_from_recovery_cut`` hands the cut over to a new lease and a new consumer
-pipeline epoch only for an exact fenced match: in one REPEATABLE READ transaction under the
-handoff lease it re-validates snapshot identity, topic incarnation, offsets, outbox
-membership/frontier, pipeline epoch and lease, scans the retained Kafka log for the sends of
-every ambiguous outbox member (an old producer's send may land after the cut), records one
-immutable resumption (migration 027), releases the pause and acknowledges only the sends found
-on the log. The rest are redelivered by their original event id by ``publish_pending``; the
-resumed consumer starts at the cut's end offsets and ``resumed_records`` applies every event
-at most once. Any refusal or failure leaves the pause active and nothing recorded. No
-host-loss or backup guarantee is implied.
-"""
+"""Paused, fenced recovery cut: snapshot + outbox + Kafka offsets."""
 import hashlib
 import json
 import uuid
@@ -64,7 +38,6 @@ _SECTIONS = {
 
 class RecoveryCutRejected(RuntimeError):
     """A cut could not be captured or claimed; nothing was recorded or claimed."""
-
     def __init__(self, message: str, reasons=None):
         super().__init__(message)
         self.reasons = tuple(reasons) if reasons else (message,)
@@ -476,9 +449,9 @@ class RecoveryResumption:
     pipeline_epoch: str
     lease: Lease
     topic: str
-    start_offsets: dict          # partition -> exclusive cut end offset E (consumer start)
-    resolutions: dict            # ambiguous event_id -> (partition, offset) found, or None
-    duplicates: tuple            # further copies of found sends, never applied
+    start_offsets: dict
+    resolutions: dict
+    duplicates: tuple
     digest: str
 
 
@@ -641,7 +614,7 @@ def resume_from_recovery_cut(connection, lease, point, kafka: Callable[[str], Ma
     _idle(connection, "resume_from_recovery_cut")
     with connection.transaction():
         _begin_snapshot(connection)
-        validate_transition(connection, lease)        # holds the lease row: no takeover
+        validate_transition(connection, lease)  # holds the lease row: no takeover
         row = _read_cut(connection, point.cut_id)
         manifest, digest = row["manifest"], row["manifest_digest"]
         live = _live_state(connection, row, kafka)
@@ -705,7 +678,6 @@ def resume_from_recovery_cut(connection, lease, point, kafka: Callable[[str], Ma
 
 class KafkaOffsetReader:
     """Read cluster id, topic id and per-partition [log start, exclusive end) from a broker."""
-
     def __init__(self, bootstrap_servers, *, client_id: str = "ton-sentinel-recovery",
                  timeout_ms: int = 10_000):
         self.bootstrap_servers = bootstrap_servers
@@ -743,7 +715,6 @@ class KafkaOffsetReader:
 
 class KafkaRecordReader:
     """Read every record of a topic in ``[start, end)`` per partition from a broker."""
-
     def __init__(self, bootstrap_servers, *, client_id: str = "ton-sentinel-recovery",
                  timeout_ms: int = 20_000):
         self.bootstrap_servers = bootstrap_servers

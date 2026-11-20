@@ -1,4 +1,5 @@
 """The api service gets the credential-free telemetry probes and nothing more."""
+
 from pathlib import Path
 
 import yaml

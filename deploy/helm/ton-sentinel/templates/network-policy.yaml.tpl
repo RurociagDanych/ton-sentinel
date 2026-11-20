@@ -51,6 +51,6 @@ spec:
         - podSelector: {matchLabels: {app.kubernetes.io/instance: {{ $root.Release.Name }}, app.kubernetes.io/component: {{ $target }}}}
       ports: [{protocol: TCP, port: {{ $port }}}]
 {{- end }}
-# No external egress: source/TLS/private proxy remains a G3/G5 hold.
+# No external egress: source/TLS/private proxy remains a hold.
 # API has no incoming route by default.
 {{- end }}

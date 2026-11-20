@@ -1,4 +1,5 @@
 """Focused unit tests for the K3s Kafka->Spark->PostgreSQL bounded stream role glue."""
+
 import json
 import os
 import stat
@@ -47,7 +48,7 @@ def test_stream_kafka_options_writes_private_combined_keystore(tmp_path):
         "security.protocol": "SSL",
         "ssl.truststore.type": "PEM", "ssl.truststore.location": str(tls / "kafka-ca.crt"),
         "ssl.keystore.type": "PEM", "ssl.keystore.location": str(ks)}
-    assert "KEY" not in json.dumps(opts)  # secrets never travel in options/argv
+    assert "KEY" not in json.dumps(opts)
 
 
 def test_stream_kafka_options_requires_tls_dir(tmp_path):
@@ -63,7 +64,7 @@ def test_stream_cli_argv_uses_project_cli_and_tls_options():
     assert argv[argv.index("--bootstrap-servers") + 1] == "k:9092"
     assert argv[argv.index("--checkpoint") + 1] == "/var/sentinel/checkpoints/s"
     assert argv[argv.index("--kafka-option") + 1] == "security.protocol=SSL"
-    assert "--dsn" not in argv  # DSN password stays out of argv; passed via TON_SENTINEL_DSN env
+    assert "--dsn" not in argv
 
 
 def test_check_stream_rows_rejects_mismatch():

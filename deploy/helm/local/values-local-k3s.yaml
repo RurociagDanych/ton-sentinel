@@ -1,6 +1,7 @@
 # LOCAL-ONLY override for the k3d K3s test cluster (amd64 host). NOT for production/target.
 #   helm install sl deploy/helm/ton-sentinel -n sl-ton-sentinel -f deploy/helm/local/values-local-k3s.yaml
 # Then create secret `sl-secret` (generated locally, never committed): see tests/integration/test_local_k3s.py.
+
 # app/spark Deployments run bounded local probe entrypoints (ton_sentinel.k3s_probe, source via test-created ConfigMap);
 # the maintenance CronJob stays suspended (/bin/false placeholder).
 enabled: true

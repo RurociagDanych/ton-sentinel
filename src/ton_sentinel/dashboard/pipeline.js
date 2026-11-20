@@ -1,6 +1,5 @@
-// Pipeline status: outbox, dirty-window and stream tiles, the scoring backlog as two separate
-// counts, and a freshness/lag panel (freshness not measured; lag only as measured by the server). The banner is built before any request and never hidden.
-// Refreshes at most every 30 s and not while the tab is hidden. A response without provenance blocks.
+// Pipeline status view. The banner is built before any request and never hidden. Refreshes at most every 30 s
+// and not while the tab is hidden; a response without provenance blocks.
 import { ApiError, ProvenanceError, getChecked } from "./client.js";
 import { badge } from "./states.js";
 import { REFRESH_MS, createRefresher } from "./model.js";

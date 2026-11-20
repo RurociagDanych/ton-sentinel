@@ -1,4 +1,5 @@
 """Offline tests for the local envelope workload harness pure functions (no services)."""
+
 import json
 import random
 
@@ -24,8 +25,8 @@ def test_phase_plan_derives_steady_time_and_cadences_from_level():
 
 
 @pytest.mark.parametrize("change", [
-    {"run_seconds": 4200},                 # no steady-state time left
-    {"zero_grid_rows": 4320001},           # not an integral grid
+    {"run_seconds": 4200},
+    {"zero_grid_rows": 4320001},
     {"events_per_second": 0},
 ])
 def test_phase_plan_rejects_inconsistent_levels(change):
@@ -134,9 +135,9 @@ def test_zero_fill_covers_every_window_from_the_frontier_to_the_emitted_window()
     assert fill == [3000, 3300] and frontier == 3600
     fill, frontier = w.zero_fill_starts(frontier, [3600, 3900])
     assert fill == [3600, 3900] and frontier == 4200
-    fill, frontier = w.zero_fill_starts(frontier, [])        # an empty batch emits nothing
+    fill, frontier = w.zero_fill_starts(frontier, [])
     assert fill == [] and frontier == 4200
-    fill, frontier = w.zero_fill_starts(frontier, [3900, 4800])  # late upsert + a silent gap
+    fill, frontier = w.zero_fill_starts(frontier, [3900, 4800])
     assert fill == [3900, 4200, 4500, 4800] and frontier == 5100
 
 
@@ -200,9 +201,9 @@ def test_k3s_system_usage_excludes_foreign_workload_pods():
 
 def test_latency_split_excludes_outage_affected_windows():
     marks = {"outage_start": 1000.0, "catchup_end": 3000.0}
-    rows = [(400.0, 790.0),     # window_start, committed_at epoch; window_end 700 <= outage_start
-            (2000.0, 3100.0),   # outage-affected window
-            (3000.0, 3400.0)]   # post-recovery window (starts at/after catch-up end)
+    rows = [(400.0, 790.0),
+            (2000.0, 3100.0),
+            (3000.0, 3400.0)]
     lat = w.latency_summary(rows, marks)
     assert lat["normal_operation_max_seconds"] == pytest.approx(100.0)
     assert lat["normal_operation_windows"] == 1 + 1

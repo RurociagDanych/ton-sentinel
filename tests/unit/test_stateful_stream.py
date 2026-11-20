@@ -1,4 +1,5 @@
 """Pure-logic bounds for the stateful fast path (Spark itself is exercised by integration)."""
+
 import pytest
 
 from ton_sentinel.spark import stream
@@ -44,9 +45,9 @@ def _progress(*rows, watermark="2026-01-01T00:10:00.000Z", late=0):
 
 def test_state_bound_allows_exactly_the_limit_and_refuses_above():
     policy = stream.fast_path_policy(_policy(max_state_rows=5))
-    stream.enforce_state_bound(_progress(3, 2), policy)       # 5 total rows == limit
+    stream.enforce_state_bound(_progress(3, 2), policy)
     with pytest.raises(stream.StateBoundExceeded):
-        stream.enforce_state_bound(_progress(3, 3), policy)   # 6 > limit
+        stream.enforce_state_bound(_progress(3, 3), policy)
 
 
 def test_state_bound_requires_state_operators():
@@ -87,8 +88,8 @@ def test_candidate_batch_cap_default_is_the_documented_1000():
 def test_collect_candidate_rows_at_the_cap_is_accepted_and_reads_only_cap_plus_one():
     batch = _FakeBatch(list(range(5000)))
     with pytest.raises(ValueError, match="window cap"):
-        stream.collect_candidate_rows(batch)          # 5000 > default 1000
-    assert batch.limit_arg == stream._MAX_BATCH_WINDOWS + 1   # never collects more than cap+1
+        stream.collect_candidate_rows(batch)
+    assert batch.limit_arg == stream._MAX_BATCH_WINDOWS + 1
     exact = _FakeBatch(list(range(stream._MAX_BATCH_WINDOWS)))
     assert stream.collect_candidate_rows(exact) == list(range(stream._MAX_BATCH_WINDOWS))
     over = _FakeBatch(list(range(stream._MAX_BATCH_WINDOWS + 1)))

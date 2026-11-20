@@ -1,26 +1,4 @@
-"""Bounded live monitor: every 15 minutes, ingest the newest closed window and score it.
-
-OFF by default. ``run_loop`` refuses to start unless ``TON_SENTINEL_LIVE_MONITOR=1``.
-
-One cycle = one closed 15-minute window ``[start, start + 900)`` (three five-minute grid
-windows), handled only through the existing production library path:
-
-1. fetch (``ReadOnlyClient`` + ``fetch_window``): read-only GETs to the configured TON Center
-   v3-compatible indexer, serial, at most one request start per second, back-off on 429 and
-   5xx honouring ``Retry-After``, a hard request budget, no signing and no write route.
-   The key travels only in the ``X-Api-Key`` header to the configured host; it is never put
-   into a URL, a log entry, a batch file or an exception message.
-2. ingest (``ingest_batch``): ``live_swap_batch`` -> ``LivePages`` -> ``ingest_range`` ->
-   ``publish_pending`` -> Kafka -> ``run_consumer`` (canonical feature promotion), then the
-   sweeper closes due windows (``spark.stream.sweep_each``), the accepted range is qualified
-   (``db.work.qualify_live_windows``, origin ``live``) and ``score_pending`` scores and
-   rescores the backlog. The source epoch is passed in and must equal the active one;
-   this module never opens or changes a source epoch.
-
-Qualification caveat (spec 5.3): the trace-completion bound ``delta_seconds`` is a configured
-lag between a window end and the indexer frontier read at fetch time, not a source-certified
-bound; coverage is ``bounded_observed`` for the configured account registry, never certified.
-"""
+"""Bounded live monitor: every 15 minutes, ingest the newest closed window and score it."""
 from __future__ import annotations
 
 import argparse
@@ -50,22 +28,27 @@ DEDUST_LABELS = ("dedust", "dedust_v2")
 
 class MonitorDisabled(RuntimeError):
     """The monitor flag is off (default); nothing is scheduled."""
+    pass
 
 
 class SourceUnreachable(RuntimeError):
     """The source did not answer usefully after the bounded retries; the monitor stops."""
+    pass
 
 
 class RequestBudgetExceeded(RuntimeError):
     """The client's hard request budget is spent; no further request is sent."""
+    pass
 
 
 class WindowNotClosed(RuntimeError):
     """The indexer frontier is not yet ``delta`` past the window end; do not ingest it."""
+    pass
 
 
 class IncompleteFetch(RuntimeError):
     """A paged query needed more pages than allowed; the window is not ingested."""
+    pass
 
 
 def monitor_enabled(environ) -> bool:
@@ -80,7 +63,6 @@ def newest_closed_window(now: int, *, lag_seconds: int = DEFAULT_LAG_SECONDS,
     return end - width, end
 
 
-# ------------------------------------------------------------------------------- client
 def _urllib_transport(method, url, headers, timeout):
     import urllib.error
     import urllib.request
@@ -96,7 +78,6 @@ def _urllib_transport(method, url, headers, timeout):
 
 class ReadOnlyClient:
     """Serial, polite, read-only GET client for the reviewed indexer routes."""
-
     def __init__(self, base_url: str, api_key: str | None, *, min_interval_seconds: float = 1.0,
                  max_requests: int = 300, max_retries_429: int = 5, max_retries_5xx: int = 3,
                  max_backoff_seconds: float = 120.0, timeout_seconds: float = 60.0,
@@ -199,7 +180,6 @@ class ReadOnlyClient:
                 + (f" ({error})" if error else "")))
 
 
-# ------------------------------------------------------------------------------- fetch
 def _paged(client, route, base_params, rows_key, groups, label):
     for page in range(MAX_PAGES):
         body = client.get_json(route, base_params + [("limit", PAGE), ("offset", page * PAGE),
@@ -229,7 +209,7 @@ def fetch_window(client: ReadOnlyClient, registry: dict, start: int, end: int, *
     last = info.get("last") or {}
     as_of = last.get("gen_utime")
     if type(as_of) is str and as_of.isdigit() and as_of.isascii():
-        as_of = int(as_of)                      # TON Center v3 sends decimal text
+        as_of = int(as_of)  # TON Center v3 sends decimal text
     if type(as_of) is not int or as_of < 0:
         raise SourceUnreachable("masterchainInfo has no last.gen_utime")
     if as_of < end + delta_seconds:
@@ -276,7 +256,6 @@ def fetch_window(client: ReadOnlyClient, registry: dict, start: int, end: int, *
             "bytes": client.bytes_read}
 
 
-# ------------------------------------------------------------------------------- cycle
 def _default_sweep_policy():
     from ton_sentinel.spark.stream import SweepPolicy
 
@@ -290,7 +269,6 @@ def _default_sweep_policy():
 @dataclass(frozen=True)
 class CycleConfig:
     """Explicit settings of one ingest cycle (no secrets except the DSN, never printed)."""
-
     dsn: str
     bootstrap_servers: str
     topic: str
@@ -300,10 +278,10 @@ class CycleConfig:
     environment_id: str
     query_id: str
     pipeline_epoch: str
-    epoch: object                      # contracts.SourceEpoch; must equal the active epoch
+    epoch: object  # contracts.SourceEpoch; must equal the active epoch
     delta_seconds: int = DEFAULT_DELTA_SECONDS
     mapping_version: str = "toncenter-v3 account-scan live_swap v1 (delta=lag at fetch)"
-    score_limit: int = 200             # windows per score round (one lease each)
+    score_limit: int = 200  # windows per score round (one lease each)
     score_rounds: int = 20
     owner: str = "live-monitor"
     sweep: object = field(default_factory=_default_sweep_policy)
@@ -454,7 +432,6 @@ def ingest_batch(config: CycleConfig, batch: dict, *, now: int | None = None) ->
                         ops=production_ops(config))
 
 
-# ------------------------------------------------------------------------------- schedule
 def run_loop(environ, *, cycle: Callable, clock=time.time, sleep=time.sleep,
              max_cycles: int | None = None, lag_seconds: int = DEFAULT_LAG_SECONDS,
              on_result: Callable | None = None, should_stop: Callable | None = None,
@@ -494,7 +471,6 @@ def run_loop(environ, *, cycle: Callable, clock=time.time, sleep=time.sleep,
     return cycles
 
 
-# ------------------------------------------------------------------------------- status
 def status_summary(connection, network: str) -> dict:
     """Read-only counters for the monitor log: live windows, rows, scores and alerts."""
     def one(sql, params=()):
@@ -537,7 +513,6 @@ def status_summary(connection, network: str) -> dict:
     return out
 
 
-# ------------------------------------------------------------------------------- CLI
 def _config_from_file(path: str) -> CycleConfig:
     from ton_sentinel.contracts import SourceEpoch
 

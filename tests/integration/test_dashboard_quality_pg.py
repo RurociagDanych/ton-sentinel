@@ -1,4 +1,5 @@
 """Dashboard API on real PostgreSQL over HTTP, through the sentinel_reader login (known fixture counts)."""
+
 import json
 import os
 import threading
@@ -81,16 +82,14 @@ def seeded(db):  # noqa: F811
     _feature(db, NET, 2, "jetton:A", "incomplete")
     _feature(db, NET, 1, "jetton:B", "bounded_observed")
     _feature(db, NET, 3, "jetton:B", None)
-    _feature(db, NET, 20, "jetton:A", "bounded_observed")       # outside range
-    _feature(db, "mainnet", 0, "jetton:A", "bounded_observed")  # other network
-    # qualification in range: synthetic 3, bounded (non-synthetic) 1, certified claim 1
+    _feature(db, NET, 20, "jetton:A", "bounded_observed")
+    _feature(db, "mainnet", 0, "jetton:A", "bounded_observed")
     for offset in (0, 1, 2):
         _qualify(db, NET, offset)
     _qualify(db, NET, 3, synthetic=False)
     _qualify(db, NET, 4, mode="certified", synthetic=False)
-    _qualify(db, NET, 20)                                       # outside range
-    _qualify(db, "mainnet", 0)                                  # other network
-    # dirty: pending target 2, pending baseline_dependents 1 (done / outside / mainnet ignored)
+    _qualify(db, NET, 20)
+    _qualify(db, "mainnet", 0)
     _dirty(db, NET, 2, "jetton:A", "target", "pending")
     _dirty(db, NET, 3, "jetton:B", "target", "pending")
     _dirty(db, NET, 4, "jetton:A", "baseline_dependents", "pending")
@@ -169,7 +168,7 @@ def test_known_counts_for_one_network_and_range(base):
 def test_range_is_half_open_and_other_network_not_counted(base):
     status, body = get(base, {"network": NET, "from": T0, "to": T0 + 300})
     assert status == 200
-    assert body["quality"]["served_windows"]["value"] == 1          # only window 0
+    assert body["quality"]["served_windows"]["value"] == 1
     status, body = get(base, {"network": "mainnet", **RANGE})
     assert body["quality"]["served_windows"]["value"] == 1
     assert body["quality"]["revision_quarantine_open"]["value"] == 1

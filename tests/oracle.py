@@ -1,8 +1,5 @@
-"""Independent expected-state oracle for synthetic policy decision fixtures.
+"""Independent expected-state oracle for synthetic policy decision fixtures."""
 
-Deliberately imports no product contracts, identity, normalizer, or detector.
-It models the documented fixture contract from raw JSON observations.
-"""
 from __future__ import annotations
 
 import json
@@ -265,7 +262,6 @@ _DETECTOR_DEFAULTS = {
 
 
 def _reference_median(values: list[float]) -> float:
-    """Median from order statistics, independent of production detector code."""
     ordered = sorted(values)
     middle = len(ordered) // 2
     if len(ordered) % 2:
@@ -375,14 +371,6 @@ def expected_detector_result(current: dict, history: list[dict], config: dict | 
             'unique_traders': wallet_result}
 
 
-# ------------------------------------------------------------------------------------------
-# Independent oracle for the two v1 detectors over a pinned baseline input.
-#
-# Input is the stored record of a pinned baseline input (``baseline_inputs`` columns, cells
-# run-length encoded) and the stored detector policy body (``detector_policies.body``).
-# Written from the detector spec and the detector decisions;
-# it imports no product module and uses exact
-# rational arithmetic (fractions.Fraction) only.
 from fractions import Fraction as _F
 
 _ORACLE_DETECTORS = (
@@ -395,7 +383,7 @@ def _o_text(value):
     """Exact rational -> decimal text rounded half-even to 9 places, no trailing zeros."""
     if value is None:
         return None
-    scaled = round(_F(value) * 10 ** 9)          # Fraction.__round__ is half-even
+    scaled = round(_F(value) * 10 ** 9)
     sign = '-' if scaled < 0 else ''
     whole, frac = divmod(abs(scaled), 10 ** 9)
     text = sign + str(whole)

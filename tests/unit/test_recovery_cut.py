@@ -1,7 +1,5 @@
-"""Pure recovery-cut rules (pause, consistent cut metadata, claim refusal).
+"""Pure recovery-cut rules (pause, consistent cut metadata, claim refusal)."""
 
-Real PostgreSQL/Kafka behaviour is covered by tests/integration/test_recovery.py.
-"""
 import copy
 import re
 from pathlib import Path

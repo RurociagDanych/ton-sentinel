@@ -1,4 +1,3 @@
-/* TON Sentinel dashboard design system: one file, no remote resources. */
 :root {
   --color-bg: #0f1419;
   --color-surface: #18202a;
@@ -116,7 +115,6 @@ select {
   .nav a { transition: background-color 0.15s; }
 }
 
-/* Overview: state badges (text label always present, colour is secondary) */
 :root {
   --color-ok-bg: #12301f;
   --color-ok-border: #3fb950;
@@ -149,7 +147,6 @@ select {
 .legend-entry { display: flex; gap: var(--space-3); align-items: baseline; }
 .legend-entry dt, .legend-entry dd { margin: 0; }
 
-/* Explorer */
 .chart { width: 100%; height: auto; display: block; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius); }
 .chart-axis { stroke: var(--color-border); stroke-width: 1; }
 .chart-label { fill: var(--color-muted); font-size: 10px; font-family: var(--font-mono); }
@@ -172,7 +169,6 @@ select {
 .reasons { margin: 0; padding-left: var(--space-4); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
-/* detections and alerts */
 .detection-banner { border: 2px solid currentColor; }
 .alert-state { display: inline-block; padding: 0 0.5em; border: 1px solid currentColor; border-radius: 0.25em; font-weight: 600; }
 .alert-active { background: #fff3cd; color: #5c3b00; }
@@ -183,7 +179,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--color-accen
 .explain-match { color: #1f5f2e; font-weight: 600; }
 .explain-mismatch { color: #8a1c1c; font-weight: 700; }
 
-/* alert history */
 .history-latest { outline: 2px solid #5c3b00; outline-offset: -2px; background: #fffbe6; }
 .rev-label { display: inline-block; padding: 0 0.4em; border: 1px dashed currentColor; border-radius: 0.25em; font-size: 0.85em; }
 .rev-current { background: #e8f1e8; color: #1f4d1f; }
@@ -192,7 +187,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--color-accen
 .partial-banner { padding: 0.5em 0.75em; border: 2px solid #5c3b00; background: #fff3cd; color: #3d2800; font-weight: 600; }
 .rev-list { margin: 0; padding-left: 1.5em; }
 
-/* data quality and coverage */
 .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-2); }
 .quality-tile { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-2); background: var(--color-bg); }
 .tile-unavailable { border: 2px dashed #6b1d24; background: #f8ecec; color: #3d1015; }
@@ -212,12 +206,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--color-accen
 .cov-q-unrecorded { border-bottom: 5px solid #999; }
 .gap-list a { color: var(--color-accent); }
 
-/* pipeline status */
 .pipe-tile { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-2); background: var(--color-bg); }
 .pipe-tile.tile-unavailable { border: 2px dashed #6b1d24; background: #f8ecec; color: #3d1015; }
 .pipe-not-measured .pipe-tile, .pipe-tile.pipe-not-measured { border: 2px dashed #7a5a00; background: #fbf4df; color: #3b2d00; }
 .pipe-backlog .tile-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 
-/* .muted is a dark-theme grey; inside light-background tiles it fell to ~2.2:1. Inherit the tile text colour. */
 .tile-unavailable .muted, .pipe-not-measured .muted, .partial-banner .muted,
 .alert-active .muted, .alert-retracted .muted, .history-latest .muted, .rev-stale .muted { color: inherit; }

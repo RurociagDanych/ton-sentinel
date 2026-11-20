@@ -1,4 +1,5 @@
 """Dashboard API over HTTP on real PostgreSQL: the endpoints the explorer reads, as the view sends them."""
+
 import re
 from pathlib import Path
 
@@ -32,7 +33,7 @@ def test_series_as_the_view_requests_it_has_gaps_provenance_and_unrecorded_null(
                                            "limit": 1000})
     assert status == 200 and PROVENANCE_KEYS <= set(body["provenance"])
     starts = [p["window_start"] - T0 for p in body["series"]]
-    assert starts == [300 * i for i in range(12) if i not in (2, 3, 7)]  # gaps stay absent
+    assert starts == [300 * i for i in range(12) if i not in (2, 3, 7)]
     for point in body["series"]:
         assert PROVENANCE_KEYS <= set(point["provenance"])
         assert isinstance(point["provisional"], bool)
@@ -58,7 +59,7 @@ def test_window_detail_reads_exactly_one_window_from_coverage(base):
     assert isinstance(detail["reasons"], list) and isinstance(detail["lineage_records"], int)
     status, gap = get(base, "/v1/coverage", {**q, "from": T0 + 600, "to": T0 + 900})
     assert status == 200 and gap["coverage"][0]["state"] in ("missing", "provisional")
-    assert gap["coverage"][0]["served"]["rows"] == 0  # a gap window is not a served zero
+    assert gap["coverage"][0]["served"]["rows"] == 0
 
 
 def test_every_coverage_state_the_server_emits_is_in_the_client_legend(base):

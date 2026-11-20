@@ -1,4 +1,5 @@
 """SPA shell, fetch client, design system and browser-harness helpers."""
+
 import importlib.util
 import io
 import json
@@ -127,7 +128,7 @@ def test_shell_wires_policy_banner_and_blocking_state():
     assert "/v1/policy" in app
     assert "honesty_banner" in app and "textContent" in app
     assert "dismiss" not in html.lower() + app.lower()
-    assert "hidden" in app  # main view hidden while blocked
+    assert "hidden" in app
     assert "network-select" in app
 
 
@@ -187,7 +188,7 @@ def test_harness_classifies_console_output():
     ])
     result = h.classify_console(log)
     assert len(result["csp_violations"]) == 1
-    assert len(result["console_errors"]) == 2  # CSP refusal is also a console error
+    assert len(result["console_errors"]) == 2
     assert h.classify_console("")["console_errors"] == []
 
 

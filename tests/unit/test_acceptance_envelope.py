@@ -1,4 +1,5 @@
 """Workload-envelope schema for measurement: TBD-OWNER values fail closed."""
+
 import copy
 import json
 import re
@@ -9,7 +10,6 @@ import pytest
 from scripts.measure_feasibility import WORKLOAD_FIELDS, envelope_problems, measure
 from tests.integration.test_feasibility import resource_case
 
-# Tracked envelope (moved out of the git-ignored docs/ tree so a clean clone runs this test).
 ACCEPTANCE = Path(__file__).resolve().parents[2] / "deploy" / "workload" / "acceptance.json"
 OWNER = "TBD-OWNER"
 
@@ -123,7 +123,7 @@ def test_committed_envelope_is_not_owner_signed_and_controls_never_pass():
     assert "standing delegation" in envelope["owner_agreement_source"]
     agreement = envelope["proposal_provenance"]["owner_agreement"]
     assert agreement["owner_agreed"] is False and "NOT signed" in agreement["statement"]
-    samples, _ = resource_case()  # synthetic aarch64 controls without measured objectives
+    samples, _ = resource_case()
     result = measure(samples, copy.deepcopy(envelope))
     assert result.status in ("BLOCKED", "FAIL") and result.actual_fit_eligible is False
 
@@ -165,7 +165,7 @@ def test_decided_values_are_internally_consistent():
     # Level 2 is about twice level 1 for every scaled field (backlog is a product of two doubled terms).
     for key in DECIDED_FIELDS:
         ratio = two[key] / one[key]
-        same = {"outage_seconds", "catchup_seconds", "run_seconds"}  # level-2 keeps these timing bounds; backlog = events x outage
+        same = {"outage_seconds", "catchup_seconds", "run_seconds"}
         expected = 1 if key in same else 2
         assert ratio == expected, (key, ratio)
 

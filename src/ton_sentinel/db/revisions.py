@@ -1,20 +1,4 @@
-"""Admit only ordered, authorized canonical revisions; quarantine everything else.
-
-Policy:
-
-* Evidence is one corroborated, fenced full-range walk (two consecutive agreeing walks)
-  plus full trace key-set lookups that agree on both passes. Anything weaker is a
-  candidate that stays quarantined; it never retracts or rewrites accepted data.
-* A changed digest, a changed trace key set, or a disappearance is admitted only under an
-  explicit authorization naming the exact candidate digest, the generation it was decided
-  against, and the same source epoch. Monotonic authority additionally needs a source
-  revision above the accepted one; only an audited owner resolution may retract or restore
-  a previously superseded digest.
-* A trace key-set change is resolved as one unit: every member is admitted in the same
-  transaction or none is, and the old entries stay (but ineligible) until it resolves.
-* Every admitted change or eligibility flip dirties its old and new windows plus the
-  trailing-baseline dependents and advances the dependency epoch, in the same transaction.
-"""
+"""Admit only ordered, authorized canonical revisions; quarantine everything else."""
 import hashlib
 import json
 from collections.abc import Callable
@@ -50,7 +34,6 @@ def _wkey(key: WindowKey):
 
 class _Decision:
     """One fenced decision transaction; owns the dependency-epoch bump and the change list."""
-
     def __init__(self, connection, range_id, range_row, previous_range_id, observations,
                  epoch: SourceEpoch, auth: Authorization | None, policy: RevisionPolicy):
         self.db = connection
@@ -60,7 +43,7 @@ class _Decision:
         self.epoch = epoch
         self.auth = auth
         self.policy = policy
-        self.observations = observations      # event_id -> (Action, digest)
+        self.observations = observations
         self.changes: list[Change] = []
         self._epoch_value: int | None = None
         self.last_generation: int | None = None
@@ -68,7 +51,6 @@ class _Decision:
     def event_id(self, trace_id: str, action_id: str) -> str:
         return ActionIdentity(self.epoch.network, trace_id, action_id).event_id
 
-    # ------------------------------------------------------------------ plumbing
     def bump_epoch(self) -> int:
         if self._epoch_value is None:
             self._epoch_value = self.db.execute(
@@ -107,7 +89,6 @@ class _Decision:
                     (key.network, key.token, key.window_start, role, key.window_end,
                      span[0], span[1], epoch, reason, cause))
 
-    # ------------------------------------------------------------------- evidence
     def lookup(self, trace_id: str):
         """Key set both passes agree on, or None (missing/incomplete/unclassified/changed)."""
         sets = []
@@ -157,7 +138,6 @@ class _Decision:
                                    action, source_revision, frozenset(history))
         return rows
 
-    # -------------------------------------------------------------------- judging
     def expired(self, event_id: str, action) -> bool:
         """The new contribution of ``action`` lies in an expired window, or
         its identity is held by a guard; it is quarantined, never inserted (backfill only)."""
@@ -201,7 +181,6 @@ class _Decision:
             return "expired_identity"
         return None
 
-    # ----------------------------------------------------------------- dispositions
     def apply(self, kind: str, trace_id: str, action_id: str, row: _Row | None,
               candidate) -> str:
         event_id = self.event_id(trace_id, action_id)
@@ -273,11 +252,10 @@ class _Decision:
         if row is not None:
             self.changes.append(Change("cleared", subject, "resolved", None, (), ()))
 
-    # ---------------------------------------------------------------------- traces
     def process_trace(self, trace_id: str) -> None:
         rows = self.load_trace(trace_id)
         if not rows:
-            return                      # a first-seen trace is a range insert, not a revision
+            return  # a first-seen trace is a range insert, not a revision
         trace_subject = f"trace:{self.epoch.network}:{trace_id}"
         obs = {action.identity.action_id: (action, digest)
                for action, digest in self.observations.values()

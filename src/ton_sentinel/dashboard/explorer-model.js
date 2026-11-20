@@ -1,5 +1,5 @@
-// Pure logic of the token and window explorer: range rules, keyset paging, the window grid
-// (gaps stay absent, never filled), chart geometry, labels and provenance checks. No DOM here.
+// Pure logic of the token and window explorer: ranges, keyset paging, window grid
+// (gaps stay absent, never filled), chart geometry and provenance checks. No DOM here.
 import { ApiError, ProvenanceError, validateProvenance } from "./client.js";
 
 export const WINDOW_SECONDS = 300;
@@ -12,7 +12,6 @@ export const DEFAULT_PRESET = "24h";
 
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 
-// ---- ranges: at most 7 days, five-minute aligned, half-open [from, to) ---------------------------
 
 export function checkRange(from, to) {
   const whole = (n) => typeof n === "number" && Number.isInteger(n) && n >= 0;
@@ -33,7 +32,7 @@ export function presetRange(key, nowMs) {
   return { from: to - seconds, to, ...checkRange(to - seconds, to) };
 }
 
-// "YYYY-MM-DDTHH:MM" (datetime-local) read as UTC; start rounds down, end rounds up.
+/** Read "YYYY-MM-DDTHH:MM" (datetime-local) as UTC; start rounds down, end rounds up. */
 export function customRange(fromText, toText) {
   const parse = (value) => (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(String(value)) ? Date.parse(value + ":00Z") / 1000 : NaN);
   const a = parse(fromText);
@@ -46,10 +45,12 @@ export function customRange(fromText, toText) {
   return { from, to, ...checkRange(from, to) };
 }
 
-// A deep link (#/explorer/<token>/<window_start>) must open a range that holds its window.
-// Returns null when the start is not a window start or already lies in the current range; otherwise
-// a 24 h custom range centred on the window, clamped at 0.
 export const LINK_SPAN_SECONDS = 86400;
+/**
+ * Range for a deep link (#/explorer/<token>/<window_start>) that must hold its window.
+ * Returns null when the start is not a window start or already lies in the current range; otherwise
+ * a 24 h custom range centred on the window, clamped at 0.
+ */
 export function linkedRange(start, range) {
   if (!Number.isSafeInteger(start) || start < 0 || start % WINDOW_SECONDS) return null;
   if (range && Number.isInteger(range.from) && Number.isInteger(range.to) && start >= range.from && start < range.to) {
@@ -68,7 +69,6 @@ export function failureMessage(error) {
   return "No usable response arrived. Nothing is shown for this request.";
 }
 
-// ---- token list: keyset paging, client-side filter over the loaded page only ----------------------
 
 export function newPager() {
   return { items: [], cursor: null, done: false };
@@ -99,7 +99,6 @@ export function filterLabel(loaded, done) {
   return "Filter applies to the " + loaded + " tokens loaded so far only. " + more;
 }
 
-// ---- series: one slot per five-minute window; a window without a row is a gap --------------------
 
 export function buildGrid(from, to, points) {
   const slots = [];
@@ -170,7 +169,7 @@ export function chartModel(grid, { width, height }) {
   return { width, height, pad, yMax, bars, gaps, gap_windows: gapWindows, legend: CHART_LEGEND };
 }
 
-// Follows next_cursor until it ends or the page cap is hit. A cap hit is reported, never hidden.
+/** Follow next_cursor until it ends or the page cap is hit. A cap hit is reported, never hidden. */
 export async function collectSeries(fetchPage, maxPages = MAX_SERIES_PAGES) {
   const points = [];
   let cursor = null;
@@ -187,7 +186,6 @@ export async function collectSeries(fetchPage, maxPages = MAX_SERIES_PAGES) {
   return { points, truncated, pages };
 }
 
-// ---- provenance: a response or a series point without it blocks the view --------------------------
 
 export function requireListProvenance(payload) {
   if (!isObject(payload)) throw new ProvenanceError("response has no provenance block");
@@ -204,7 +202,6 @@ export function requireSeriesProvenance(payload) {
   return block;
 }
 
-// ---- window detail from /v1/coverage --------------------------------------------------------------
 
 const UNAVAILABLE = { state: "unavailable", reasons: [], missing: [], admission_refused: false,
   admission_reasons: [], lineage_records: 0, qualification: null, served: null };

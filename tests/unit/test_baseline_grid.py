@@ -1,8 +1,5 @@
-"""Exact qualified baseline grid and detector input contract (pure contract tests).
+"""Exact qualified baseline grid and detector input contract (pure contract tests)."""
 
-The hand-authored oracle is ``tests/fixtures/truth/expected.json`` -> ``baseline_grid``; the
-expected states there are written from spec section 8.1, never derived from product code.
-"""
 import dataclasses
 import json
 from pathlib import Path
@@ -57,7 +54,6 @@ def make(scored=60 * W, states=None, current="observed", **overrides):
     return BaselineInput.create(**args)
 
 
-# ------------------------------------------------------------------------- detector policy
 def test_v1_policy_is_the_spec_default_and_has_a_fixed_identity():
     p = POLICY
     assert (p.version, p.window_seconds, p.lookback_seconds, p.min_prior_windows) == (
@@ -101,7 +97,6 @@ def test_config_parses_policy_strictly_and_defaults_to_v1():
             config.detector_policy(bad)
 
 
-# ------------------------------------------------------------------------- cell states
 def oracle_rows():
     for entry in ORACLE["entries"]:
         for i in range(entry["first"], entry["last"] + 1):
@@ -133,10 +128,10 @@ def test_cell_states_match_the_hand_authored_oracle():
 def test_absent_row_is_zero_only_with_qualified_coverage_inside_the_universe():
     base = dict(feature_swaps=None, canonical=False, qualified=True, pending=False,
                 touched=False, in_universe=True)
-    assert grid_cell_state(**base) == "zero"                                  # never seen
-    assert grid_cell_state(**{**base, "qualified": False}) == "missing"       # gap, not zero
+    assert grid_cell_state(**base) == "zero"
+    assert grid_cell_state(**{**base, "qualified": False}) == "missing"
     assert grid_cell_state(**{**base, "in_universe": False}) == "pre_universe"
-    assert grid_cell_state(**{**base, "touched": True}) == "provisional"     # awaiting repair
+    assert grid_cell_state(**{**base, "touched": True}) == "provisional"
     assert grid_cell_state(**{**base, "touched": True, "canonical": True}) == "zero"
     assert grid_cell_state(**{**base, "pending": True}) == "provisional"
 
@@ -173,7 +168,7 @@ def test_zero_and_observed_need_coverage_and_others_carry_none():
     with pytest.raises(ValueError):
         GridCell("testnet", "jetton:A", "both", 0, "missing", None, None, None, None,
                  "bounded_observed", False)
-    with pytest.raises(ValueError):       # a fixture is never certified
+    with pytest.raises(ValueError):
         GridCell("testnet", "jetton:A", "both", 0, "zero", 0, 0, 0, "q", "certified", True)
     with pytest.raises(ValueError):
         GridCell("testnet", "jetton:A", "both", 1, "missing", None, None, None, None, None, False)
@@ -182,10 +177,9 @@ def test_zero_and_observed_need_coverage_and_others_carry_none():
                  False)
 
 
-# ------------------------------------------------------------------------ baseline input
 def test_span_is_strictly_prior_and_exactly_the_lookback():
     assert baseline_span(POLICY, 10 * 86400) == (10 * 86400 - 7 * 86400, 10 * 86400)
-    assert baseline_span(POLICY, 600) == (0, 600)                # clipped at time zero
+    assert baseline_span(POLICY, 600) == (0, 600)
     scored = 9 * 86400
     full = make(scored=scored)
     assert len(full.cells) == 2016
@@ -264,7 +258,7 @@ def test_record_round_trip_uses_exact_runs():
     assert all({r["network"], r["token"], r["direction"]} == {"testnet", "jetton:A", "both"}
                for r in runs)
     assert BaselineInput.from_record(record) == original
-    assert json.loads(json.dumps(record)) == record              # JSON-safe
+    assert json.loads(json.dumps(record)) == record
 
 
 def test_fixtures_are_never_silently_certified():
@@ -289,19 +283,18 @@ def test_eligible_values_exclude_every_non_eligible_state():
     assert [(c.window_start, c.state) for c in values] == [(0, "observed"), (300, "zero")]
 
 
-# --------------------------------------------------------------------- coverage qualification
 def test_qualification_needs_contiguous_trace_ranges_through_window_end_plus_delta():
     ok = config.qualify_action_window(
         window_start=600, delta_seconds=120, trace_ranges=[[600, 800], [800, 1020]],
         mode="bounded_observed", synthetic=True, certification=None)
     assert ok["trace_ranges"] == [[600, 800], [800, 1020]] and ok["window_end"] == 900
     bad = [
-        dict(trace_ranges=[[600, 800], [801, 1020]]),        # gap
-        dict(trace_ranges=[[600, 1019]]),                    # short of e + delta
-        dict(trace_ranges=[[601, 1020]]),                    # starts after s
+        dict(trace_ranges=[[600, 800], [801, 1020]]),
+        dict(trace_ranges=[[600, 1019]]),
+        dict(trace_ranges=[[601, 1020]]),
         dict(trace_ranges=[]), dict(delta_seconds=-1), dict(delta_seconds=True),
-        dict(window_start=601), dict(mode="certified"),      # synthetic never certified
-        dict(mode="unknown"), dict(mode="certified", synthetic=False),   # no certification
+        dict(window_start=601), dict(mode="certified"),
+        dict(mode="unknown"), dict(mode="certified", synthetic=False),
         dict(synthetic=None),
     ]
     for override in bad:

@@ -1,4 +1,5 @@
 """Truthful demo + /status over real HTTP and real PostgreSQL (no certification inflation)."""
+
 import json
 import os
 import re
@@ -111,7 +112,7 @@ def test_demo_and_status_show_exactly_the_served_rows_and_label_synthetic_eviden
                          ("certified_recorded (unverified claims)", 0)):
         assert re.search(re.escape(label) + rf"\s*{value}(?!\d)", text), (label, value)
     assert "unverified" in text and text.count("not_qualified") >= 2
-    assert "jetton:" not in html  # aggregate counts only; no per-token rows
+    assert "jetton:" not in html
 
 
 def test_a_recorded_certified_claim_is_counted_but_never_raises_coverage_or_gates(served):
@@ -129,7 +130,7 @@ def test_a_recorded_certified_claim_is_counted_but_never_raises_coverage_or_gate
             "'[[0,1]]'::jsonb,%s,false,'{\"claim\":\"x\"}'::jsonb,%s,%s,%s)",
             (NET, 99 * 300 + 3000000, 99 * 300 + 3000300, json.dumps(epoch[0]), epoch[1], epoch[2], epoch[3]))
         db.commit()
-    except psycopg.Error as error:  # a schema guard that forbids it also keeps the claim out
+    except psycopg.Error as error:
         db.rollback()
         pytest.skip(f"schema refuses a direct certified record: {error.sqlstate}")
     _, payload, _ = status_json(base)

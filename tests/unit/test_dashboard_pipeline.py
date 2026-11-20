@@ -1,4 +1,5 @@
 """Dashboard API unit tests: /v1/pipeline validation, response shape, unavailable/not_measured, safety."""
+
 import json
 import re
 from unittest.mock import patch
@@ -128,7 +129,7 @@ def test_stream_progress_exposes_only_timestamp_and_count():
     result = read_pipeline(Conn(rows={"stream_batches": [(stamp, 7)]}), network="testnet")
     assert result["stream_progress"]["value"] == {
         "committed_at": "2026-01-02T03:04:05Z", "record_count": 7}
-    selected = [s for s in Conn().sql]  # no sql yet
+    selected = [s for s in Conn().sql]
     conn = Conn()
     read_pipeline(conn, network="testnet")
     stream_sql = next(s for s in conn.sql if "stream_batches" in s)

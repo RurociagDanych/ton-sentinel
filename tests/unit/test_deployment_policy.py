@@ -1,4 +1,5 @@
 """Offline policy only: synthetic render inputs are NOT G2/G5 attestations."""
+
 import json
 import os
 from pathlib import Path
@@ -58,7 +59,7 @@ def test_every_pod_stays_on_the_preloaded_arm_node(tmp_path, node_name):
     assert result.returncode == 0, result.stderr
     objs = [obj for obj in yaml.safe_load_all(result.stdout) if obj]
     pods = list(pod_specs(objs))
-    assert len(pods) == 7  # PG, Kafka, four apps, suspended maintenance.
+    assert len(pods) == 7
     for pod in pods:
         assert pod.get('nodeSelector') == {
             'kubernetes.io/hostname': node_name, 'kubernetes.io/arch': 'arm64'}
@@ -133,7 +134,7 @@ def test_storage_mounts_and_retention(tmp_path):
     assert env['KAFKA_LOG_SEGMENT_BYTES'] == '134217728'
     cron = next(x for x in objs if x['kind'] == 'CronJob')
     assert cron['spec']['concurrencyPolicy'] == 'Forbid'
-    assert cron['spec']['suspend'] is True  # maintenance entrypoint not yet implemented
+    assert cron['spec']['suspend'] is True
 
 
 @pytest.mark.parametrize('mode', ['arm64', 'live-source'])
@@ -195,7 +196,6 @@ def test_static_qualification_runs_only_local_checks(monkeypatch, failed_step):
 
 
 def test_static_qualification_has_no_cloud_infrastructure_option(monkeypatch, capsys):
-    """Static mode is local-only: no Terraform step or cloud-specific opt-in flag exists."""
     monkeypatch.setattr(subprocess, 'run', lambda *a, **k: pytest.fail('subprocess for --help'))
     monkeypatch.setattr(sys, 'argv', ['qualify', '--help'])
     with pytest.raises(SystemExit) as outcome:

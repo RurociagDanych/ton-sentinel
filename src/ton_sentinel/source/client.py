@@ -62,7 +62,6 @@ class RESTPageClient:
     fields are data only; they cannot select another URL or influence a redirect.
     The profile is offline/configured and does not assert a deployed TON API.
     """
-
     supports_durable_accounting = True
 
     def __init__(self, origin, route, *, max_body_bytes=4_000_000,

@@ -1,4 +1,5 @@
 """Offline synthetic-v1 economic policy, never deployed protocol evidence."""
+
 import base64
 
 from dataclasses import FrozenInstanceError
@@ -232,7 +233,7 @@ def test_malformed_synthetic_contract(mutation):
     elif mutation == 'synthetic':
         p['synthetic'] = False
     elif mutation == 'extra':
-        p['sender'] = OTHER  # Never an implicit trader fallback.
+        p['sender'] = OTHER
     elif mutation == 'network':
         p['network'] = 'mainnet'
     elif mutation == 'identity':

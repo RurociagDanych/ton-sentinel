@@ -9,7 +9,6 @@ import pytest
 from ton_sentinel.feasibility import run_probe
 from scripts.measure_feasibility import measure
 
-# These tests exercise evidence classification without services.
 def test_unknown_resource_evidence_blocks():
     assert measure([], {}).status == "BLOCKED"
 
@@ -77,7 +76,7 @@ def test_complete_synthetic_resource_control():
     samples, envelope = resource_case()
     footprint = measure(samples, envelope)
     assert footprint.status == "PASS"
-    assert footprint.synthetic is True  # never promote synthetic evidence to actual fit
+    assert footprint.synthetic is True
 
 
 def test_local_actual_measurement_passes_without_final_target_eligibility():
@@ -214,7 +213,7 @@ def test_cli_local_cpu_evidence_blocks_missing_and_fails_over_budget(
     if case == "missing":
         samples[0].pop("measured_cpu_seconds")
     else:
-        samples[0]["measured_cpu_seconds"] = 90  # 1.5 average cores > 1-core budget
+        samples[0]["measured_cpu_seconds"] = 90
     (tmp_path / "envelope.json").write_text(json.dumps(envelope))
     (tmp_path / "probe-resources.jsonl").write_text(
         "".join(json.dumps(sample) + "\n" for sample in samples))
@@ -521,7 +520,6 @@ def test_pg_commit_checkpoint_replay(probe_settings):
 
 @pytest.mark.integration
 def test_final_artifact_lane():
-    # Compatibility coverage, not manufactured behavioral RED for vendor code.
     from pyspark.sql import SparkSession
     jars = list(Path("/opt/spark/jars").glob("*.jar"))
     assert not any(p.name == "lz4-java-1.8.0.jar" for p in jars)
@@ -547,7 +545,6 @@ def test_final_artifact_lane():
         spark.stop()
 
 
-# Bounded local stack envelope (pure classifier) ---------------
 from scripts.measure_feasibility import evaluate_stack, STACK_BUDGET
 
 DIGEST = "sha256:" + "a" * 64

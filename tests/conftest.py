@@ -1,4 +1,5 @@
 """Real service fixtures; never skip absent required integration services."""
+
 import json
 import os
 import uuid
@@ -40,7 +41,7 @@ def _drop_probe_resources(settings):
     try:
         admin.delete_topics([settings["topic"]])
     except UnknownTopicOrPartitionError:
-        pass                                    # the probe failed before creating it
+        pass
     finally:
         admin.close()
 

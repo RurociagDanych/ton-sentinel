@@ -1,4 +1,5 @@
 """Read-only trace lookup normalization against real loopback HTTP."""
+
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import threading

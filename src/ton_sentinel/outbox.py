@@ -1,12 +1,4 @@
-"""SQL-fenced publication of committed ledger outbox rows to Kafka.
-
-The ledger's canonical mutation and outbox insert are already one PostgreSQL
-transaction. This module only publishes those committed intents; Kafka delivery
-and the PostgreSQL acknowledgement marker cannot be atomic, so crash recovery
-can replay a message and consumers must deduplicate by event_id. Lease fencing
-protects SQL markers only; it cannot stop an old producer from sending to Kafka.
-"""
-
+"""SQL-fenced publication of committed ledger outbox rows to Kafka."""
 import json
 from collections.abc import Mapping
 
@@ -17,6 +9,7 @@ from ton_sentinel.envelope import (ENVELOPE_VERSION, build_delivery_envelope,  #
 
 class PublicationError(RuntimeError):
     """A Kafka send did not receive a successful broker acknowledgement."""
+    pass
 
 
 def _require_idle(connection) -> None:

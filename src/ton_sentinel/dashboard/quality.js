@@ -1,7 +1,5 @@
-// Data quality and coverage: the quality counters as tiles (observed, or unavailable with its
-// reason, never zero), a coverage breakdown per state for one token and range, and a gap list linking
-// to the explorer. The completeness disclaimer is built before any request and is never hidden. A
-// response without provenance blocks the view.
+// Data quality and coverage view. The completeness disclaimer is built before any request and is never hidden;
+// a response without provenance blocks the view.
 import { ApiError, ProvenanceError, getChecked } from "./client.js";
 import { badge } from "./states.js";
 import { DEFAULT_PRESET, PRESETS, failureMessage, presetRange, tokensParams, newPager, pagerAdd } from "./explorer-model.js";

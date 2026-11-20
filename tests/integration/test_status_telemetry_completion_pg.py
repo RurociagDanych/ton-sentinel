@@ -1,5 +1,5 @@
-"""On real PostgreSQL and the real compose Kafka broker, over HTTP,
-through sentinel_reader: Spark progress, Kafka lag, maintenance, rates and the volume probe."""
+"""On real PostgreSQL and the real compose Kafka broker, over HTTP, through sentinel_reader: Spark progress, Kafka lag, maintenance, rates and the volume probe."""
+
 import hashlib
 import json
 import os
@@ -128,7 +128,7 @@ def test_missing_topic_and_unreachable_broker_are_unavailable(db, reader_dsn):  
 
 def test_maintenance_and_rates_equal_database_truth(db, reader_dsn):  # noqa: F811
     _run(db, "payload", "testnet", True)
-    _run(db, "guards", "testnet", False)  # an open run is not a completed maintenance run
+    _run(db, "guards", "testnet", False)
     _batch(db, query_id="q-r", batch_id=0, topic="t", offsets=None, records=7)
     _batch(db, query_id="q-r", batch_id=1, topic="t", offsets=None, records=5)
     db.commit()
@@ -189,7 +189,7 @@ def test_revoked_retention_runs_is_unavailable_never_zero(db, reader_dsn):  # no
 
 def test_volume_probe_matches_statvfs_of_a_real_mount_and_refuses_a_plain_directory(
         db, reader_dsn, tmp_path):  # noqa: F811
-    mount = "/workspace/src"  # read-only bind mount in the app container
+    mount = "/workspace/src"
     assert os.path.ismount(mount)
     server, thread, base = _serve(reader_dsn, TelemetryProbes(database_volume=mount))
     try:

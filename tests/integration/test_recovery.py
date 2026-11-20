@@ -1,5 +1,5 @@
-"""Tasks 12.1/12.2: paused/fenced recovery cut and validated resume against real PostgreSQL
-and Kafka (opt-in via env)."""
+"""Tasks 12.1/12.2: paused/fenced recovery cut and validated resume against real PostgreSQL and Kafka (opt-in via env)."""
+
 import base64
 import json
 import os
@@ -155,11 +155,9 @@ def test_pause_fences_writers_and_release_resumes_ingestion(world):
                "WHERE pause_id=%s", (pause.pause_id,)) == (pause.recovery_epoch,
                                                            pause.lease.fence, None)
     with connect(world["dsn"], options=world["options"]) as other:
-        # The pre-pause writer is fenced out by the recovery lease.
         with pytest.raises(LeaseRejected):
             publish_pending(other, world["producer"], world["writer"])
         other.rollback()
-        # A writer that takes a fresh slot is still refused by the durable pause.
         fresh = acquire_transition(other, "late-writer")
         with pytest.raises(IngestionPaused, match="recovery cut"):
             accept_corroborated_range(other, fresh, pending_group)
@@ -174,7 +172,6 @@ def test_pause_fences_writers_and_release_resumes_ingestion(world):
                 other.execute(statement)
             other.rollback()
     assert one(db, "SELECT count(*) FROM canonical_actions")[0] == 3
-    # Resume under a new fencing epoch: the late writer's slot superseded the recovery lease.
     with pytest.raises(LeaseRejected):
         release_recovery_pause(db, pause.lease, pause.pause_id)
     db.rollback()
@@ -186,7 +183,6 @@ def test_pause_fences_writers_and_release_resumes_ingestion(world):
     assert accept_corroborated_range(db, resumed, pending_group)
     assert one(db, "SELECT count(*) FROM canonical_actions")[0] == 4
     assert one(db, "SELECT count(*) FROM outbox WHERE publication_state='pending'")[0] == 2
-    # A released pause is final; a later pause gets a new recovery epoch.
     again = pause_for_recovery(db, "recovery-" + world["suffix"])
     assert again.recovery_epoch == pause.recovery_epoch + 1 and not again.resumed
 
@@ -197,7 +193,6 @@ def test_cut_is_consistent_across_snapshot_outbox_and_offsets(world):
     pause = pause_for_recovery(db, "recovery-" + world["suffix"])
     cut = capture_recovery_cut(db, pause.lease, pause.pause_id, world["reader"])
     m = cut.manifest
-    # Snapshot: generation G and one active contribution per accepted event.
     generation = one(db, "SELECT generation FROM canonical_generation")[0]
     canon = db.execute("SELECT event_id, accepted_generation, semantic_digest "
                        "FROM canonical_actions ORDER BY event_id COLLATE \"C\"").fetchall()
@@ -205,13 +200,11 @@ def test_cut_is_consistent_across_snapshot_outbox_and_offsets(world):
     assert m["snapshot"]["canonical_generation"] == generation == 3
     assert [(e, g, d) for e, _n, g, d in m["snapshot"]["contributions"]] == [tuple(r) for r in canon]
     assert m["snapshot"]["tables"]["canonical_actions"]["rows"] == 3
-    # Outbox: exact membership/status; attempted/ambiguous never become acknowledged.
     rows = db.execute("SELECT event_id, accepted_generation, publication_state FROM outbox "
                       "ORDER BY event_id COLLATE \"C\"").fetchall()
     db.commit()
     assert [tuple(x[:3]) for x in m["outbox"]["members"]] == [tuple(r) for r in rows]
     assert m["outbox"]["counts"] == {"acknowledged": 1, "ambiguous": 1, "pending": 1}
-    # Offsets: exact topic incarnation and per-partition exclusive end offset E.
     described = world["admin"].describe_topics([world["topic"]])[0]
     cluster = world["admin"].describe_cluster()["cluster_id"]
     k = m["kafka"]
@@ -223,7 +216,6 @@ def test_cut_is_consistent_across_snapshot_outbox_and_offsets(world):
     assert sum(k["end_offsets"].values()) == len(below) == 1
     acknowledged = [x[0] for x in m["outbox"]["members"] if x[3] == "acknowledged"]
     assert [r.key.decode() for r in below] == acknowledged
-    # One fence, recorded in the durable row and the manifest.
     row = one(db, "SELECT lease_owner, lease_fence, recovery_epoch, canonical_generation, "
               "end_offsets, manifest_digest FROM recovery_cuts WHERE cut_id=%s", (cut.cut_id,))
     assert row == (pause.lease.owner, pause.lease.fence, pause.recovery_epoch, 3,
@@ -244,7 +236,7 @@ def test_concurrent_writer_is_fenced_out_during_capture(world):
     def reader(topic):
         nonlocal calls
         calls += 1
-        if calls == 2:      # inside the open capture transaction, between the two samples
+        if calls == 2:
             other.execute("SET lock_timeout = '1s'")
             other.commit()
             try:
@@ -271,13 +263,10 @@ def test_concurrent_writer_is_fenced_out_during_capture(world):
         assert one(db, "SELECT owner, fence FROM lease_state")[0:2] == (
             pause.lease.owner, pause.lease.fence)
         assert cut.manifest["fence"]["fence"] == pause.lease.fence
-        # 1 acknowledged + 1 ambiguous attempt; the refused write changed nothing.
         assert one(db, "SELECT sum(publication_attempts) FROM outbox")[0] == 2
-        # Once the capture commits, the pre-pause writer is rejected by the fence.
         with pytest.raises(LeaseRejected):
             publish_pending(other, world["producer"], world["writer"])
         other.rollback()
-        # After the cut the writer can take the slot, but the pause still refuses writes.
         late = acquire_transition(other, "concurrent-writer")
         assert late.fence == pause.lease.fence + 1
         with pytest.raises(Exception, match="paused for a recovery cut"):
@@ -303,7 +292,6 @@ def test_cut_is_durable_reproducible_and_refused_when_stale_or_mismatched(world)
         assert first == second
         assert (first.digest, first.canonical_generation, first.end_offsets) == (
             cut.digest, 3, {int(p): e for p, e in cut.manifest["kafka"]["end_offsets"].items()})
-        # Never combine cuts: one cut per pause; cuts are immutable.
         lease = acquire_transition(reopened, "recovery-" + world["suffix"], ttl_seconds=300)
         with pytest.raises(RecoveryCutRejected, match="already"):
             capture_recovery_cut(reopened, lease, pause.pause_id, world["reader"])
@@ -313,7 +301,6 @@ def test_cut_is_durable_reproducible_and_refused_when_stale_or_mismatched(world)
             with pytest.raises(psycopg.Error, match="immutable"):
                 reopened.execute(statement)
             reopened.rollback()
-        # The database refuses incomplete or mismatched metadata outright.
         base = ("INSERT INTO recovery_cuts(cut_id,pause_id,recovery_epoch,lease_owner,"
                 "lease_fence,canonical_generation,topic,topic_incarnation,replay_epoch,"
                 "kafka_cluster_id,kafka_topic_id,end_offsets,outbox_members,manifest,"
@@ -336,7 +323,6 @@ def test_cut_is_durable_reproducible_and_refused_when_stale_or_mismatched(world)
                                         '{"snapshot":{},"outbox":{},"kafka":{},"fence":{}}',
                                         "0" * 64))
             reopened.rollback()
-        # Mismatched: the topic incarnation changed (topic recreated) -> refused.
         from kafka.admin import NewTopic
         world["admin"].delete_topics([world["topic"]])
         import time
@@ -349,11 +335,9 @@ def test_cut_is_durable_reproducible_and_refused_when_stale_or_mismatched(world)
                 time.sleep(1)
         with pytest.raises(RecoveryCutRejected, match="mismatched: .*topic id"):
             claim_recovery_point(reopened, cut.cut_id, world["reader"])
-        # Stale: ingestion resumed after the cut -> refused before any recovery claim.
         release_recovery_pause(reopened, lease, pause.pause_id)
         with pytest.raises(RecoveryCutRejected, match="stale: .*released"):
             claim_recovery_point(reopened, cut.cut_id, world["reader"])
-        # The durable row and digest are unchanged by the refusals.
         assert load_recovery_cut(reopened, cut.cut_id) == cut
 
 
@@ -384,7 +368,6 @@ def test_failed_capture_leaves_no_partial_cut(world):
         capture_recovery_cut(db, pause.lease, pause.pause_id, second_fails)
     assert cut_count(world) == 0
 
-    # A stray in-flight producer appends during the capture: offsets moved -> no cut.
     stray = KafkaProducer(bootstrap_servers=world["bootstrap"], acks="all")
     moved = 0
 
@@ -403,7 +386,6 @@ def test_failed_capture_leaves_no_partial_cut(world):
         stray.close()
     assert cut_count(world) == 0
 
-    # A writer that takes the slot before the capture fences the capture out.
     with world["connect"](world["dsn"], options=world["options"]) as other:
         acquire_transition(other, "takeover")
     with pytest.raises(LeaseRejected):
@@ -413,7 +395,6 @@ def test_failed_capture_leaves_no_partial_cut(world):
     assert one(db, "SELECT released_at FROM recovery_pauses WHERE pause_id=%s",
                (pause.pause_id,)) == (None,)
 
-    # Restarting the interrupted recovery reuses the durable pause and epoch, then cuts once.
     restarted = pause_for_recovery(db, "recovery-" + world["suffix"])
     assert (restarted.pause_id, restarted.recovery_epoch, restarted.resumed) == (
         pause.pause_id, pause.recovery_epoch, True)
@@ -421,10 +402,9 @@ def test_failed_capture_leaves_no_partial_cut(world):
     assert cut_count(world) == 1
     assert cut.manifest["fence"]["fence"] == restarted.lease.fence
     offsets = cut.manifest["kafka"]["end_offsets"]
-    assert sum(offsets.values()) == 2 and offsets["1"] >= 1     # 1 acknowledged + 1 stray
+    assert sum(offsets.values()) == 2 and offsets["1"] >= 1
 
 
-# Validate the cut before resuming; resume only from an exact fenced match ---
 
 def resume_state(world):
     """Everything a refused resume must leave untouched."""
@@ -468,7 +448,6 @@ def test_resume_refused_on_stale_incomplete_or_mismatched_cut(world):
     from ton_sentinel.recovery import KafkaRecordReader, resume_from_recovery_cut
 
     db, records = world["db"], KafkaRecordReader(world["bootstrap"])
-    # A consumer lineage already ran under pipeline epoch "pe-used" before the pause.
     db.execute("INSERT INTO stream_batches(environment_id,query_id,pipeline_epoch,batch_id,"
                "topic,topic_incarnation,replay_epoch,offset_metadata,record_digest,"
                "record_count) VALUES ('env','query','pe-used',0,%s,%s,0,'[]'::jsonb,%s,0)",
@@ -482,35 +461,28 @@ def test_resume_refused_on_stale_incomplete_or_mismatched_cut(world):
             resume_from_recovery_cut(db, lease, presented, world["reader"], records,
                                      pipeline_epoch=epoch)
         db.rollback()
-        assert resume_state(world) == before        # nothing resumed, released or redelivered
+        assert resume_state(world) == before
         return caught.value.reasons
 
-    # Not a handoff: the lease that captured the cut may not also resume it.
     refused(pause.lease, point, "stale: .*handoff")
     handoff = acquire_transition(db, "resumer-" + world["suffix"], ttl_seconds=300)
-    # Mismatched: the presented point is not an exact copy of the durable cut.
     refused(handoff, dataclasses.replace(point, end_offsets={0: 0, 1: 0}),
             "mismatched: presented recovery point")
     refused(handoff, dataclasses.replace(point, topic_incarnation="other"),
             "mismatched: presented recovery point")
-    # Stale lineage: a pipeline epoch whose checkpoint already advanced is never reused.
     refused(handoff, point, "stale: .*pipeline epoch", epoch="pe-used")
-    # Incomplete: no durable cut with this identity.
     refused(handoff, dataclasses.replace(point, cut_id=str(uuid.uuid4())), "incomplete: unknown")
-    # Mismatched: a record that is no ambiguous cut member landed after the cut.
     stray = KafkaProducer(bootstrap_servers=world["bootstrap"], acks="all")
     try:
         stray.send(world["topic"], key=b"stray", value=b"late", partition=0).get(timeout=10)
     finally:
         stray.close()
     refused(handoff, point, "mismatched: post-cut record")
-    # Stale: ingestion resumed after the cut and a newer recovery epoch exists.
     release_recovery_pause(db, handoff, pause.pause_id)
     again = pause_for_recovery(db, "recovery-" + world["suffix"])
     later = acquire_transition(db, "resumer-" + world["suffix"], ttl_seconds=300)
     reasons = refused(later, point, "stale: .*released")
     assert any("newer recovery epoch" in r for r in reasons)
-    # Incomplete/altered: a cut whose manifest lost a component is refused before resume.
     cut2 = capture_recovery_cut(db, later, again.pause_id, world["reader"])
     point2 = claim_recovery_point(db, cut2.cut_id, world["reader"])
     db.execute("ALTER TABLE recovery_cuts DISABLE TRIGGER recovery_cuts_immutable")
@@ -536,7 +508,6 @@ def test_resume_on_exact_fenced_match_deduplicates_a_late_ambiguous_send(world):
     pending = one(db, "SELECT event_id FROM outbox WHERE publication_state='pending'")[0]
     pause, cut, point = paused_cut(world)
     cut_end = cut.manifest["kafka"]["end_offsets"]
-    # The superseded producer's in-flight send lands after the cut; its client retried once.
     old = KafkaProducer(bootstrap_servers=world["bootstrap"], acks="all")
     try:
         first = old.send(world["topic"], key=event.encode(), value=wire_value(envelope)).get(10)
@@ -558,20 +529,17 @@ def test_resume_on_exact_fenced_match_deduplicates_a_late_ambiguous_send(world):
                    [[event, first.partition, first.offset]])
     assert one(db, "SELECT released_at IS NOT NULL, release_fence FROM recovery_pauses "
                    "WHERE pause_id=%s", (pause.pause_id,)) == (True, handoff.fence)
-    # Deduplicated: the landed send is acknowledged from its broker copy, never resent.
     assert one(db, "SELECT publication_state, publication_attempts FROM outbox "
                    "WHERE event_id=%s", (event,)) == ("acknowledged", 1)
     assert publish_pending(db, world["producer"], handoff, limit=10) == (pending,)
     world["producer"].flush(timeout=10)
-    assert publish_pending(db, world["producer"], handoff, limit=10) == ()    # idempotent replay
-    # The resumed consumer starts at E and applies every event exactly once.
+    assert publish_pending(db, world["producer"], handoff, limit=10) == ()
     log = all_records(world)
     above = [r for r in log if r["offset"] >= cut_end[str(r["partition"])]]
     assert sorted(r["key"].decode() for r in above) == sorted([event, event, pending])
     applied = resumed_records(resumed, log)
     assert sorted(r["key"].decode() for r in applied) == sorted([event, pending])
     assert all(r["offset"] >= cut_end[str(r["partition"])] for r in applied)
-    # No double application of canonical effects; the cut cannot be resumed twice.
     assert one(db, "SELECT count(*), count(*) FILTER (WHERE publication_state='acknowledged') "
                    "FROM outbox")[0:2] == (3, 3)
     assert one(db, "SELECT count(*) FROM canonical_actions")[0] == 3
@@ -581,7 +549,6 @@ def test_resume_on_exact_fenced_match_deduplicates_a_late_ambiguous_send(world):
                                  KafkaRecordReader(world["bootstrap"]), pipeline_epoch="pe-x")
     db.rollback()
     assert one(db, "SELECT count(*) FROM recovery_resumptions")[0] == 1
-    # Ingestion is resumed under the handoff lineage.
     group = corroborated(db, 20, 30, [41])
     assert accept_corroborated_range(db, acquire_transition(db, "ingest-after"), group)
     assert one(db, "SELECT count(*) FROM canonical_actions")[0] == 4
@@ -606,7 +573,6 @@ def test_resume_redelivers_an_ambiguous_send_that_never_landed_exactly_once(worl
     assert resumed.resolutions == {event: None} and resumed.duplicates == ()
     assert one(db, "SELECT publication_state FROM outbox WHERE event_id=%s",
                (event,))[0] == "ambiguous"
-    # Redelivered by original id, once; a second dispatcher pass sends nothing.
     assert sorted(publish_pending(db, world["producer"], handoff, limit=10)) == sorted(
         [event, pending])
     world["producer"].flush(timeout=10)
@@ -616,7 +582,6 @@ def test_resume_redelivers_an_ambiguous_send_that_never_landed_exactly_once(worl
     assert sorted(above) == sorted([event, pending])
     assert sorted(r["key"].decode() for r in resumed_records(resumed, log)) == sorted(
         [event, pending])
-    # The database records one resumption per cut and refuses any change to it.
     for statement in ("UPDATE recovery_resumptions SET pipeline_epoch='x'",
                       "DELETE FROM recovery_resumptions"):
         with pytest.raises(psycopg.Error, match="immutable"):
@@ -653,7 +618,7 @@ def test_failure_injection_around_resume_leaves_an_explicit_blocked_state(world)
             resume_from_recovery_cut(db, lease, point, kafka, reader,
                                      pipeline_epoch="pe-" + world["suffix"])
         db.rollback()
-        assert resume_state(world) == blocked        # still paused, nothing resumed
+        assert resume_state(world) == blocked
 
     handoff = acquire_transition(db, "resumer-" + world["suffix"], ttl_seconds=300)
 
@@ -666,7 +631,6 @@ def test_failure_injection_around_resume_leaves_an_explicit_blocked_state(world)
         raise TimeoutError("simulated record read timeout during resume")
 
     attempt(handoff, world["reader"], unreadable, TimeoutError)
-    # The old producer's send lands while the resume is validating: offsets moved -> refused.
     old = KafkaProducer(bootstrap_servers=world["bootstrap"], acks="all")
 
     def landing(topic, start, end):
@@ -678,11 +642,9 @@ def test_failure_injection_around_resume_leaves_an_explicit_blocked_state(world)
         attempt(handoff, world["reader"], landing, RecoveryCutRejected, "offsets moved")
     finally:
         old.close()
-    # A takeover before the resume fences it out.
     with world["connect"](world["dsn"], options=world["options"]) as other:
         acquire_transition(other, "takeover")
     attempt(handoff, world["reader"], records, LeaseRejected)
-    # The handoff lease expires while the resume is in progress: nothing commits.
     short = acquire_transition(db, "resumer-" + world["suffix"], ttl_seconds=1)
 
     def slow(topic, start, end):
@@ -692,7 +654,6 @@ def test_failure_injection_around_resume_leaves_an_explicit_blocked_state(world)
 
     import psycopg
     attempt(short, world["reader"], slow, (LeaseRejected, psycopg.Error), "expired")
-    # Restart: a fresh handoff validates the same cut and resumes exactly once.
     final = acquire_transition(db, "resumer-" + world["suffix"], ttl_seconds=300)
     resumed = resume_from_recovery_cut(db, final, point, world["reader"], records,
                                        pipeline_epoch="pe-" + world["suffix"])
@@ -701,11 +662,9 @@ def test_failure_injection_around_resume_leaves_an_explicit_blocked_state(world)
     assert resume_state(world)[0:2] == (1, [])
 
 
-# Named Step 1 scenarios that need no Spark (real PostgreSQL + Kafka) ---
 
 @pytest.mark.integration
 def test_expired_offsets_new_cut(world):
-    """Kafka expiry below the retained log start invalidates the cut; only a new cut resumes."""
     from kafka import KafkaProducer, TopicPartition
 
     from ton_sentinel.recovery import KafkaRecordReader, resume_from_recovery_cut
@@ -717,7 +676,7 @@ def test_expired_offsets_new_cut(world):
     pause, cut, point = paused_cut(world)
     cut_end = cut.manifest["kafka"]["end_offsets"]
     old = KafkaProducer(bootstrap_servers=world["bootstrap"], acks="all")
-    try:                                   # the superseded producer's send lands above E
+    try:
         landed = old.send(world["topic"], key=event.encode(), value=wire_value(envelope)).get(10)
     finally:
         old.close()
@@ -725,13 +684,11 @@ def test_expired_offsets_new_cut(world):
     assert landed.offset >= cut_end[part]
     handoff = acquire_transition(db, "resumer-" + world["suffix"], ttl_seconds=300)
     before = resume_state(world)
-    # The bounded retained-log scan refuses instead of truncating (explicit, not partial).
     with pytest.raises(RecoveryCutRejected, match="exceeds max_records"):
         resume_from_recovery_cut(db, handoff, point, world["reader"], records,
                                  pipeline_epoch="pe-" + world["suffix"], max_records=1)
     db.rollback()
     assert resume_state(world) == before
-    # Kafka expiration of the isolated test topic: the log start moves past E.
     world["admin"].delete_records({TopicPartition(world["topic"], landed.partition):
                                    landed.offset + 1})
     expired = f"partition {part} offset {cut_end[part]} outside the retained log"
@@ -742,8 +699,7 @@ def test_expired_offsets_new_cut(world):
         resume_from_recovery_cut(db, handoff, point, world["reader"], records,
                                  pipeline_epoch="pe-" + world["suffix"])
     db.rollback()
-    assert resume_state(world) == before          # still paused; no guessed coordinates
-    # The way out is a new cut: release, pause again (new epoch) and cut at the retained end.
+    assert resume_state(world) == before
     operator = acquire_transition(db, "recovery-" + world["suffix"], ttl_seconds=300)
     release_recovery_pause(db, operator, pause.pause_id)
     again = pause_for_recovery(db, "recovery-" + world["suffix"])
@@ -756,13 +712,12 @@ def test_expired_offsets_new_cut(world):
     handoff2 = acquire_transition(db, "resumer-" + world["suffix"], ttl_seconds=300)
     resumed = resume_from_recovery_cut(db, handoff2, point2, world["reader"], records,
                                        pipeline_epoch="pe2-" + world["suffix"])
-    # Its only broker copy expired with the log: redelivered by original id, never assumed.
     assert resumed.resolutions == {event: None} and resumed.duplicates == ()
     assert sorted(publish_pending(db, world["producer"], handoff2, limit=10)) == sorted(
         [event, pending])
     world["producer"].flush(timeout=10)
     assert publish_pending(db, world["producer"], handoff2, limit=10) == ()
-    sample = world["reader"](world["topic"])["partitions"]      # read from the retained start
+    sample = world["reader"](world["topic"])["partitions"]
     retained = records(world["topic"], {p: o["start"] for p, o in sample.items()},
                        {p: o["end"] for p, o in sample.items()})
     above = [r["key"].decode() for r in retained if r["offset"] >= end2[str(r["partition"])]]
@@ -793,7 +748,6 @@ def revision_world(world):
 
 @pytest.mark.integration
 def test_revision_during_cut_deferred(revision_world):
-    """A revision attempted while paused is refused; after resume it commits with intent."""
     from ton_sentinel.db.revisions import decide_revision
     from ton_sentinel.recovery import KafkaRecordReader, resume_from_recovery_cut
     from tests.integration.test_revisions import eid
@@ -808,7 +762,6 @@ def test_revision_during_cut_deferred(revision_world):
     with pytest.raises(Exception, match="paused for a recovery cut"):
         decide_revision(db, revisor, world["evidence"], world["auth"])
     db.rollback()
-    # Deferred, not partially applied: the cut is still an exact, claimable match.
     assert one(db, "SELECT accepted_generation FROM canonical_current WHERE event_id=%s",
                (event,)) == current_before
     assert claim_recovery_point(db, cut.cut_id, world["reader"]) == point
@@ -816,7 +769,6 @@ def test_revision_during_cut_deferred(revision_world):
     resume_from_recovery_cut(db, handoff, point, world["reader"],
                              KafkaRecordReader(world["bootstrap"]),
                              pipeline_epoch="pe-" + world["suffix"])
-    # After resume the same revision is decided normally; every post-G change has intent.
     changes = decide_revision(db, acquire_transition(db, "revisor-again"), world["evidence"],
                               world["auth"])
     assert changes
@@ -827,8 +779,6 @@ def test_revision_during_cut_deferred(revision_world):
                        "ORDER BY window_start").fetchall()
     db.commit()
     assert {(w, s) for w, s in dirty} == {(0, "pending"), (600, "pending")}
-    # A later cut bootstraps one active contribution per event at its current generation,
-    # not every historical revision.
     pause2 = pause_for_recovery(db, "recovery-" + world["suffix"])
     cut2 = capture_recovery_cut(db, pause2.lease, pause2.pause_id, world["reader"])
     mine = [c for c in cut2.manifest["snapshot"]["contributions"] if c[0] == event]
@@ -837,8 +787,6 @@ def test_revision_during_cut_deferred(revision_world):
     assert cut2.manifest["snapshot"]["tables"]["canonical_revisions"]["rows"] == revisions >= 1
     release_recovery_pause(db, acquire_transition(db, "operator-" + world["suffix"]),
                            pause2.pause_id)
-    # An unordered change for the same event is quarantined with suppressed scoring: the next
-    # cut carries the quarantine and contributes nothing for the suppressed event.
     from tests.integration.test_revisions import C
     unordered = world["revisions"].candidate({world["x"]: C}, {1: {2}})
     decide_revision(db, acquire_transition(db, "revisor-unordered"), unordered, None)
@@ -876,7 +824,6 @@ print("UNREACHABLE", flush=True)
 
 @pytest.mark.integration
 def test_cut_interrupted_stays_paused(world):
-    """A real process kill before the manifest is durable leaves the pause and no cut."""
     import signal
     import subprocess
     import sys
@@ -890,15 +837,13 @@ def test_cut_interrupted_stays_paused(world):
     assert child.returncode == -signal.SIGKILL, child.stderr[-2000:]
     assert "UNREACHABLE" not in child.stdout
     pause_id, epoch = (int(v) for v in child.stdout.split()[:2])
-    assert cut_count(world) == 0                       # nothing durable, nothing to resume from
+    assert cut_count(world) == 0
     assert one(db, "SELECT released_at FROM recovery_pauses WHERE pause_id=%s",
                (pause_id,)) == (None,)
     with pytest.raises(IngestionPaused, match="recovery cut"):
         accept_corroborated_range(db, acquire_transition(db, "late-writer"), pending_group)
     db.rollback()
     assert one(db, "SELECT count(*) FROM canonical_actions")[0] == 3
-    # Restart: the durable pause and its epoch are reused; the cut is taken once, at the
-    # broker's current end (no jump: nothing was produced while paused).
     restarted = pause_for_recovery(db, owner)
     assert (restarted.pause_id, restarted.recovery_epoch, restarted.resumed) == (
         pause_id, epoch, True)
@@ -954,7 +899,6 @@ def detector_world():
 
 @pytest.mark.integration
 def test_detector_results_and_alerts_are_unchanged_by_a_cut_and_resume(detector_world):
-    """Baseline/result/alert/status oracle across a recovery cut."""
     from ton_sentinel.db.work import rescore_stale, rescore_window
     from ton_sentinel.recovery import KafkaRecordReader, resume_from_recovery_cut
     from tests.integration.test_detection import (COUNT, NET, SCORED, TOK, WALLETS, alerts,
@@ -969,7 +913,7 @@ def test_detector_results_and_alerts_are_unchanged_by_a_cut_and_resume(detector_
     assert [before[COUNT][0], before[WALLETS][0]] == oracle_for(db, digest)
     assert before[COUNT][0]["triggered"] is True
     alerts_before, served_before = alerts(db), served(db)
-    assert alerts_before                                  # an active alert exists at the cut
+    assert alerts_before
     _pause, cut, point = paused_cut(world)
     handoff = acquire_transition(db, "resumer-" + world["suffix"], ttl_seconds=300)
     resume_from_recovery_cut(db, handoff, point, world["reader"],
@@ -977,7 +921,6 @@ def test_detector_results_and_alerts_are_unchanged_by_a_cut_and_resume(detector_
                              pipeline_epoch="pe-" + world["suffix"])
     publish_pending(db, world["producer"], handoff, limit=50)
     world["producer"].flush(timeout=10)
-    # Nothing became stale or changed; recomputing reproduces the oracle without a new alert.
     assert (current_results(db), alerts(db), served(db)) == (before, alerts_before,
                                                              served_before)
     rescorer = acquire_transition(db, "rescorer-" + world["suffix"], ttl_seconds=300)

@@ -1,4 +1,5 @@
 """Real PostgreSQL + Kafka publication acceptance (opt-in via env vars)."""
+
 import base64
 import json
 import os
@@ -139,7 +140,6 @@ def test_acknowledged_publication_survives_database_reconnect_and_advances_front
             finally:
                 producer.close()
             assert advance_publication_frontier(db, lease) == 20
-        # Reopen PostgreSQL to verify durable acknowledgement state/frontier.
         with connect(dsn, options=options) as reopened:
             assert reopened.execute("SELECT published_at IS NOT NULL FROM outbox WHERE event_id=%s",
                                     (event,)).fetchone()[0]
@@ -177,7 +177,6 @@ def test_acknowledged_publication_survives_database_reconnect_and_advances_front
 
 @pytest.mark.integration
 def test_takeover_during_kafka_send_rejects_stale_ack_and_allows_duplicate_retry():
-    """A real broker ack cannot bypass SQL lease fencing after a takeover."""
     dsn = os.environ["TON_SENTINEL_TEST_DSN"]
     bootstrap = os.environ["TON_SENTINEL_KAFKA_BOOTSTRAP"]
     pytest.importorskip("kafka")
@@ -221,8 +220,6 @@ def test_takeover_during_kafka_send_rejects_stale_ack_and_allows_duplicate_retry
                 "SELECT delivery_envelope FROM outbox WHERE event_id=%s", (event,)
             ).fetchone()[0]
 
-        # Three barrier-controlled stale acknowledgements force three distinct
-        # lease generations to lose ownership while their real Kafka send waits.
         for cycle in range(3):
             entered_send = threading.Event()
             release_send = threading.Event()
@@ -251,7 +248,6 @@ def test_takeover_during_kafka_send_rejects_stale_ack_and_allows_duplicate_retry
                         try:
                             publish_pending(stale_db, DelayedAck(), stale_lease, ack_timeout=20)
                         except LeaseRejected as exc:
-                            # A caller commit after rejection must not persist stale SQL.
                             stale_db.commit()
                             worker_result["error"] = exc
                 except BaseException as exc:
@@ -275,7 +271,6 @@ def test_takeover_during_kafka_send_rejects_stale_ack_and_allows_duplicate_retry
             assert not worker.is_alive(), f"stale publisher {cycle} failed to terminate"
             assert isinstance(worker_result.get("error"), LeaseRejected), worker_result
 
-            # Confirm each acknowledged stale send leaves the marker/frontier intact.
             with connect(dsn, options=options) as check_db:
                 assert check_db.execute(
                     "SELECT publication_state,publication_attempts,published_at "
@@ -328,7 +323,6 @@ def test_takeover_during_kafka_send_rejects_stale_ack_and_allows_duplicate_retry
 
 @pytest.mark.integration
 def test_simultaneous_takeover_contenders_fence_every_superseded_holder():
-    """Bounded repeated PostgreSQL contention fences every superseded holder."""
     dsn = os.environ["TON_SENTINEL_TEST_DSN"]
     bootstrap = os.environ["TON_SENTINEL_KAFKA_BOOTSTRAP"]
     pytest.importorskip("kafka")
@@ -409,7 +403,6 @@ def test_simultaneous_takeover_contenders_fence_every_superseded_holder():
             assert len(round_leases) == contender_count
             leases.extend(round_leases)
 
-            # Resolve ownership from committed database state, not thread order.
             with connect(dsn, options=options) as readback:
                 current_row = readback.execute(
                     "SELECT owner,fence,expires_at FROM lease_state WHERE singleton=true"
@@ -541,7 +534,6 @@ def test_frontier_origin_overlap_fencing_and_transaction_boundaries(monkeypatch)
             accepted(30, 40, 35, 30)
             assert advance_publication_frontier(db, lease, limit=1) == 40
 
-            # A takeover rejects a stale token without changing the frontier.
             stale = lease
             current_lease = acquire_transition(db, "frontier-takeover")
             with pytest.raises(LeaseRejected):
@@ -582,7 +574,6 @@ def test_frontier_origin_overlap_fencing_and_transaction_boundaries(monkeypatch)
                 "SELECT end_exclusive FROM outbox_publication_frontier"
             ).fetchone()[0] == 40
 
-        # Explicit transaction blocks also work with psycopg autocommit enabled.
         with connect(dsn, options=options, autocommit=True) as db:
             lease = acquire_transition(db, "autocommit-test")
             assert advance_publication_frontier(db, lease) == 50
@@ -664,7 +655,6 @@ def test_migration_009_reconciles_existing_frontier_only_with_contiguous_acknowl
             )
             db.commit()
 
-            # Apply 009 against an actual schema containing only 008's frontier.
             db.execute((migrations / "009_outbox_publication_origin.sql").read_text())
             db.commit()
             # Current publication code requires the lifecycle schema. Upgrade
@@ -710,8 +700,6 @@ def test_migration_012_upgrades_legacy_rows_and_preserves_state_on_replay():
     ids = ("legacy-published", "legacy-unresolved", "other-unresolved")
     try:
         with connect(dsn, options=options) as db:
-            # Build a real pre-012 database, including published and unresolved
-            # outbox rows, rather than simulating the migration with columns.
             for path in sorted(migrations.glob("[0-9][0-9][0-9]_*.sql")):
                 if int(path.name[:3]) >= 12:
                     break
@@ -744,7 +732,6 @@ def test_migration_012_upgrades_legacy_rows_and_preserves_state_on_replay():
             assert published[4] == published[5]
             db.commit()
 
-            # The stronger lifecycle invariant rejects either one-sided marker.
             import psycopg
             with pytest.raises(psycopg.errors.CheckViolation):
                 with db.transaction():
@@ -848,7 +835,6 @@ def test_migration_013_preserves_historical_unbound_outbox_intents():
 @pytest.mark.integration
 @pytest.mark.parametrize("marker", ["published_at", "acknowledged_at"])
 def test_partial_acknowledgement_cannot_advance_or_reconcile_frontier(marker):
-    """A published marker alone is not proof of a complete acknowledgement."""
     dsn = os.environ["TON_SENTINEL_TEST_DSN"]
     from psycopg import connect
 
@@ -901,7 +887,6 @@ def test_partial_acknowledgement_cannot_advance_or_reconcile_frontier(marker):
 
 @pytest.mark.integration
 def test_migration_016_keeps_pre_generation_bound_intents_publishable_and_replays():
-    """Persisted canonical generation semantics."""
     dsn = os.environ["TON_SENTINEL_TEST_DSN"]
     from psycopg import connect
     from psycopg.errors import CheckViolation

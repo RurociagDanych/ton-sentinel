@@ -1,4 +1,5 @@
 """Mutable-source drift limits, invisible mutation and fail-closed sources (real PostgreSQL)."""
+
 import base64
 import math
 import os
@@ -55,7 +56,6 @@ def action(index, action_end=15):
 
 class Walks:
     """Transport serving one list per walk; counts every request."""
-
     def __init__(self, walks):
         self.walks = list(walks)
         self.walk = -1
@@ -88,7 +88,7 @@ def group_state(db, group_id):
 @pytest.mark.parametrize("page_size", [1, 2, 3, 6])
 def test_mutable_drift_limits_repeat_timestamps_both_sorts_and_page_sizes(
         db, page_size, descending):
-    items = [action(i) for i in range(1, 7)]  # six distinct actions, one repeated timestamp
+    items = [action(i) for i in range(1, 7)]
     first, second = (list(reversed(items)), items) if descending else (items, list(reversed(items)))
     transport = Walks([first, second])
     pol = policy(page_size)
@@ -108,7 +108,7 @@ def test_mutable_drift_limits_repeat_timestamps_both_sorts_and_page_sizes(
 
 def test_mutable_drift_mismatches_reset_and_stop_at_three_walks_pending(db):
     a, b, c = [action(1)], [action(1), action(2)], [action(3)]
-    transport = Walks([a, b, c, a, a])  # a 4th/5th walk must never be requested
+    transport = Walks([a, b, c, a, a])
     group = corroborate_range(db, transport, epoch(), policy())
     assert group_state(db, group) == ("pending", 3, None)
     assert transport.walk == 2
@@ -131,7 +131,6 @@ def test_mutable_drift_exhausted_request_budget_remains_pending(db):
 
 
 def test_invisible_mutation_not_certified_and_later_visible_sweep_discovers_it(db):
-    # Source view hides action 2 in both walks; independent truth contains 1 and 2.
     truth = [action(1), action(2)]
     hidden_view = [action(1)]
     group = corroborate_range(db, Walks([hidden_view, hidden_view]), epoch(), policy())
@@ -139,7 +138,7 @@ def test_invisible_mutation_not_certified_and_later_visible_sweep_discovers_it(d
     assert accept_corroborated_range(db, lease, group)
     db.commit()
     accepted_keys = {r[0] for r in db.execute("SELECT event_id FROM canonical_actions").fetchall()}
-    assert len(accepted_keys) == 1 and len(truth) == 2  # observable disagreement with truth
+    assert len(accepted_keys) == 1 and len(truth) == 2
     db.commit()
     coverage = action_window_coverage(db, "testnet", epoch(), 1_700_000_100, 1_700_000_400)
     db.commit()
@@ -150,7 +149,6 @@ def test_invisible_mutation_not_certified_and_later_visible_sweep_discovers_it(d
     assert db.execute("SELECT count(*) FROM coverage_ranges WHERE status='certified'"
                       ).fetchone()[0] == 0
 
-    # later in-context sweep sees the mutation: the missing action is discovered once.
     sweep = corroborate_range(db, Walks([truth, truth]), epoch(), policy())
     assert accept_corroborated_range(db, acquire_transition(db, "sweep"), sweep)
     db.commit()
@@ -219,7 +217,7 @@ def test_competing_range_promotions_serialize_without_duplicates_or_deadlock(db)
         t.join(timeout=30)
     assert not any(t.is_alive() for t in threads) and not errors, errors
     assert results["a"] and results["b"]
-    assert count(db, "canonical_actions") == count(db, "outbox") == 3  # shared event once
+    assert count(db, "canonical_actions") == count(db, "outbox") == 3
     assert db.execute("SELECT cursor FROM ingest_state").fetchone()[0] == 20
     assert db.execute("SELECT count(*) FROM source_ranges WHERE status='accepted'"
                       ).fetchone()[0] == 2

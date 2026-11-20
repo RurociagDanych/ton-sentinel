@@ -1,10 +1,5 @@
-"""Unit contract: whole-window admission checks retained context and resource bounds.
+"""Unit contract: whole-window admission checks retained context and resource bounds."""
 
-``admit_work`` is exercised against a scripted read-only connection that answers the queries
-admission is allowed to make and fails on anything else (a write, or an unknown read).
-Expected cutoffs, spans and usage are computed by hand in each test.
-Integration counterpart (real PostgreSQL): tests/integration/test_retention.py.
-"""
 import contextlib
 from datetime import datetime, timezone
 
@@ -23,7 +18,7 @@ POLICY = {"event_retention_seconds": 7 * DAY, "repair_margin_seconds": 0,
           "max_windows": 4, "max_actions": 10, "max_input_bytes": 1000,
           "max_baseline_rows": 50}
 LEASE = Lease("repair", 7, datetime(2030, 1, 1, tzinfo=timezone.utc))
-W = 33 * DAY                       # admissible: C_event = 33 days, C_repair = 33 days
+W = 33 * DAY
 
 
 def win(start, network="testnet"):
@@ -48,7 +43,6 @@ class _Rows:
 
 class ReadOnly:
     """Scripted read-only connection; any write or unexpected statement fails the test."""
-
     def __init__(self, *, detector_lookback=7 * DAY, horizons=(), inputs=None, baseline=0):
         self.detector_lookback = detector_lookback
         self.horizons = horizons
@@ -79,7 +73,6 @@ class ReadOnly:
         raise AssertionError("unexpected admission query: " + sql)
 
 
-# ------------------------------------------------------------------------- policy contract
 @pytest.mark.parametrize("missing", ["derived_retention_seconds", "max_windows", "max_actions",
                                      "max_input_bytes", "max_baseline_rows"])
 def test_context_and_resource_budget_are_required_policy_keys(missing):
@@ -96,7 +89,6 @@ def test_budget_values_are_positive_integers_checked_before_the_database(name, v
         admit_work(_NoDatabase(), (win(W),), NOW, dict(POLICY, **{name: value}))
 
 
-# ------------------------------------------------------------------------ whole admission
 def test_whole_closed_window_with_context_and_budget_is_admitted_and_reports_usage():
     conn = ReadOnly(inputs={W: (3, 400)}, baseline=12)
     admission = admit_work(conn, (win(W),), NOW, POLICY)
@@ -147,7 +139,6 @@ def test_target_payload_older_than_the_retained_horizon_is_unrepairable():
 
 
 def test_leading_baseline_context_not_retained_is_missing_and_refuses_the_unit():
-    # derived features retained only from W - 6 days; window W needs W - 7 days (detector)
     conn = ReadOnly(horizons=[("testnet", "derived_features", W - 6 * DAY)])
     admission = admit_work(conn, (win(W),), NOW, POLICY)
     assert (admission.admitted, admission.status) == (False, "missing")
@@ -155,7 +146,6 @@ def test_leading_baseline_context_not_retained_is_missing_and_refuses_the_unit()
 
 
 def test_detector_lookback_is_a_context_dependency_even_when_repair_lookback_is_short():
-    # repair lookback 1 day alone fits; the active detector needs 7 days of prior windows
     conn = ReadOnly(detector_lookback=DAY,
                     horizons=[("testnet", "derived_features", W - 6 * DAY)])
     assert admit_work(conn, (win(W),), NOW, POLICY).admitted is True
@@ -165,8 +155,7 @@ def test_detector_lookback_is_a_context_dependency_even_when_repair_lookback_is_
 
 
 def test_leading_context_older_than_derived_retention_is_missing_by_policy():
-    # derived retention 30 days: cutoff = NOW - 30 days = 10 days; span of W' starts W' - 7 days
-    start = 17 * DAY - 300                # span start 10 days - 300 s: one window too old
+    start = 17 * DAY - 300
     admission = admit_work(ReadOnly(), (win(start),), NOW,
                            dict(POLICY, event_retention_seconds=24 * DAY))
     assert admission.reasons == ((win(start), "baseline_context_expired"),)
@@ -183,7 +172,6 @@ def test_horizons_of_another_network_do_not_apply():
 
 def test_unrepairable_outranks_missing_outranks_deferred():
     conn = ReadOnly(horizons=[("testnet", "derived_features", W)])
-    # W: baseline missing; NOW - 200: open (deferred)
     assert admit_work(conn, (win(W), win(NOW - 200)), NOW, POLICY).status == "missing"
     conn = ReadOnly(horizons=[("testnet", "derived_features", W),
                               ("testnet", "canonical_payload", W + 300)])
@@ -208,7 +196,6 @@ def test_admission_digest_changes_with_any_decided_fact():
     assert len({a.digest for a in others} | {base.digest}) == len(others) + 1
 
 
-# ------------------------------------------------------------------- refusal is recorded
 def test_record_refusal_rejects_non_refusals_before_the_database():
     admitted = admit_work(ReadOnly(), (win(W),), NOW, POLICY)
     deferred = admit_work(ReadOnly(), (win(NOW - 200),), NOW, POLICY)

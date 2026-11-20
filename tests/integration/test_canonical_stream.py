@@ -1,4 +1,5 @@
 """Real PostgreSQL/Spark regression for canonical broker-triggered replacement."""
+
 import base64
 import json
 import os
@@ -144,7 +145,6 @@ def test_broker_triggers_recompute_complete_accepted_window_and_reject_bad_rows(
         assert ton["status"] == jetton["status"] == "provisional"
         assert ton["provisional"] is jetton["provisional"] is True
 
-        # At-least-once broker replay performs replacement, not additive writes.
         assert process_canonical_microbatch(
             connection, lease, spark, _batch(spark, [trigger, trigger]),
             topic_incarnation=incarnation, replay_epoch=0,
@@ -316,7 +316,6 @@ def test_audited_empty_batches_and_batch_key_reuse_are_transactional(spark, data
 
 
 def test_broker_envelope_must_carry_the_persisted_canonical_generation(spark, database):
-    """Persisted canonical generation semantics."""
     incarnation = "canonical-generation-" + uuid.uuid4().hex
     with psycopg.connect(database) as connection:
         lease = acquire_transition(connection, "canonical-generation-test", ttl_seconds=300)

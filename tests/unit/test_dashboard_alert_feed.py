@@ -1,4 +1,5 @@
 """Dashboard API unit tests: GET /v1/alerts/feed (no database)."""
+
 import json
 from unittest.mock import patch
 
@@ -62,15 +63,14 @@ def feed_query(**over):
     return "&".join(f"{k}={v}" for k, v in q.items() if v is not None)
 
 
-# ---- range validation and paging bounds ------------------------------------------------
 @pytest.mark.parametrize("over", [
     {"network": None}, {"network": "devnet"}, {"network": ""},
     {"from": None}, {"to": None},
-    {"to": T0}, {"to": T0 - 300},            # empty or inverted
-    {"to": T0 + 604800 + 300},               # span above seven days
+    {"to": T0}, {"to": T0 - 300},
+    {"to": T0 + 604800 + 300},
     {"from": T0 + 1}, {"to": T0 + 3601}, {"from": "-300"}, {"from": "abc"},
     {"limit": 0}, {"limit": 1001}, {"limit": "x"}, {"limit": -1},
-    {"token": "jetton:a"},                   # the feed is global: no token filter
+    {"token": "jetton:a"},
 ])
 def test_alert_feed_rejects_invalid_range_and_params(over):
     status, body, mock = run(feed_query(**over), [])
@@ -108,7 +108,6 @@ def test_alert_feed_truncation_flag_and_page_size():
     assert "next_cursor" not in body
 
 
-# ---- item shape, provenance, safety ----------------------------------------------------
 def test_alert_feed_items_carry_required_fields_label_and_provenance():
     rows = [item(label="superseded", state="pending"), item(revision=2, state="retracted")]
     status, body, _ = run(feed_query(), rows)
@@ -137,7 +136,6 @@ def test_alert_feed_safety_filter_refuses_unsafe_values():
         assert status == "503 Service Unavailable" and body == {"error": "unavailable"}
 
 
-# ---- cursor binding ---------------------------------------------------------------------
 def test_alert_feed_cursor_is_bound_to_network_range_and_limit():
     rows = [item(revision=3), item(revision=2), item(revision=1)]
     q = feed_query(limit=2)

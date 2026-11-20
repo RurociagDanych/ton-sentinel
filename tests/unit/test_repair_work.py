@@ -1,4 +1,5 @@
 """Unit contract: frozen repair inputs are immutable, tamper-evident and fenced."""
+
 import dataclasses
 from datetime import datetime, timezone
 
@@ -52,7 +53,7 @@ def test_digest_is_deterministic_and_changes_with_any_pinned_input():
 def test_tampered_or_forged_digest_is_refused():
     work = _frozen()
     with pytest.raises(ValueError, match="digest"):
-        dataclasses.replace(work, epoch=work.epoch + 1)      # pins changed, digest stale
+        dataclasses.replace(work, epoch=work.epoch + 1)
     with pytest.raises(ValueError, match="digest"):
         dataclasses.replace(work, input_digest="sha256:" + "0" * 64)
 

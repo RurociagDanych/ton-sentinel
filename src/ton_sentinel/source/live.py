@@ -1,30 +1,4 @@
-"""Live source wiring: recorded or fetched TON Center v3 responses -> production pages.
-
-The production ingest path (``ingest.ingest_range`` -> ``source.scan`` -> ledger -> outbox ->
-Kafka -> ``spark.streaming`` -> ``spark.batch``) accepts only ``live_swap`` records built here by
-the two reviewed recognizers
-
-- indexer ``jetton_swap`` actions -> ``source.toncenter_swaps.toncenter_swap_payload`` (STON.fi and
-  DeDust labels of the classifier);
-- complete traces -> ``source.dedust_trace.recognize_dedust_trace`` for the DeDust swaps the
-  classifier did not emit. ``covered`` is the set of (input asset, input raw amount) pairs of the
-  indexer's DeDust payloads in the same trace, so no swap is counted twice.
-
-Decisions:
-- Fail closed on input: a malformed record raises (the whole batch is refused); an out-of-scope
-  record (``UnsupportedRecord``: not a swap or an unknown DEX label) is counted in ``unsupported``
-  with its reason; a DeDust swap whose assets cannot be resolved is listed in ``unresolved``. The
-  same action or trace ID with different content in one batch raises (``conflicting``); an exact
-  repeat is one record.
-- Pages carry what the scanner may accept, nothing is hidden: final records with an
-  eligibility reason (failed swaps, CPMM v2 not route-proven, ...) carry no contribution by the
-  product contract (``normalize.contributions``), so they are not paged and are reported by
-  ``LivePages.excluded`` with their reasons. Non-final (``pending``) records ARE paged, so the
-  scanner quarantines the range and it is not accepted until the data is final.
-- Order is deterministic: (action_end, trace_id, action_id).
-- Secrets: no request is made here; payloads carry only the redacted route path (the adapters
-  never copy query strings), and nothing is logged.
-"""
+"""Live source wiring: recorded or fetched TON Center v3 responses -> production pages."""
 from __future__ import annotations
 
 import json
@@ -37,9 +11,9 @@ from ton_sentinel.source.toncenter_swaps import UnsupportedRecord, toncenter_swa
 
 
 class LiveBatch(NamedTuple):
-    payloads: tuple            # live_swap payloads, sorted by (action_end, trace_id, action_id)
-    unsupported: tuple         # (reason, action_id) of out-of-scope indexer records
-    unresolved: tuple          # last-hop tx hashes of DeDust swaps whose assets are not resolvable
+    payloads: tuple
+    unsupported: tuple
+    unresolved: tuple
 
 
 def _canonical(value):
@@ -106,7 +80,6 @@ class LivePages:
 
     ``fetch_page`` serves the half-open window ``[start, end)``: eligible and pending records.
     """
-
     def __init__(self, batch: LiveBatch):
         if type(batch) is not LiveBatch:
             raise ValueError('LiveBatch required')

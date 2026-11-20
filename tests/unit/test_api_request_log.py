@@ -1,4 +1,5 @@
 """One structured, redacted log record per API request (no database)."""
+
 import json
 import logging
 from unittest.mock import patch

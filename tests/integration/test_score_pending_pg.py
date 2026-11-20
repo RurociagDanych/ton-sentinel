@@ -1,5 +1,5 @@
-"""Dashboard API on real PostgreSQL: ``score_pending`` first-scores promoted windows, rescores
-stale results, and a second run is a no-op. SYNTHETIC grid (behaviour check, not quality)."""
+"""Dashboard API on real PostgreSQL: ``score_pending`` first-scores promoted windows, rescores stale results, and a second run is a no-op."""
+
 import pytest
 
 from ton_sentinel.db.fencing import LeaseRejected, acquire_transition
@@ -23,7 +23,7 @@ def fresh_world(db):
 
 def test_fresh_promoted_window_gets_a_first_score_and_second_run_is_a_no_op(db):
     real, lease, tokens = fresh_world(db)
-    assert counts(db)[1:3] == (0, 0)                     # promoted, never scored
+    assert counts(db)[1:3] == (0, 0)
     total = 25 * len(tokens)
 
     first = score_pending(db, lease, network=NET, limit=1000)
@@ -36,7 +36,7 @@ def test_fresh_promoted_window_gets_a_first_score_and_second_run_is_a_no_op(db):
     after_first = counts(db)
 
     assert score_pending(db, lease, network=NET, limit=1000) == EMPTY
-    assert counts(db) == after_first                     # nothing written
+    assert counts(db) == after_first
 
 
 def test_limit_bounds_the_run_and_the_backlog_drains_across_runs(db):
@@ -71,7 +71,7 @@ def test_correction_makes_results_stale_then_score_pending_refreshes(db):
 
 def test_lost_lease_stops_without_partial_promotion(db):
     real, lease, tokens = fresh_world(db)
-    acquire_transition(db, "usurper", 300)               # fences the old lease out
+    acquire_transition(db, "usurper", 300)
     db.commit()
     with pytest.raises(LeaseRejected):
         score_pending(db, lease, network=NET, limit=1000)

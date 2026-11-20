@@ -6,6 +6,7 @@ from ton_sentinel.contracts import Lease
 
 class LeaseRejected(RuntimeError):
     """The database says the presented owner/fence is no longer current."""
+    pass
 
 
 def acquire_transition(connection, owner: str, ttl_seconds: int = 30) -> Lease:

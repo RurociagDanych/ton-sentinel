@@ -1,8 +1,5 @@
-"""The API entrypoint emits only the structured request log.
+"""The API entrypoint emits only the structured request log."""
 
-The default wsgiref handler writes the raw request line (path and query) for every request;
-the entrypoint must replace it with the single structured, redacted record from api.py.
-"""
 import json
 import logging
 from unittest.mock import patch
@@ -52,7 +49,6 @@ def test_entrypoint_silences_raw_request_lines_and_emits_structured_records(caps
         [line] = [line for line in err.splitlines() if line.strip()]
         assert json.loads(line) == {**json.loads(line), "event": "http_request",
                                     "route": "unmatched", "status": 404}
-        # idempotent: a second start does not duplicate handlers
         _serve(["--dsn", "postgresql://u:cli-pw-12@127.0.0.1:1/none"])
         assert len(logger.handlers) == len(before) + 1
     finally:

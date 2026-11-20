@@ -1,10 +1,5 @@
-"""Only ordered, authorized canonical revisions are admitted (real PostgreSQL).
+"""Only ordered, authorized canonical revisions are admitted (real PostgreSQL)."""
 
-Every scenario is run against the product on a real database and against ``Oracle``,
-a policy model written from the card / spec section 6.3 and 7.3 text. The oracle
-deliberately imports no product module (not contracts, normalize, ledger or revisions);
-only fixture *setup* uses product helpers to build corroborated walks and grant digests.
-"""
 import base64
 import json
 import os
@@ -26,7 +21,6 @@ LOOKBACK = 7 * 86400
 WINDOW = 300
 
 
-# --------------------------------------------------------------------------- fixtures
 @pytest.fixture
 def db():
     dsn = os.environ.get("TON_SENTINEL_TEST_DSN")
@@ -101,7 +95,6 @@ class Pages:
 
 class Traces:
     """Fake read-only trace endpoint keyed by trace ID."""
-
     def __init__(self, spec):
         self.spec = spec
 
@@ -122,7 +115,6 @@ class World:
         self.epoch = epoch()
         self.initial = {}
 
-    # -- setup -----------------------------------------------------------------
     def seed(self, values):
         group = corroborate_range(self.db, Pages([payload(ev, v) for ev, v in values.items()]),
                                   self.epoch, policy())
@@ -216,7 +208,6 @@ def retract(ev, **kw):
     return {"ev": ev, "action": "retract", **kw}
 
 
-# ----------------------------------------------------------------------------- oracle
 def windows_of(value):
     start = value[0] // WINDOW * WINDOW
     return {(token, start) for token in {value[1], value[3]}}
@@ -241,16 +232,14 @@ class Row:
 
 class Oracle:
     """Expected policy from card / spec 6.3 + 7.3, with no product imports."""
-
     def __init__(self, seeded):
         self.cur = {ev: Row("active", v, None) for ev, v in seeded.items()}
-        self.open = {}      # subject -> (reason, content)
+        self.open = {}
         self.dirty = set()
         self.epoch = 0
         self.generations = 0
         self.suppressed = set()
 
-    # evaluation of one grant against one member of a candidate change ---------------
     def judge(self, ev, kind, value, auth, grant_spec, is_stale):
         retraction = kind == "retract"
         unauthorized = "unauthorized_disappearance" if retraction else "unauthorized_change"
@@ -404,7 +393,6 @@ class Oracle:
         return changes
 
 
-# --------------------------------------------------------------------------- readback
 def ev_of(event_id):
     trace, action = json.loads(event_id[len("ton-sentinel:event:v1:"):])[1:]
     return tuple(next(i for i in range(256) if b64(i) == x) for x in (trace, action))
@@ -481,14 +469,12 @@ def run_scenario(db, seed, steps, lookback=LOOKBACK):
     return world, oracle, results
 
 
-# -------------------------------------------------------------------------- scenarios
-X = (1, 2)       # a single-event trace 1
-Y = (1, 3)       # second action in trace 1
-Z = (4, 5)       # an unrelated trace
+X = (1, 2)
+Y = (1, 3)
+Z = (4, 5)
 ONLY_X = {1: {2}}
 
 SCENARIOS = {
-    # ---- unordered changes: no ordered authority -> quarantine, never accepted
     "unordered_no_authorization": ({X: A}, [
         {"obs": {X: B}, "lookups": {1: {2}}}]),
     "unordered_stable_after_repeat_still_quarantined": ({X: A}, [
@@ -508,7 +494,6 @@ SCENARIOS = {
     "unordered_unrelated_grant_only": ({X: A, Z: A}, [
         {"obs": {X: B, Z: A}, "lookups": {1: {2}, 4: {5}},
          "auth": mono(revise(Z, A, src=2, prev=1))}]),
-    # ---- stale / equal-version conflicts
     "stale_revision_below_baseline": ({X: A}, [
         {"obs": {X: B}, "lookups": {1: {2}}, "auth": mono(revise(X, B, src=5, prev=4))},
         {"obs": {X: C}, "lookups": {1: {2}}, "auth": mono(revise(X, C, src=3))}]),
@@ -526,7 +511,6 @@ SCENARIOS = {
         {"obs": {X: C}, "lookups": {1: {2}}, "auth": mono(revise(X, C, src=2))}]),
     "equal_revision_with_attested_equal_baseline": ({X: A}, [
         {"obs": {X: B}, "lookups": {1: {2}}, "auth": mono(revise(X, B, src=1, prev=1))}]),
-    # ---- authorized monotonic acceptance, with both windows / dependents dirtied
     "accept_monotonic_time_move": ({X: A}, [
         {"obs": {X: B}, "lookups": {1: {2}}, "auth": mono(revise(X, B, src=2, prev=1))}]),
     "accept_monotonic_token_move": ({X: A}, [
@@ -554,7 +538,6 @@ SCENARIOS = {
     "unrelated_traces_move_independently": ({X: A, Z: A}, [
         {"obs": {X: B, Z: C}, "lookups": {1: {2}, 4: {5}},
          "auth": mono(revise(X, B, src=2, prev=1))}]),
-    # ---- incomplete traces
     "incomplete_trace_flag_with_valid_grant": ({X: A}, [
         {"obs": {X: B}, "lookups": {1: "incomplete"},
          "auth": mono(revise(X, B, src=2, prev=1))}]),
@@ -569,7 +552,6 @@ SCENARIOS = {
     "trace_lookup_omits_observed_candidate": ({X: A}, [
         {"obs": {X: B}, "lookups": {1: set()},
          "auth": owner(revise(X, B))}]),
-    # ---- disappearance never retracts without explicit audited authorization
     "disappearance_without_authorization": ({X: A}, [
         {"obs": {}, "lookups": {1: set()}}]),
     "disappearance_with_monotonic_contract_is_not_removal_authority": ({X: A}, [
@@ -605,7 +587,6 @@ SCENARIOS = {
         {"obs": {}, "lookups": {1: set()}, "auth": owner(retract(X), trace_sets={1: set()})},
         {"obs": {X: B}, "lookups": {1: {2}},
          "auth": mono(revise(X, B, src=2), trace_sets={1: {2}})}]),
-    # ---- trace keyset replacement: whole set or nothing
     "keyset_addition_without_authorization": ({X: A}, [
         {"obs": {X: A, Y: A}, "lookups": {1: {2, 3}}}]),
     "keyset_addition_authorized_atomically": ({X: A}, [
@@ -651,7 +632,6 @@ SCENARIOS = {
     "keyset_replacement_leaves_other_traces_alone": ({X: A, Z: A}, [
         {"obs": {X: A, Y: A, Z: B}, "lookups": {1: {2, 3}, 4: {5}},
          "auth": owner(add(Y, A), trace_sets={1: {2, 3}})}]),
-    # ---- retries of accepted work
     "retry_of_accepted_revision_is_noop": ({X: A}, [
         {"obs": {X: B}, "lookups": {1: {2}}, "auth": mono(revise(X, B, src=2, prev=1))},
         {"obs": {X: B}, "lookups": {1: {2}}, "auth": mono(revise(X, B, src=2, prev=1))}]),
@@ -670,7 +650,6 @@ def test_policy_oracle_agreement(db, name):
     run_scenario(db, seed, steps)
 
 
-# ----------------------------------------------------- explicit acceptance assertions
 def test_unordered_change_never_wins_even_after_two_full_passes(db):
     world, oracle, (changes,) = run_scenario(db, {X: A}, [
         {"obs": {X: B}, "lookups": {1: {2}}}])
@@ -720,7 +699,7 @@ def test_direct_sql_cannot_retract_or_rewrite_current_without_a_revision(db):
     world.seed({X: A})
     from ton_sentinel.db.revisions import decide_revision
     decide_revision(db, acquire_transition(db, "d"),
-                    world.candidate({X: A}, {1: {2}}))      # seeds canonical_current only
+                    world.candidate({X: A}, {1: {2}}))
     for sql in (
             "UPDATE canonical_current SET disposition='retracted'",
             "UPDATE canonical_current SET semantic_digest='sha256:forged'",
@@ -729,7 +708,7 @@ def test_direct_sql_cannot_retract_or_rewrite_current_without_a_revision(db):
         with pytest.raises(psycopg.Error):
             db.execute(sql)
         db.rollback()
-    db.execute("UPDATE canonical_current SET eligibility_suppressed=true")   # flag is allowed
+    db.execute("UPDATE canonical_current SET eligibility_suppressed=true")
     db.rollback()
 
 
@@ -812,7 +791,7 @@ def test_unproven_evidence_returns_nothing_and_writes_nothing(db):
     lease = acquire_transition(db, "d")
     incomplete = WalkEvidence(str(uuid.uuid4()), False, 0, 0, "partial")
     assert decide_revision(db, lease, incomplete, None) == ()
-    single = scan_range(db, Pages([payload(X, B)]), world.epoch, policy())    # not corroborated
+    single = scan_range(db, Pages([payload(X, B)]), world.epoch, policy())
     lease = acquire_transition(db, "d")
     assert decide_revision(db, lease, walk_evidence(db, single), None) == ()
     assert readback(db) == before
@@ -838,9 +817,9 @@ def test_malformed_authorization_fails_closed_without_writes(db):
 def test_generations_are_one_per_accepted_change_and_none_for_quarantine(db):
     world, oracle, _ = run_scenario(db, {X: A, Z: A}, [
         {"obs": {X: B, Z: B}, "lookups": {1: {2}, 4: {5}},
-         "auth": mono(revise(X, B, src=2, prev=1))},                      # X accepted, Z quarantined
+         "auth": mono(revise(X, B, src=2, prev=1))},
         {"obs": {X: C, Z: B}, "lookups": {1: {2}, 4: {5}},
-         "auth": mono(revise(X, C, src=3), revise(Z, B, src=2, prev=1))}])  # both accepted
+         "auth": mono(revise(X, C, src=3), revise(Z, B, src=2, prev=1))}])
     assert db.execute("SELECT accepted_generation FROM canonical_revisions "
                       "ORDER BY accepted_generation").fetchall() == [(3,), (4,), (5,)]
     assert db.execute("SELECT generation FROM canonical_generation").fetchone()[0] == 5
@@ -853,7 +832,6 @@ def test_baseline_dependents_follow_configured_lookback(db):
     world = World(db)
     world.seed({X: A})
     evidence = world.candidate({X: A}, {1: {2}})
-    # an eligibility flip via quarantine is enough to dirty dependents
     evidence = world.candidate({X: B}, {1: {2}})
     decide_revision(db, acquire_transition(db, "d"), evidence, None,
                     policy=RevisionPolicy(baseline_lookback_seconds=3600))

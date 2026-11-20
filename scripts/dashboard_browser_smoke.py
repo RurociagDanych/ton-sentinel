@@ -101,7 +101,6 @@ EXPLORER_GAPS = (3, 4, 8)  # window offsets with no served row for the series st
 
 
 def explorer_stubs(drop_point_provenance=False):
-    """Stub bodies for the explorer: tokens, a series with gaps, per-window coverage."""
     provenance = dashboard_payload.build_provenance(qualification=[], scored=False)
     banner = dashboard_payload.HONESTY_BANNER
 
@@ -147,7 +146,6 @@ def explorer_stubs(drop_point_provenance=False):
 
 
 def explorer_problems(dom):
-    """Check the rendered explorer DOM: token list, chart with hatched gaps, labels, no leaks."""
     problems = []
     if 'data-view="explorer"' not in dom:
         problems.append("explorer view not mounted")
@@ -188,7 +186,6 @@ DETECTION_DIGEST = "sha256:" + "b" * 64
 
 
 def detections_stubs(drop_baseline_provenance=False, tamper_score=False):
-    """Stubs for the detections view: one token, two results, an alert feed, a pin that reproduces."""
     from fractions import Fraction
 
     from ton_sentinel.detectors import _median_exact, _published
@@ -266,7 +263,6 @@ def detections_stubs(drop_baseline_provenance=False, tamper_score=False):
 
 
 def detections_problems(dom, reproduced=True):
-    """Check the rendered detections view: banner, list, alert state, detail that reproduces the stored result."""
     problems = []
     if 'data-view="detections"' not in dom:
         problems.append("detections view not mounted")
@@ -297,7 +293,6 @@ HISTORY_WINDOW = 1000 * 300 + 300 * 12
 
 
 def history_stubs(drop_revisions_provenance=False):
-    """Stubs for the alert history view: a feed with a retracted chain and a drill-down with labels."""
     provenance = dashboard_payload.build_provenance(qualification=[], scored=False)
     banner = dashboard_payload.HONESTY_BANNER
 
@@ -331,7 +326,6 @@ def history_stubs(drop_revisions_provenance=False):
 
 
 def history_problems(dom):
-    """Check the rendered history view: banner, feed, provenance, drill-down labels and alert states."""
     problems = []
     if 'data-view="alerts"' not in dom:
         problems.append("history view not mounted")
@@ -361,7 +355,6 @@ def history_problems(dom):
 
 
 def quality_stubs(drop_coverage_provenance=False):
-    """Stubs for the quality view: counters (two unavailable), one token, a coverage list with gaps."""
     base = overview_stubs()
     provenance = dashboard_payload.build_provenance(qualification=[], scored=False)
     banner = dashboard_payload.HONESTY_BANNER
@@ -390,7 +383,6 @@ def quality_stubs(drop_coverage_provenance=False):
 
 
 def quality_problems(dom):
-    """Check the rendered quality view: banner, tiles, unavailable shown as unavailable, coverage, gaps."""
     problems = []
     if 'data-view="quality"' not in dom:
         problems.append("quality view not mounted")
@@ -425,7 +417,6 @@ def quality_problems(dom):
 
 
 def pipeline_stubs(drop_provenance=False):
-    """Stubs for the pipeline view: backlog with one unavailable count, a stream commit, two not-measured."""
     body = overview_stubs()["/v1/pipeline"]
     body["pipeline"]["stream_progress"] = {"status": "observed", "scope": "all_networks",
                                            "value": {"committed_at": "2026-01-01T00:00:00Z", "record_count": 42}}
@@ -435,7 +426,6 @@ def pipeline_stubs(drop_provenance=False):
 
 
 def pipeline_problems(dom):
-    """Check the rendered pipeline view: banner, tiles, separate backlog counts, not-measured panel."""
     problems = []
     if 'data-view="pipeline"' not in dom:
         problems.append("pipeline view not mounted")
@@ -509,7 +499,6 @@ def _run_chrome(chrome, url):
 
 
 def overview_problems(dom):
-    """Check the rendered overview DOM: states, never-zero rule, legend, no content leaks."""
     def state_of(row_id):
         found = re.search(r'<div class="metric" data-row-id="%s" data-state="([a-z_]+)"' % row_id, dom)
         return found[1] if found else None

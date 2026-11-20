@@ -1,8 +1,5 @@
-// Pure logic of the pipeline status view. An unavailable or omitted value is never a zero; the two
-// scoring backlog counts stay separate and are never summed; ingestion freshness is only ever shown as
-// "not measured" with the server's reason; Kafka lag is shown as a record count only when the server
-// measured it (broker probe), otherwise with its state. Stream progress shows a commit time and a
-// record count and nothing else. No DOM here.
+// Pure logic of the pipeline status view. An unavailable or omitted value is never a zero and the two scoring
+// backlog counts are never summed. Freshness is only shown as "not measured"; Kafka lag only when the server measured it.
 import { ProvenanceError } from "./client.js";
 import { cell, counterCell, groupCell, kafkaLagCell } from "./states.js";
 import { requireDetectionProvenance } from "./detections-model.js";
@@ -38,7 +35,6 @@ function streamCell(section) {
   return counterCell(section);
 }
 
-// Outbox, dirty windows by role and the latest stream commit. A missing section is unavailable.
 export function tiles(pipeline) {
   const p = isObject(pipeline) ? pipeline : {};
   const scope = (section, fallback) => (isObject(section) && typeof section.scope === "string" ? section.scope : fallback);
@@ -54,8 +50,10 @@ export const BACKLOG_ITEMS = [
   { key: "stale_results", title: "Stale results" },
 ];
 
-// The two backlog counts, each from its own sub-counter. If the whole section is not observed, both carry
-// its state and reason. Never a total, never a zero for an unreadable count.
+/**
+ * The two backlog counts, each from its own sub-counter. If the whole section is not observed, both carry
+ * its state and reason. Never a total, never a zero for an unreadable count.
+ */
 export function backlogPanel(section) {
   const whole = isObject(section) && section.status === "observed" && isObject(section.value);
   const items = BACKLOG_ITEMS.map((def) => {
@@ -70,9 +68,10 @@ export const NOT_MEASURED_ITEMS = [
   { key: "kafka_lag", title: "Kafka lag" },
 ];
 
-// Ingestion freshness: only an explicit not_measured is shown as such; anything else (a value, a missing
-// section) fails closed to unavailable. Kafka lag: a fully measured value is a record count,
-// not_measured/unavailable keep their reason, and anything malformed is unavailable, never a number.
+/**
+ * Ingestion freshness: only an explicit not_measured is shown as such; anything else fails closed to unavailable.
+ * Kafka lag: a fully measured value is a record count; malformed input is unavailable, never a number.
+ */
 export function notMeasuredPanel(pipeline) {
   const p = isObject(pipeline) ? pipeline : {};
   const items = NOT_MEASURED_ITEMS.map((def) => {

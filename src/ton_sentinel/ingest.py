@@ -9,7 +9,6 @@ from ton_sentinel.source.scan import ScanPolicy, corroborate_range
 @dataclass(frozen=True)
 class IngestionResult:
     """Durable outcome of one bounded half-open source interval."""
-
     group_id: str
     start: int
     end: int
@@ -22,7 +21,6 @@ class IngestionResult:
 @dataclass(frozen=True)
 class OutboxBudget:
     """Required backlog admission limits; not a global disk-capacity guarantee."""
-
     max_pending_bytes: int
     max_oldest_age_seconds: int
 
@@ -35,6 +33,7 @@ class OutboxBudget:
 
 class IngestionBackpressure(RuntimeError):
     """Raised before scanning or acceptance when pending outbox exceeds budget."""
+    pass
 
 
 def _check_outbox_budget(connection, budget: OutboxBudget) -> None:

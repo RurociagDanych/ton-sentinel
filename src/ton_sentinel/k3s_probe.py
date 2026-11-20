@@ -1,15 +1,4 @@
-"""Minimal local-K3s entrypoints exercising existing project code offline.
-
-Roles (selected by the Deployment command, no new product behaviour):
-  ingestor  migrate + lease + feature write/read through ``ton_sentinel.db``
-  api       read the written features back through the WSGI ``api.create_app``
-  notifier  Kafka produce/consume round-trip against the in-cluster broker (TLS)
-  spark     one bounded local[1] ``spark.batch.compute_features`` job on literal data
-  stream    bounded Kafka -> Spark (``stream_cli``, availableNow, durable checkpoint) -> PostgreSQL over
-            two synthetic accepted ledger ranges published to ``ton.swap_events.v1`` (run as a one-shot pod)
-After the role succeeds a readiness file is written and the process idles, so a
-Deployment pod becomes Ready; failure exits non-zero and never marks ready.
-"""
+"""Minimal local-K3s entrypoints exercising existing project code offline."""
 from __future__ import annotations
 
 import io
@@ -76,7 +65,6 @@ def sample_actions() -> list[str]:
             action("a2", 300, "jetton:A", "250", "TON", "1000")]
 
 
-# (window_start, token) -> (swaps, input_raw, output_raw)
 SPARK_EXPECTED = {(0, "TON"): (1, 1000, None), (0, "jetton:A"): (1, None, 250),
                   (300, "jetton:A"): (1, 250, None), (300, "TON"): (1, None, 1000)}
 
@@ -117,7 +105,7 @@ def _api(env):
     from ton_sentinel.api import create_app
     app = create_app(dsn=env["SENTINEL_DATABASE_DSN"])
     deadline = time.monotonic() + 120
-    while True:  # ingestor writes the rows; wait for them
+    while True:
         out = {}
         body = b"".join(app({"REQUEST_METHOD": "GET", "PATH_INFO": "/v1/features",
                              "QUERY_STRING": "network=testnet&window_start=0&window_end=300",
@@ -146,7 +134,7 @@ def _notifier(env):
     run = uuid.uuid4().hex[:8]
     records = [(f"{run}-{i}", {"n": i, "run": run}) for i in range(3)]
     consumer = KafkaConsumer(TOPIC, group_id=None, auto_offset_reset="earliest", **cfg)
-    consumer.poll(timeout_ms=3000)  # join/assign before producing
+    consumer.poll(timeout_ms=3000)
     producer = KafkaProducer(acks="all", **cfg)
     try:
         # Other runs' records may already be in the topic; keep only ours.
@@ -197,7 +185,6 @@ def _spark(env):
     return {"features": sorted(f"{k}={v}" for k, v in got.items())}
 
 
-# --- stream role: ledger -> outbox -> Kafka -> stream_cli (Spark) -> served_features ---------------
 STREAM_EXPECTED_FIRST = [("JETTON:CANONICAL", 1, None, "33"), ("TON", 1, "110", None)]
 STREAM_EXPECTED_FINAL = [("JETTON:CANONICAL", 2, None, "96"), ("TON", 2, "320", None)]
 
@@ -218,7 +205,6 @@ def stream_source_action(index: int, action_end: int) -> dict:
 
 class FixedPages:
     """In-process page client over one literal action (no network, no live source)."""
-
     def __init__(self, action):
         self.action = action
 
@@ -335,7 +321,7 @@ def _stream(env):
                 if len(sent) != 1:
                     raise RuntimeError(f"expected 1 published event, got {sent!r}")
                 producer.flush(timeout=30)
-                if stream_cli.main(argv) != 0:  # bounded: availableNow, resumes the durable checkpoint
+                if stream_cli.main(argv) != 0:
                     raise RuntimeError("stream_cli failed")
                 rows = _stream_rows(dsn)
                 check_stream_rows(rows, expected)

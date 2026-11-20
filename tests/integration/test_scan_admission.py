@@ -1,4 +1,5 @@
 """Admission rules in real PostgreSQL: historical start fit, absent fields, certified off."""
+
 import base64
 import os
 import uuid
@@ -52,7 +53,6 @@ def action(index, action_end=15):
 
 class Source:
     """Serves a 'latest' action (end 1000) for any window that includes it, never otherwise."""
-
     def __init__(self, entries):
         self.entries, self.requests = entries, []
 
@@ -76,8 +76,7 @@ def test_historical_start_over_load_budget_fails_without_latest_fallback(db):
     db.commit()
     status, reason = db.execute("SELECT status,reason FROM source_ranges WHERE range_id=%s",
                                 (range_id,)).fetchone()
-    assert status == "incomplete" and reason == "ValueError"  # sanitized failure class
-    # Only the explicit window was ever requested: no silent move to latest.
+    assert status == "incomplete" and reason == "ValueError"
     assert source.requests and {(r[0], r[1]) for r in source.requests} == {(10, 20)}
     assert rows(db, "canonical_actions") == rows(db, "outbox") == 0
     assert db.execute("SELECT count(*) FROM source_ranges WHERE status='accepted'"

@@ -1,9 +1,4 @@
-"""Bounded canonical microbatch adapter for broker-triggered Spark batches.
-
-Kafka records are treated only as triggers. Their identity and action must match
-an accepted canonical ledger action; feature computation always reads the full
-accepted ledger population for every touched five-minute window.
-"""
+"""Bounded canonical microbatch adapter for broker-triggered Spark batches."""
 from __future__ import annotations
 
 import json
@@ -122,7 +117,7 @@ def process_canonical_microbatch(connection, lease, spark, batch_df, *,
         try:
             Action.from_json(json.dumps(envelope["action"], separators=(",", ":")))
         except SyntheticInputRefused:
-            raise                       # Explicit, not "malformed"
+            raise
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError("broker action payload is malformed") from exc
         envelopes.append((event_id, envelope["action"], envelope))
@@ -191,7 +186,7 @@ def process_canonical_microbatch(connection, lease, spark, batch_df, *,
             validate_transition(connection, lease)
             return 0
         if audited:
-            record_audit(connection, write=False)     # refuse conflicting reuse before Spark
+            record_audit(connection, write=False)  # refuse conflicting reuse before Spark
 
         touched: set[WindowKey] = set()
         for event_id, action, envelope in envelopes:
@@ -216,7 +211,7 @@ def process_canonical_microbatch(connection, lease, spark, batch_df, *,
             try:
                 parsed_action = Action.from_json(json.dumps(canonical, separators=(",", ":")))
             except SyntheticInputRefused:
-                raise                       # Explicit, not "malformed"
+                raise
             except (KeyError, TypeError, ValueError) as exc:
                 raise ValueError("canonical action payload is malformed") from exc
             if parsed_action.identity.event_id != event_id:

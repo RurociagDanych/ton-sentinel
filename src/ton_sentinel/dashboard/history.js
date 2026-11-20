@@ -1,7 +1,5 @@
-// Alert history and revisions: a range feed of alert revisions per network, a client-side
-// token/detector filter over the loaded items (labelled as such), and a drill-down from a feed
-// item to its result revisions. The effectiveness banner is built before any request and is never
-// hidden. A response without provenance blocks the view.
+// Alert history view with a client-side filter over the loaded items (labelled as such). The effectiveness
+// banner is built before any request and is never hidden; a response without provenance blocks the view.
 import { ApiError, ProvenanceError, getChecked } from "./client.js";
 import { badge } from "./states.js";
 import { DEFAULT_PRESET, PRESETS, failureMessage, presetRange } from "./explorer-model.js";

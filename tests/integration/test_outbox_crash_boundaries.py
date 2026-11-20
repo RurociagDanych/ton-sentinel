@@ -1,12 +1,5 @@
-"""Real process kills at the three acknowledgement boundaries.
+"""Real process kills at the three acknowledgement boundaries."""
 
-A child process is killed with os._exit (no cleanup, no rollback call) at:
-  before_pg_commit   - acceptance transaction open, never committed
-  after_pg_commit    - intent committed, killed before the Kafka send
-  after_kafka_ack    - broker acked (future resolved), killed before the PG marker
-A fresh connection and producer then prove: no lost intent, at most duplicate
-message IDs, one canonical row, and the frontier only after the marker.
-"""
 import os
 import subprocess
 import sys
@@ -44,7 +37,7 @@ def child(boundary, dsn, options, bootstrap, topic):
         def die_with_intent_written_but_uncommitted(connection, held):
             real_validate(connection, held)
             if connection.execute("SELECT count(*) FROM outbox").fetchone()[0]:
-                os._exit(137)   # canonical + outbox + cursor written, never committed
+                os._exit(137)
 
         ledger.validate_transition = die_with_intent_written_but_uncommitted
         accept_corroborated_range(db, lease, group)
@@ -61,11 +54,11 @@ def child(boundary, dsn, options, bootstrap, topic):
 
         def send(self, *args, **kwargs):
             future = real.send(*args, **kwargs)
-            future.get(timeout=30)    # broker has acknowledged
-            os._exit(137)             # but the PG marker was never written
+            future.get(timeout=30)
+            os._exit(137)
 
     publish_pending(db, Killer(), lease)
-    os._exit(2)  # unreachable
+    os._exit(2)
 
 
 @pytest.mark.integration
@@ -97,19 +90,18 @@ def test_crash_ack_boundaries(boundary):
 
         lease = acquire_transition(db, "recover-" + boundary)
         if boundary == "before_pg_commit":
-            assert counts() == (0, 0)                  # nothing leaked
+            assert counts() == (0, 0)
             assert records() == []
             assert db.execute("SELECT count(*) FROM source_ranges WHERE status='accepted'"
                               ).fetchone()[0] == 0
             db.commit()
-            accept(db, lease, 10, 20, 8)               # the range is simply re-accepted
+            accept(db, lease, 10, 20, 8)
             initialize_publication_origin(db, lease, 10)
             db.commit()
         else:
-            assert counts() == (1, 1)                  # intent survived the kill
+            assert counts() == (1, 1)
             state = db.execute("SELECT publication_state FROM outbox").fetchone()[0]
             db.commit()
-            # never marked acknowledged: pending (no send) or attempted (sent, no marker)
             assert state == ("pending" if boundary == "after_pg_commit" else "attempted")
             assert advance_publication_frontier(db, lease) is None
             assert len(records()) == (0 if boundary == "after_pg_commit" else 1)
@@ -118,10 +110,10 @@ def test_crash_ack_boundaries(boundary):
             assert len(publish_pending(db, producer, lease)) == 1
         finally:
             producer.close()
-        assert counts() == (1, 1)                      # one canonical revision
+        assert counts() == (1, 1)
         assert advance_publication_frontier(db, lease) == 20
         keys = records()
-        assert len(set(keys)) == 1                     # no lost intent, stable message ID
+        assert len(set(keys)) == 1
         assert len(keys) == (2 if boundary == "after_kafka_ack" else 1)
 
 
@@ -156,7 +148,7 @@ def test_empty_range_progress():
         # A complete empty range needs no Kafka send to publish its disposition.
         assert advance_publication_frontier(db, lease) == 20
         accept(db, lease, 20, 30, 20)
-        assert advance_publication_frontier(db, lease) == 20   # pending later range blocks
+        assert advance_publication_frontier(db, lease) == 20
         producer = KafkaProducer(bootstrap_servers=bootstrap, acks="all", retries=3)
         try:
             assert len(publish_pending(db, producer, lease)) == 1

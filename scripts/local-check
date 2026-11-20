@@ -24,9 +24,7 @@ PROJECT = 'ton-sentinel-local'
 DOCKER = ['docker', '--context', 'default']
 SERVICES = {'app', 'postgres', 'kafka', 'storage'}
 APP_IMAGE = 'ton-sentinel@sha256:8b1759daf094bd768b25108ae78e3e3bbc96a3706d542ea092c6620c5e68e7b2'
-# Owner-extended 2026-11-11 to 7; extended 7 -> 10 on
-# 2026-11-11 for the two envelope workload levels plus one contingency attempt. Never auto-reset.
-MAX_RUNS = 50  # Local runs have no cloud cost; cap is only a runaway guard. Owner 2026-11-11: budget is not a constraint locally. Ledger history retained; never auto-reset.
+MAX_RUNS = 50  # Local runs have no cloud cost; cap is only a runaway guard. Ledger history retained; never auto-reset.
 MIN_FREE_BYTES = 2**30
 MAX_RUN_GROWTH = 512 * 2**20
 # Workload levels materialize the full retained zero grid (<= 8.64M rows) plus WAL; still finite and

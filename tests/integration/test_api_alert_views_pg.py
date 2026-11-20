@@ -1,4 +1,5 @@
 """Bounded read-only detector/alert views over real HTTP + real PostgreSQL."""
+
 import json
 import threading
 from urllib.error import HTTPError
@@ -75,12 +76,10 @@ def test_current_views_serve_fresh_results_and_active_alerts_exactly(served):
     assert {a["detector"] for a in body["alerts"]} == {COUNT, WALLETS}
     assert all(a["state"] == "active" and a["token"] == TOK and a["window_start"] == SCORED
                for a in body["alerts"])
-    # exact business identifier filter: another token matches nothing
     assert get(base, "/v1/alerts", key(token="jetton:other"))[1]["alerts"] == []
 
 
 def test_current_excludes_pending(served):
-    """Stale/pending revisions are never current: a correction pends the alert at once."""
     db, base = served
     lease, _ = promote_first(db)
     promote_rows(db, lease, SCORED, [row(SCORED, TOK, 2, 2, 0)])
@@ -90,8 +89,7 @@ def test_current_excludes_pending(served):
     db.commit()
     assert state == "pending"
     assert get(base, "/v1/alerts", key())[1]["alerts"] == []
-    assert get(base, "/v1/detections", key())[1]["detections"] == []  # stale result excluded
-    # history still shows the pending revision (audit), readable
+    assert get(base, "/v1/detections", key())[1]["detections"] == []
     history = get(base, "/v1/alerts/history", key(detector=COUNT))[1]["history"]
     assert [h["state"] for h in history] == ["active", "pending"]
 
@@ -112,7 +110,6 @@ def test_recomputed_retraction_is_current_again_but_alert_is_gone(served):
 
 
 def test_pending_status_result_row_is_not_current(served):
-    """A fresh pointer at a detector_results row with status 'pending' is not served."""
     db, base = served
     promote_first(db)
     db.execute(
@@ -148,7 +145,7 @@ def test_alert_history_is_readable_and_redacted(served):
     assert status == 200 and [h["alert_revision"] for h in body["history"]] == [1, 2]
     assert SECRET_REASON_PASSWORD not in text and SECRET_OWNER not in text
     assert "lease_owner" not in text and "lease_fence" not in text
-    assert body["history"][1]["input_digest"] == inp.digest  # identifiers exact
+    assert body["history"][1]["input_digest"] == inp.digest
     assert "[REDACTED]" in body["history"][1]["reason"]
 
 
@@ -183,7 +180,6 @@ def test_limits_are_enforced_and_truncation_is_reported(served):
         assert get(base, "/v1/alerts", key(limit=bad))[0] == 400
         assert get(base, "/v1/detections", key(limit=bad))[0] == 400
         assert get(base, "/v1/alerts/history", key(detector=COUNT, limit=bad))[0] == 400
-    # deterministic order: repeated reads are identical and detector-ordered
     first = get(base, "/v1/alerts", key())[1]
     assert first == get(base, "/v1/alerts", key())[1]
     assert [a["detector"] for a in first["alerts"]] == sorted(a["detector"] for a in first["alerts"])
@@ -210,7 +206,6 @@ def test_errors_never_contain_the_dsn_password(db):
             status, body, headers = get(base, path, query)
             assert status == 503 and body == {"error": "unavailable"}
             assert "dsn-secret-pw-1" not in json.dumps(body) + json.dumps(headers)
-        # the unauthenticated status payload still reports honest limitation without secrets
         status, body, _ = get(base, "/status")
         assert "dsn-secret-pw-1" not in json.dumps(body) and "interim_limitation" in body
     finally:

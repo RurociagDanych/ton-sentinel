@@ -1,9 +1,4 @@
-"""Bounded, deduplicated Spark stateful fast path with a durable checkpoint.
-
-Candidate output is diagnostic only: canonical replacement stays authoritative. Only the
-first accepted insert per ``event_id`` inside the watermark bound enters state; the bound is
-not perpetual uniqueness. ``failOnDataLoss`` stays true (see ``stream_cli.kafka_reader_options``).
-"""
+"""Bounded, deduplicated Spark stateful fast path with a durable checkpoint."""
 from __future__ import annotations
 
 import hashlib
@@ -20,6 +15,7 @@ _MAX_BATCH_WINDOWS = 1_000
 
 class StateBoundExceeded(RuntimeError):
     """Streaming state grew past the configured bound; the query must stop."""
+    pass
 
 
 @dataclass(frozen=True)
@@ -143,7 +139,7 @@ def run_fast_path(spark, config, policy: dict) -> FastPathResult:
             enforce_state_bound(last, policy)
         rows = collect_candidate_rows(batch_df)
         with psycopg.connect(config.dsn) as conn:
-            for row in rows:     # full-replacement upsert: a replay converges, never adds
+            for row in rows:  # full-replacement upsert: a replay converges, never adds
                 conn.execute(
                     "INSERT INTO stream_candidate_windows (environment_id,query_id,pipeline_epoch,network,"
                     "window_start,window_end,swaps,batch_id) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) "
@@ -187,7 +183,6 @@ def run_fast_path(spark, config, policy: dict) -> FastPathResult:
                           executed_plan)
 
 
-# ----------------------------------------------------------------------------------------
 # Sweeper. Late, evicted, idle and dirty windows are closed ONLY by canonical repair
 # (admit_work -> freeze_work -> compute_replacement -> promote, via repair_windows). Candidate
 # rows are read as hints for *which* window needs attention and are never copied to serving.
@@ -204,10 +199,10 @@ def _positive(name: str, value) -> int:
 
 @dataclass(frozen=True)
 class SweepPolicy:
-    idle_sweep_seconds: int      # wall-clock age of a closed window with no candidate and no output
-    watermark_seconds: int       # a candidate window this old (past its end) is evicted from state
-    max_windows: int             # windows repaired per sweep
-    admission: dict              # exactly the admit_work policy keys
+    idle_sweep_seconds: int  # wall-clock age of a closed window with no candidate and no output
+    watermark_seconds: int  # a candidate window this old (past its end) is evicted from state
+    max_windows: int  # windows repaired per sweep
+    admission: dict
 
     def __post_init__(self):
         _positive("idle_sweep_seconds", self.idle_sweep_seconds)
@@ -223,12 +218,11 @@ class SweepPolicy:
 @dataclass(frozen=True)
 class Snapshot:
     """Read-only view used to choose windows. Keys are (network, window_start)."""
-
-    canonical: dict      # key -> (active action count, fingerprint of canonical inputs)
-    served: frozenset    # keys with serving rows
-    candidates: dict     # key -> candidate swaps (diagnostic only)
-    closures: dict       # key -> fingerprint the window was last closed on
-    dirty: frozenset     # keys with a pending target dirty row
+    canonical: dict
+    served: frozenset
+    candidates: dict
+    closures: dict
+    dirty: frozenset
 
 
 def fingerprint(inputs) -> str:
@@ -313,8 +307,8 @@ def read_snapshot(connection) -> Snapshot:
 
 @dataclass(frozen=True)
 class SweepReport:
-    repaired: tuple      # ((WindowKey, reason), ...)
-    refused: tuple       # ((WindowKey, admission status or 'stale_pins'), ...)
+    repaired: tuple
+    refused: tuple
 
 
 def sweep_windows(connection, lease, spark, now: int, policy: SweepPolicy,
@@ -390,7 +384,7 @@ def _close_window(connection, lease, spark, key, reason, now, policy, base_compu
     try:
         repair_windows(connection, lease, spark, admission, stage=record, compute=pinning_compute)
     except LeaseRejected:
-        raise           # a lost or expired lease stops the sweep; it is not a pin refusal
+        raise  # a lost or expired lease stops the sweep; it is not a pin refusal
     except RuntimeError:
         return "stale_pins"
     return None

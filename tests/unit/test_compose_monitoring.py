@@ -1,4 +1,5 @@
 """Static properties of deploy/compose.monitoring.yaml (Prometheus + Grafana, local only)."""
+
 import re
 from pathlib import Path
 

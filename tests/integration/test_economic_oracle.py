@@ -1,4 +1,5 @@
 """Compare real Spark feature output with the independent raw-source oracle."""
+
 import json
 from pathlib import Path
 
@@ -23,9 +24,7 @@ def test_fixture_economic_features_match_independent_oracle(spark):
     fixture_path = Path(__file__).parents[1] / "fixtures" / "truth" / "actions.json"
     fixture = json.loads(fixture_path.read_text())
     source_actions = fixture["actions"]
-    # Exact replay of an eligible event must not increase the economic totals.
     source_actions = source_actions + [source_actions[0]]
-    # An explicit eligible synthetic event with zero endpoints is still one swap.
     zero_action = json.loads(json.dumps(source_actions[0]))
     zero_action.update(
         trace_id="AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",

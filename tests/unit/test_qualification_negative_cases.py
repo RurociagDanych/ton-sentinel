@@ -1,9 +1,5 @@
-"""Negative cases for the offline qualification evaluator.
+"""Negative cases for the offline qualification evaluator."""
 
-Synthetic inputs only; nothing here qualifies a deployment. Every case must be
-rejected (never PASS), with a precise reason naming the gate/dimension, and
-without any network client or outbound attempt.
-"""
 from copy import deepcopy
 import json
 import socket
@@ -20,7 +16,6 @@ def reasons_text(result) -> str:
     return ' | '.join(result.reasons)
 
 
-# ---- missing authority evidence -------------------------------------------------
 
 AUTHORITY_GATES = ['arm64', 'source', 'authorization', 'deployment']
 
@@ -69,7 +64,6 @@ def test_authority_hold_cli_modes_refuse_without_network(tmp_path):
         assert 'No network/client initialized' in done.stderr
 
 
-# ---- resource failures: memory, CPU, disk, retention ------------------------------
 
 LEVEL_FAILS = [
     ('oom_count', 1, 'oom_count'),
@@ -94,7 +88,6 @@ def test_resource_failure_at_either_level_fails_naming_level_and_dimension(index
 
 @pytest.mark.parametrize('field', ['memory_free_fraction', 'cpu_free_fraction', 'disk_free_fraction'])
 def test_exhausted_resource_headroom_is_not_pass(field):
-    """Zero free memory/CPU/disk means the resource is exhausted: never PASS."""
     report = supplied_report()
     report['gates']['load']['levels'][0][field] = '0'
     assert evaluate(report).status == 'FAIL'
@@ -158,7 +151,6 @@ def test_supplied_resource_gate_verdicts_fail_closed():
             assert gate + ': supplied verdict ' + verdict in result.reasons
 
 
-# ---- unsupported detector evidence ----------------------------------------------
 
 DETECTOR_CHECKS = CHECKS['detectors']
 
@@ -208,7 +200,6 @@ def test_unsupported_extra_detector_gate_is_unsupported_evidence(name):
 
 @pytest.mark.parametrize('extra', ['third_supported', 'second_detector_supported', 'second_detector_eligible'])
 def test_unsupported_extra_detector_check_does_not_substitute_for_a_missing_one(extra):
-    """An unlisted second-detector check may not stand in for a mandatory one."""
     report = supplied_report()
     checks = report['gates']['detectors']['checks']
     del checks['wallet_supported']
@@ -237,7 +228,6 @@ def test_detector_gate_bound_to_other_identity_is_stale():
     assert 'detectors: missing or invalid evidence (evidence identity mismatch: workload)' in result.reasons
 
 
-# ---- shared: CLI exit, no network, counters untouched ---------------------------
 
 NEGATIVES = {
     'authority': lambda r: r['gates'].pop('authorization'),

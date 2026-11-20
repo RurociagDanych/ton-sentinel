@@ -1,4 +1,5 @@
 """Finite scan contracts reject coercion and unbounded walks."""
+
 import pytest
 
 from ton_sentinel.source.scan import ScanPolicy

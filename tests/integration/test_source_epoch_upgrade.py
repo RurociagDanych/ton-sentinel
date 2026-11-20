@@ -1,8 +1,5 @@
-"""Source upgrades start an audited epoch, never cross-provider revision
-comparisons (real PostgreSQL). Spec section 6.3: "Source upgrades pause automatic
-reconciliation promotion, open a new source epoch and require an approved bounded
-before/after audit."
-"""
+"""Source upgrades start an audited epoch, never cross-provider revision comparisons (real PostgreSQL)."""
+
 import json
 
 import psycopg
@@ -72,7 +69,7 @@ def test_open_source_epoch_records_immutable_audit_and_bumps_the_epoch_once(db):
     assert transitions(db) == [(v1, json.loads(V2.to_json()), "owner-upgrade-audit",
                                 "provider build upgrade", 0, 3600, 1)]
     db.commit()
-    assert open_source_epoch(db, lease, V2, AUDIT) is False        # no churn on repeat
+    assert open_source_epoch(db, lease, V2, AUDIT) is False
     assert snapshot(db) == after and len(transitions(db)) == 1
     for sql in ("UPDATE source_epoch_transitions SET authority_id='x'",
                 "DELETE FROM source_epoch_transitions", "TRUNCATE source_epoch_transitions"):

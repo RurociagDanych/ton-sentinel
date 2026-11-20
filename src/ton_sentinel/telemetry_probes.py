@@ -1,16 +1,4 @@
-"""Read-only telemetry probes outside PostgreSQL for the /status telemetry block.
-
-Two probes, both opt-in through explicit configuration and both without credentials:
-
-* Kafka end offsets over the internal PLAINTEXT listener: metadata and ListOffsets(latest) only,
-  no consumer group, no commits, no record fetches, no SASL/SSL settings. Lag is the log end
-  offset minus the next offset after the newest audited record that Spark committed into
-  ``stream_batches`` (Spark keeps its own position in the checkpoint and never commits a Kafka
-  consumer group, so a consumer-group describe would have nothing to report).
-* ``statvfs`` of the database volume mounted read-only into the api container.
-
-Every failure is ``unavailable`` with a fixed reason; exception text never leaves this module.
-"""
+"""Read-only telemetry probes outside PostgreSQL for the /status telemetry block."""
 import os
 import re
 
@@ -62,7 +50,6 @@ def _unavailable(reason, provenance):
 
 class TelemetryProbes:
     """Applies the configured probes to a telemetry dict from ``serving.read_telemetry``."""
-
     def __init__(self, *, kafka_bootstrap=None, database_volume=None, end_offsets=None,
                  statvfs=None, ismount=None):
         self.kafka_bootstrap = (None if kafka_bootstrap is None

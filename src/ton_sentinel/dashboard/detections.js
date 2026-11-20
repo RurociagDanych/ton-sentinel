@@ -1,7 +1,5 @@
-// Detections and alerts: current detector results of one token over a range, an alert status per
-// result, and a detail that recomputes median, MAD, scale and score from the pinned baseline cells.
-// The effectiveness banner is built before any request and is never hidden. A response without
-// provenance blocks the view.
+// Detections and alerts view. The effectiveness banner is built before any request and is never hidden;
+// a response without provenance blocks the view.
 import { ApiError, ProvenanceError, getChecked } from "./client.js";
 import { badge } from "./states.js";
 import { DEFAULT_PRESET, PRESETS, failureMessage, newPager, pagerAdd, presetRange, tokensParams } from "./explorer-model.js";

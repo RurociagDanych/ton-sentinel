@@ -1,4 +1,5 @@
 """/status pending outbox and repair equal PostgreSQL, over real HTTP."""
+
 import json
 import os
 import threading
@@ -59,7 +60,7 @@ def test_pending_counts_equal_postgres_after_production_transitions(served):
     # qualifying one more window dirties its dependents; nothing promotes them afterwards
     assert qualify(db, lease, world, 30 * W) is True
     outbox, repair = _truth(db)
-    assert outbox > 0 and repair > 0, (outbox, repair)  # the world really left work pending
+    assert outbox > 0 and repair > 0, (outbox, repair)
     payload = _status(base)
     assert payload["pending_work"]["outbox"]["pending"] == outbox
     assert payload["pending_work"]["outbox"]["oldest_pending_age_seconds"] >= 0
@@ -69,7 +70,6 @@ def test_pending_counts_equal_postgres_after_production_transitions(served):
     # The Spark position is read from stream_batches; watermark stays unmeasured
     assert payload["operational_domains"]["spark_checkpoint"] == "observed"
     assert payload["operational_domains"]["spark_watermark"] == "unsupported"
-    # acknowledge everything exactly as outbox.py does: the count follows the database to zero
     db.execute("UPDATE outbox SET publication_state='acknowledged', published_at=clock_timestamp(), "
                "acknowledged_at=clock_timestamp() WHERE publication_state<>'acknowledged'")
     db.commit()
@@ -79,7 +79,7 @@ def test_pending_counts_equal_postgres_after_production_transitions(served):
 
 def test_missing_table_is_unavailable_not_zero(served):
     db, base = served
-    db.execute("DROP TABLE dirty_windows CASCADE")  # scoped to this test's private schema
+    db.execute("DROP TABLE dirty_windows CASCADE")
     db.commit()
     payload = _status(base)
     assert payload["pending_work"]["repair"] == {"status": "unavailable"}

@@ -1,4 +1,5 @@
 """Real Spark regressions for canonical action full-window recomputation."""
+
 import json
 
 import pytest
@@ -40,7 +41,6 @@ def test_recomputes_both_sides_exact_amounts_and_unknown_traders(spark):
                output_raw="3", trader="wallet-2", method="ambiguous", unambiguous=False),
         action("id-4", end=302, input_asset="TON", input_raw="9", output_asset="jetton:B",
                output_raw="7", status="pending"),
-        # Exact replay of a canonical observation must not add volume.
         action("id-1", end=299, input_asset="TON", input_raw="10000000000000000001",
                output_asset="jetton:A", output_raw="250", trader="wallet-1", method="explicit", unambiguous=True),
     ]

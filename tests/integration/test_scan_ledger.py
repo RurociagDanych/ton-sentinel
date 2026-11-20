@@ -1,4 +1,5 @@
 """Real PostgreSQL behavior for durable scan proposals and fenced promotion."""
+
 import base64
 import json
 import os
@@ -620,7 +621,6 @@ def test_database_rejects_outbox_rows_with_inconsistent_delivery_envelope(db):
     db.rollback()
 
 
-# Canonical accepted generation
 
 def corroborated_span(db, values, start, end):
     bounded = ScanPolicy(start=start, end=end, page_size=1, max_pages=8,
@@ -775,7 +775,6 @@ def test_database_checks_generation_carried_by_the_envelope(db):
             value["accepted_generation"] = generation
         return json.dumps(value)
 
-    # Envelope generation differs from the column, or the column is missing.
     cases = [lambda n, g: (g, envelope(n, 2, g + 1)),
              lambda n, g: (None, envelope(n, 2, g)),
              lambda n, g: (g, envelope(n, 1, None)),
@@ -787,7 +786,6 @@ def test_database_checks_generation_carried_by_the_envelope(db):
         with pytest.raises(psycopg.errors.CheckViolation):
             db.execute(insert, (name, json.dumps(payload), topic, inc, replay, column, body))
         db.rollback()
-    # Internally consistent rows that do not reference the canonical generation.
     for index, delta in enumerate((1, -1)):
         name = f"forged-reference-{index}"
         generation = fresh_canonical(name) + delta

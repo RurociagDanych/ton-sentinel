@@ -1,4 +1,5 @@
 """Real PostgreSQL + Kafka acknowledgement, outage, backpressure, hole, lease."""
+
 import base64
 import os
 import socket
@@ -104,7 +105,6 @@ def test_broker_outage_is_ambiguous_bounded_and_recovers_after_reconnect():
         accept(db, lease, 10, 20, 8)
         initialize_publication_origin(db, lease, 10)
         db.commit()
-        # A real KafkaProducer whose broker is unreachable (closed local port).
         down = KafkaProducer(bootstrap_servers="127.0.0.1:1", acks="all",
                              api_version=(2, 5, 0), max_block_ms=300, retries=0)
         try:
@@ -161,8 +161,8 @@ def test_frontier_waits_for_earlier_unacknowledged_range_then_advances_contiguou
     with env() as (db, bootstrap, records, _):
         lease = acquire_transition(db, "hole")
         initialize_publication_origin(db, lease, 10)
-        accept(db, lease, 20, 30, 20)   # later range becomes pending first
-        accept(db, lease, 10, 20, 8)    # earlier range: the hole
+        accept(db, lease, 20, 30, 20)
+        accept(db, lease, 10, 20, 8)
         producer = KafkaProducer(bootstrap_servers=bootstrap, acks="all", retries=3)
         try:
             first = publish_pending(db, producer, lease, limit=1)
@@ -172,7 +172,6 @@ def test_frontier_waits_for_earlier_unacknowledged_range_then_advances_contiguou
                 "USING(range_id) WHERE m.event_id=%s", (first[0],)).fetchone()[0]
             db.commit()
             assert acked_range == 20
-            # Later range is fully acknowledged, earlier is not: no leap over the hole.
             assert advance_publication_frontier(db, lease) is None
             assert len(publish_pending(db, producer, lease)) == 1
         finally:
@@ -203,7 +202,6 @@ def test_expired_lease_cannot_send_or_acknowledge_and_leaves_intent_pending():
 
 @pytest.mark.integration
 def test_ack_timeout_after_send_is_ambiguous_then_duplicate_delivery_is_stable():
-    """send() returns but the broker ack is not awaited in time: no false ack."""
     pytest.importorskip("kafka")
     from kafka import KafkaProducer
     with env() as (db, bootstrap, records, _):
@@ -217,7 +215,7 @@ def test_ack_timeout_after_send_is_ambiguous_then_duplicate_delivery_is_stable()
                 publish_pending(db, slow, lease, max_retries=0, ack_timeout=0.2)
             assert state(db) == [("ambiguous", 1, False)]
             assert advance_publication_frontier(db, lease) is None
-            slow.flush(timeout=15)   # the broker still receives it: a real duplicate-to-be
+            slow.flush(timeout=15)
         finally:
             slow.close()
         fast = KafkaProducer(bootstrap_servers=bootstrap, acks="all", retries=3)

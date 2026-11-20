@@ -1,7 +1,5 @@
-"""Pure rules for validating a recovery cut and resuming only from an exact match.
+"""Pure rules for validating a recovery cut and resuming only from an exact match."""
 
-Real PostgreSQL/Kafka behaviour is covered by tests/integration/test_recovery.py.
-"""
 import dataclasses
 import json
 import re
@@ -55,14 +53,13 @@ def lease(fence=10):
     return Lease("resumer", fence, datetime(2026, 11, 13, tzinfo=timezone.utc))
 
 
-# --- classify_resume_records: redeliver or deduplicate every ambiguous member exactly once
 
 def test_ambiguous_send_that_landed_after_the_cut_is_deduplicated_not_redelivered():
     records = [record(0, 0, "e1", {"event_id": "e1"}), record(0, 1, "e1", {"event_id": "e1"}),
-               record(1, 1, "e2", ENVELOPES["e2"])]          # offset 1 >= E[1] = 1: post-cut
+               record(1, 1, "e2", ENVELOPES["e2"])]
     resolutions, duplicates, reasons = classify_resume_records(manifest(), ENVELOPES, records)
     assert reasons == ()
-    assert resolutions == {"e2": (1, 1), "e3": None}         # e3 never landed -> redeliver
+    assert resolutions == {"e2": (1, 1), "e3": None}
     assert duplicates == ()
 
 
@@ -105,7 +102,6 @@ def test_missing_persisted_envelope_for_an_ambiguous_member_is_incomplete():
     assert any(r.startswith("incomplete:") and "e3" in r for r in reasons)
 
 
-# --- resume_refusals: an exact fenced match of the durable cut, a fresh lineage, a handoff
 
 def test_exact_fenced_match_with_a_fresh_pipeline_epoch_is_accepted():
     assert resume_refusals(point(), point(), cut_fence=9, lease_fence=10,
@@ -143,7 +139,6 @@ def test_presented_point_must_be_a_recovery_point():
     assert any(r.startswith("incomplete:") for r in reasons)
 
 
-# --- resumed consumer: start at E, never apply an event twice
 
 def resumption(resolutions):
     return RecoveryResumption(point().cut_id, 4, 2, "pe-2", lease(), "actions", {0: 2, 1: 1},
@@ -151,12 +146,12 @@ def resumption(resolutions):
 
 
 def test_resumed_records_start_at_the_cut_and_apply_each_event_once():
-    records = [record(0, 0, "e1", "x"), record(0, 1, "e3", ENVELOPES["e3"]),   # below E
-               record(1, 0, "e9", "x"),                                       # below E
-               record(1, 1, "e2", ENVELOPES["e2"]),                           # landed post-cut
-               record(1, 2, "e2", ENVELOPES["e2"]),                           # late duplicate
-               record(0, 2, "e3", ENVELOPES["e3"]),                           # resent copy of a
-               record(0, 3, "e4", "x"), record(0, 4, "e4", "x"),              # pre-cut landing
+    records = [record(0, 0, "e1", "x"), record(0, 1, "e3", ENVELOPES["e3"]),
+               record(1, 0, "e9", "x"),
+               record(1, 1, "e2", ENVELOPES["e2"]),
+               record(1, 2, "e2", ENVELOPES["e2"]),
+               record(0, 2, "e3", ENVELOPES["e3"]),
+               record(0, 3, "e4", "x"), record(0, 4, "e4", "x"),
                record(1, 3, "e5", "x")]
     kept = resumed_records(resumption({"e2": (1, 1), "e3": (0, 1)}), records)
     assert [(r["partition"], r["offset"]) for r in kept] == [(0, 3), (1, 1), (1, 3)]
@@ -167,7 +162,6 @@ def test_spark_starting_offsets_are_the_exact_cut_end_offsets():
     assert json.loads(spark_starting_offsets(resumption({}))) == {"actions": {"0": 2, "1": 1}}
 
 
-# --- entry point and schema
 
 class NoConnection:
     def execute(self, *args, **kwargs):

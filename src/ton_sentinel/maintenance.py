@@ -1,19 +1,4 @@
-"""Bounded retention and identity-guard retirement.
-
-``plan_retention`` reads, never writes. ``apply_retention`` re-derives the plan inside one
-transaction that holds the shared transition slot (the lease row), and only if the result is
-unchanged deletes, in that same transaction: the expired canonical payload of proven-covered
-windows (leaving compact identity guards) and the guards whose coverage is proven and whose
-guard retention has passed. The retained horizon of each class advances in that transaction,
-behind an audit run written before the first delete. Anything that fails rolls back all of it.
-
-A window's data is *proven covered* when the sweeper's canonical closure
-(``window_sweep_closures``) was taken on exactly the inputs that exist now: the current
-canonical inputs for payload, the guarded identities for guards. Pending repair, an active
-hold of admitted work, an open quarantine and (for payload) an unacknowledged delivery block
-the window. Horizons move contiguously from the oldest window; the first blocked window stops
-them, so nothing at or after it is touched.
-"""
+"""Bounded retention and identity-guard retirement."""
 from __future__ import annotations
 
 import hashlib
@@ -34,7 +19,6 @@ _PAYLOAD_TABLES = ("canonical_actions", "canonical_current", "canonical_revision
                    "scan_membership", "event_identity_guards")
 
 
-# ------------------------------------------------------------------------- pure decisions
 def retention_policy(policy) -> tuple:
     """``(event_retention_seconds, guard_retention_seconds, max_windows)``; no defaults."""
     if type(policy) is not dict or set(policy) != POLICY_KEYS:
@@ -61,10 +45,10 @@ def _window(name: str, value) -> int:
 
 @dataclass(frozen=True)
 class Step:
-    to: int              # new horizon: oldest window still retained (exclusive deletion end)
-    windows: tuple       # data windows in [start, to): the ones this step deletes
-    blocked: tuple | None  # (window, sorted reasons) that stopped the horizon, if any
-    bounded: bool        # stopped by max_windows, not by a blocker or the cutoff
+    to: int
+    windows: tuple
+    blocked: tuple | None
+    bounded: bool
 
 
 def next_horizon(start, cutoff_window, data_windows, blockers, max_windows) -> Step:
@@ -126,7 +110,6 @@ def _now(now) -> int:
     return _admission_now(now)
 
 
-# ------------------------------------------------------------------------- database reads
 _PAYLOAD_ROWS_SQL = (
     "SELECT event_id, trace_id, w FROM ("
     " SELECT event_id, action->'identity'->>'trace_id' AS trace_id,"
@@ -245,7 +228,7 @@ def _payload_section(connection, network, at, retention, max_windows) -> dict:
 def _guard_section(connection, network, at, retention, max_windows) -> dict:
     start = _guard_horizon(connection, network)
     cutoff = whole_window_cutoff(at, retention)
-    limit = max(start, min(cutoff, _horizon(connection, network)))   # payload gone first
+    limit = max(start, min(cutoff, _horizon(connection, network)))
     rows = connection.execute(
         "SELECT event_id, trace_id, window_start, last_window, windows, eligible, "
         "accepted_generation, semantic_digest FROM event_identity_guards WHERE network=%s",
@@ -281,11 +264,10 @@ def plan_retention(connection, now, policy: dict) -> dict:
     """Decide, without writing, what a retention run at ``now`` may delete."""
     retention_policy(policy)
     at = _now(now)
-    with connection.transaction():          # read-only; a savepoint inside a caller's tx
+    with connection.transaction():  # read-only; a savepoint inside a caller's tx
         return _compute(connection, at, policy)
 
 
-# ------------------------------------------------------------------------- the transition
 def _run_id(plan_id: str, kind: str, network: str) -> str:
     return plan_digest({"run": [plan_id, kind, network]})
 
@@ -330,7 +312,6 @@ def _close_run(connection, run_id: str, network: str, deleted: dict) -> None:
 
 
 def _guard_rows(connection, events) -> list:
-    """Compact identity of each event about to lose its payload."""
     guards = []
     for event_id in events:
         current = connection.execute(
@@ -422,7 +403,7 @@ def apply_retention(connection, lease, plan: dict) -> dict:
     work += [("guards", s) for s in plan["guards"] if s["to"] > s["from"]]
     run_ids = [_run_id(plan["digest"], kind, s["network"]) for kind, s in work]
     with connection.transaction():
-        validate_transition(connection, lease)          # the shared slot: serializes all work
+        validate_transition(connection, lease)  # the shared slot: serializes all work
         if not work:
             return {"status": "nothing_to_delete", "plan": plan["digest"], "runs": []}
         done = _runs(connection, run_ids)
@@ -438,7 +419,6 @@ def apply_retention(connection, lease, plan: dict) -> dict:
         return {"status": "applied", "plan": plan["digest"], "runs": _runs(connection, run_ids)}
 
 
-# ------------------------------------------------------------------------- admitted work
 def _admitted(admission):
     from ton_sentinel.db.work import Admission
 
@@ -493,10 +473,8 @@ def release_hold(connection, lease, admission) -> bool:
             (admission.digest,)).fetchone() is not None
 
 
-# ============================================================================================
 # Generic context holds, 30-day derived-history retention,
 # late-delivery classification, storage/vacuum budgets and the fenced maintenance cycle.
-# 
 _DIGEST_PREFIX = "sha256:"
 
 
@@ -548,7 +526,6 @@ def release_context(connection, lease, holder: str) -> bool:
             (holder,)).fetchone() is not None
 
 
-# ------------------------------------------------------------------ derived-history retention
 DERIVED_POLICY_KEYS = frozenset({"derived_retention_seconds", "max_windows"})
 DERIVED_REASONS = frozenset({"pending_repair", "admitted_work_hold"})
 # Delete order follows the foreign keys: alerts and current pointers reference results,
@@ -617,7 +594,7 @@ def _derived_rows(connection, network: str, below: int | None = None) -> dict:
 def _derived_section(connection, network, at, retention, max_windows) -> dict:
     start = _derived_horizon(connection, network)
     cutoff = whole_window_cutoff(at, retention)
-    limit = max(start, min(cutoff, _horizon(connection, network)))   # payload goes first
+    limit = max(start, min(cutoff, _horizon(connection, network)))
     data = {row[0] for row in connection.execute(
         "SELECT window_start FROM served_features WHERE network=%(n)s"
         " UNION SELECT window_start FROM baseline_inputs WHERE network=%(n)s"
@@ -710,7 +687,6 @@ def apply_derived_retention(connection, lease, plan: dict) -> dict:
         return {"status": "applied", "plan": plan["digest"], "runs": _runs(connection, run_ids)}
 
 
-# ------------------------------------------------------------------------ late deliveries
 DELIVERY_REASONS = frozenset({"identity_guarded", "stale_generation", "payload_expired",
                               "guard_retired"})
 
@@ -718,7 +694,6 @@ DELIVERY_REASONS = frozenset({"identity_guarded", "stale_generation", "payload_e
 @dataclass(frozen=True)
 class DeliveryAdmission:
     """Whether a delivery may enter the additive path; refused deliveries are backfill only."""
-
     event_id: str
     admitted: bool
     status: str
@@ -796,7 +771,6 @@ def late_delivery_reasons(connection, event_id: str, network: str, window_start:
             payload_from, guard_before)
 
 
-# ----------------------------------------------------------------- storage and vacuum budgets
 CYCLE_POLICY_KEYS = frozenset({
     "event_retention_seconds", "guard_retention_seconds", "derived_retention_seconds",
     "max_windows", "vacuum_max_tables", "vacuum_max_bytes", "storage_budget_bytes",
@@ -806,7 +780,7 @@ _STORAGE_TABLES = (
     "event_identity_guards", "action_observations", "served_features", "baseline_inputs",
     "detector_results", "detector_current", "alert_revisions", "dirty_windows",
     "retention_runs", "retention_holds", "delivery_quarantine", "window_sweep_closures")
-VACUUM_MODE = "VACUUM (ANALYZE)"       # plain, concurrent-safe; never VACUUM FULL
+VACUUM_MODE = "VACUUM (ANALYZE)"  # plain, concurrent-safe; never VACUUM FULL
 
 
 def cycle_policy(policy) -> dict:

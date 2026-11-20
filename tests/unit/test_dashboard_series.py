@@ -1,4 +1,5 @@
 """Dashboard API unit tests: /v1/tokens, /v1/series and the /v1/windows range filter (no database)."""
+
 import json
 from unittest.mock import patch
 
@@ -44,7 +45,6 @@ def feature(start, token="jetton:a", qualification=None):
 
 
 def run(path, query, rows, reader="read_series"):
-    """Run a request against a fake connection; return (status, body, reader mock)."""
     with patch("ton_sentinel.api.psycopg.connect", return_value=FakeConnection()), \
          patch(f"ton_sentinel.api.{reader}", return_value=rows) as mock, \
          patch("ton_sentinel.api.read_provenance", return_value=PROV):
@@ -58,13 +58,12 @@ def series_query(**over):
     return "&".join(f"{k}={v}" for k, v in q.items() if v is not None)
 
 
-# ---- range validation ------------------------------------------------------------------
 @pytest.mark.parametrize("over", [
-    {"to": T0},                        # to == from
-    {"to": T0 - 300},                  # to < from
-    {"to": T0 + 604800 + 300},         # span > 7 days
-    {"from": T0 + 1},                  # not a multiple of 300
-    {"to": T0 + 3601},                 # not a multiple of 300
+    {"to": T0},
+    {"to": T0 - 300},
+    {"to": T0 + 604800 + 300},
+    {"from": T0 + 1},
+    {"to": T0 + 3601},
     {"from": None}, {"to": None}, {"token": None}, {"network": None},
     {"network": "devnet"}, {"token": ""}, {"from": "-300"}, {"from": "abc"},
     {"limit": 0}, {"limit": 1001}, {"limit": "x"},
@@ -98,7 +97,6 @@ def test_tokens_range_and_page_bounds(query):
     mock.assert_not_called()
 
 
-# ---- page bounds + cursor binding -------------------------------------------------------
 def test_series_page_bound_truncates_and_issues_cursor():
     rows = [feature(T0 + 300 * i) for i in range(3)]
     status, body, mock = run("/v1/series", series_query(limit=2), rows)
@@ -118,7 +116,6 @@ def test_series_cursor_bound_to_filters_and_unicode_token_roundtrip():
     q = series_query(token=quote(token), limit=1)
     rows = [feature(T0), feature(T0 + 300)]
     cursor = _cursor(q, rows)
-    # same filters: accepted, key handed to the reader as an int window_start
     status, body, mock = run("/v1/series", q + f"&cursor={cursor}", rows[1:])
     assert status == "200 OK" and mock.call_args.kwargs["after"] == T0
     assert mock.call_args.kwargs["token"] == token
@@ -157,7 +154,6 @@ def test_tokens_cursor_bound_to_filters():
     assert run("/v1/tokens", other, [], reader="read_tokens")[0] == "400 Bad Request"
 
 
-# ---- windows range ----------------------------------------------------------------------
 def window(start):
     return {"network": "testnet", "window_start": start, "window_end": start + 300,
             "feature_rows": 1, "provisional_rows": 1, "generation_count": 1, "statuses": ["x"]}
@@ -180,7 +176,6 @@ def test_windows_range_filter_with_cursor_and_unchanged_body():
     assert mock.call_args.kwargs["window_from"] == T0 and mock.call_args.kwargs["window_to"] == T0 + 3600
     cursor = body["next_cursor"]
     assert run("/v1/windows", q + f"&cursor={cursor}", rows[1:], reader="read_windows")[0] == "200 OK"
-    # a cursor is bound to the range, and a range-less cursor cannot be reused with a range
     wider = f"network=testnet&from={T0}&to={T0 + 7200}&limit=1&cursor={cursor}"
     assert run("/v1/windows", wider, [], reader="read_windows")[0] == "400 Bad Request"
     plain = run("/v1/windows", "network=testnet&limit=1", rows, reader="read_windows")[1]["next_cursor"]
@@ -192,7 +187,6 @@ def test_windows_without_range_keeps_old_filter_contract():
     assert mock.call_args.kwargs["window_from"] is None and mock.call_args.kwargs["window_to"] is None
 
 
-# ---- provenance + safety ----------------------------------------------------------------
 def test_new_responses_carry_provenance_blocks():
     status, body, _ = run("/v1/series", series_query(), [feature(T0), feature(T0 + 300, qualification={"mode": "bounded_observed", "synthetic": True})])
     assert status == "200 OK" and body["provenance"] == PROV
@@ -227,11 +221,11 @@ def test_provenance_failure_is_not_served_as_empty():
 
 def test_safety_filter_applied_to_series_and_tokens():
     bad = feature(T0)
-    bad["lease_owner"] = "worker-7"          # forbidden key: stripped
+    bad["lease_owner"] = "worker-7"
     status, body, _ = run("/v1/series", series_query(), [bad])
     assert status == "200 OK" and "lease_owner" not in json.dumps(body)
     leaky = feature(T0)
-    leaky["status"] = "postgresql://u:p@h/db"  # forbidden value: refused, never served
+    leaky["status"] = "postgresql://u:p@h/db"
     status, body, _ = run("/v1/series", series_query(), [leaky])
     assert status == "503 Service Unavailable" and "postgresql" not in json.dumps(body)
     tok = {"token": "https://evil.example/x", "feature_rows": 1, "window_count": 1, "swaps": 1,

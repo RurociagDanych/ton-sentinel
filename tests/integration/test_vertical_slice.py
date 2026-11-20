@@ -1,5 +1,4 @@
 import re
-"""Real Spark → PostgreSQL → HTTP readback vertical-slice regression."""
 import base64
 import json
 import os
@@ -90,7 +89,6 @@ def test_real_spark_full_replacement_and_read_only_http(spark, database):
         _action(1, end=20, asset="JETTON:A", incoming="10000000000000000001", outgoing="250", trader=_id(900)),
         _action(2, end=50, asset="JETTON:A", incoming="9", outgoing="5", trader=_id(900)),
     ]
-    # Repartition/order changes exercise deterministic recomputation from the same complete source set.
     first = _compute(spark, canonical).collect()
     reordered = _compute(spark, list(reversed(canonical))).repartition(2).collect()
     with psycopg.connect(database) as connection:

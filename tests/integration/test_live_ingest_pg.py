@@ -1,10 +1,5 @@
-"""Recorded real live data through production ingest, real Kafka and Spark to served rows.
+"""Recorded real live data through production ingest, real Kafka and Spark to served rows."""
 
-Real PostgreSQL, Kafka and Spark (compose project ton-sentinel-local, app container). The
-input is the recorded live window W (tests/fixtures/live/g3_window.json): public on-chain
-data, no request is made. The test-only synthetic fixture switch is removed for every test here,
-so the run uses the production configuration.
-"""
 from __future__ import annotations
 
 import base64
