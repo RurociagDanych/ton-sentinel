@@ -1,9 +1,11 @@
 # TON Sentinel
 
-TON Sentinel detects unusual DEX swap activity on TON. It reads STON.fi and DeDust swaps from a
-TON Center v3 compatible indexer, aggregates them into five-minute windows per token, and flags
-windows whose activity departs from recent history, with an explanation of each score. It is a
-local-first engineering project, not a trading tool, investment advice or a fraud classifier.
+TON Sentinel reads STON.fi and DeDust swaps from a TON Center v3 compatible indexer and
+aggregates them into five-minute windows per token. It produces explainable anomaly scores per
+window, persisted as detections and alerts. This lets you see which tokens departed from their
+recent swap activity, and why. Not a trading tool or fraud classifier.
+
+**Status:** local-first engineering project; see [doc/operations.md](doc/operations.md).
 
 ## Architecture
 
@@ -27,8 +29,28 @@ TON indexer (read-only GET) -> source adapter -> PostgreSQL (canonical swaps, de
   API metrics; Grafana and Alertmanager run beside it, all bound to loopback.
 - **Helm chart** (`deploy/helm/ton-sentinel`), with local k3d values in `deploy/helm/local`.
 
-Unknown traders, missing coverage and short history stay visible as such instead of becoming
-zeros or invented counts.
+## Key design decisions
+
+- **PostgreSQL is canonical state, Kafka is a delivery buffer.** Swaps, revisions, the outbox,
+  checkpoints and detections live in PostgreSQL, so Kafka can be replayed or lost without losing
+  data. Trade-off: an outbox and checkpoints to maintain, and one more hop per swap.
+- **Robust-score detectors (median and MAD over earlier windows).** Two detectors, swap count
+  and unique active wallets, each with a score a reader can recompute by hand. Trade-off: less
+  sensitive than a learned model, and effectiveness is not measured for lack of labelled data.
+- **Unknown stays unknown.** Unknown traders, missing coverage and short history are shown as
+  such instead of becoming zeros or invented counts. Trade-off: sparser dashboards.
+- **Loopback-only, read-only surface.** The API is GET-only, services bind to loopback, and the
+  API reads through a least-privilege database role. Trade-off: no remote access without extra
+  setup. Details in [doc/security.md](doc/security.md).
+- **Local-first, pinned builds.** Images are pinned by digest and the app image is built
+  locally. Trade-off: new builds must be re-pinned, and nothing is published.
+
+## Limitations
+
+- Budgets: 6 GB RAM and 2 CPU cores, local ceilings from `deploy/workload/acceptance.json`.
+- No labelled data, so detector quality is unmeasured. A flagged window is a prompt to look.
+- Not verified: sustained live load, ARM64, cloud deployment. See
+  [doc/operations.md](doc/operations.md).
 
 ## Quick start
 
@@ -56,14 +78,8 @@ docker compose --env-file .env -p ton-sentinel-local -f deploy/compose.yaml up -
 docker compose --env-file .env -p ton-sentinel-local -f deploy/compose.yaml down --volumes
 ```
 
-Always pass `--env-file .env`: Compose otherwise looks for `.env` next to the compose file and
-stops with `set TON_SENTINEL_PG_PASSWORD in .env`.
-
-The `app` and API image (Spark plus the project code) is built locally from
-`deploy/app.Dockerfile`; no prebuilt image is published. The build context needs the Spark
-connector jars listed with their SHA-256 in `deploy/images.lock.json`, and the compose files pin
-the image by digest, so a new build has to be pinned there. Integration tests
-(`tests/integration`) run inside that `app` container against real PostgreSQL, Kafka and Spark.
+Always pass `--env-file .env`. Image build, pinning and integration tests are described in
+[doc/operations.md](doc/operations.md).
 
 ## Repository layout
 
@@ -72,22 +88,8 @@ the image by digest, so a new build has to be pinned there. Integration tests
 | `src/ton_sentinel/` | Source adapter, database layer and migrations, Spark jobs, detectors, API, dashboard |
 | `tests/` | `unit/`, `integration/` (real services), `fixtures/` (recorded public on-chain data, URLs stripped) |
 | `scripts/` | `qualify` (static and qualification gates), `local-check`, `local-stack-check` |
+| `doc/` | Operations and security notes |
 | `deploy/` | Compose files, app Dockerfile, image lock, monitoring config, Helm chart, workload envelope |
-
-## Limitations
-
-- **Not production.** It runs on one local host: no hosting, no high availability, no public
-  port. Local volumes are not backups. Local budgets are 6 GB RAM and 2 CPU.
-- **Detector effectiveness is not measured.** There is no labelled anomaly data. The detectors
-  were checked for correct arithmetic and on injected synthetic spikes only, so a flagged window
-  is a prompt to look, not evidence of manipulation.
-- **No scheduler is enabled by default.** Ingest and scoring run when started; the bounded live
-  monitor loop stays off unless explicitly enabled.
-- Source coverage and trader attribution were checked against hand-derived truth on recorded
-  samples only. The indexer's action classifier misses some DeDust routes; a trace recognizer
-  fills the known gaps.
-- Not verified: sustained live load, ARM64, any cloud deployment.
-- The app image is built locally and not published (see Quick start).
 
 ## License
 
