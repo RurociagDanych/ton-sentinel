@@ -22,7 +22,8 @@ Guide for AI coding agents working on TON Sentinel: a local-first pipeline that 
 
 ## Conventions
 
-- Language: English for code, commit messages and docs. Python 3.10 or newer. Source code, Dockerfiles, compose and YAML files carry no comments or docstrings; explanations go in `docs/`.
+- Language: English for code, commit messages and docs. Python 3.10 or newer.
+- Public modules, classes and functions have docstrings. Comments explain why, not what. Tool directives such as # noqa are allowed.
 - Formatters: none configured; follow the style of the surrounding code.
 - Commit style: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`).
 - Branch naming: prefixed branches such as `docs/...`, `fix/...`, `chore/...`.
