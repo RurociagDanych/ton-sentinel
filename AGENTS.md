@@ -25,14 +25,16 @@ Guide for AI coding agents working on TON Sentinel: a local-first pipeline that 
 - Language: English for code, commit messages and docs. Python 3.10 or newer.
 - Public modules, classes and functions have docstrings. Comments explain why, not what. Tool directives such as # noqa are allowed.
 - Formatters: none configured; follow the style of the surrounding code.
-- Commit style: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`).
-- Branch naming: prefixed branches such as `docs/...`, `fix/...`, `chore/...`.
+- Commit style: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `ci:`, optional scope such as `feat(detector):`).
+- PR branches: use `feat/`, `fix/`, `docs/`, or `chore/` followed by a short lowercase kebab-case description (for example, `fix/dedust-window-alignment`). Branch from current `origin/main` and open the PR against `main` unless the task specifies another base.
+- PR titles: use `type(scope): short imperative summary` in English (for example, `fix(detector): align five-minute swap window boundaries`). Choose the type for the change and the scope for the affected component, regardless of the branch prefix.
+- PR body: follow the default template at [`RurociagDanych/.github` (`PULL_REQUEST_TEMPLATE.md`)](https://github.com/RurociagDanych/.github/blob/main/.github/PULL_REQUEST_TEMPLATE.md) (`Summary`, `Changes`, `Not changed and why`, `Owner decisions applied`, `Verification`, `Open risks`), filling every section and removing HTML comments; never merge PRs (the owner merges).
 - Test locations: unit tests in `tests/unit`, service-backed tests in `tests/integration` (marked `integration` and run inside the `app` container), recorded data in `tests/fixtures`. Do not reuse a test module file name across directories.
 
 ## Guardrails
 
 - Secrets: credentials come only from the git-ignored `.env`; `.env.example` holds placeholders. Never commit `.env`, keys or passwords. `tests/unit/test_publishable_repo.py` enforces these rules.
-- Git: no force-push and no history rewrite.
+- Git: no force-push and no history rewrite on shared branches; never merge PRs (the owner merges).
 - Deletes: do not delete files or directories without owner approval.
 - Generated paths: `.venv/`, `.cache/` and `__pycache__/` are generated and git-ignored.
 - Frozen paths: do not change `deploy/` (including the Helm chart) without owner approval.
